@@ -1,0 +1,1476 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Epicurean House — Back of House</title>
+<style>
+:root{
+  --navy:#0F1B2D;--navy2:#1A2B42;--navy3:#243550;
+  --gold:#B8943F;--gold-l:#F5EDD4;--gold-m:#E8D5A0;
+  --white:#FFFFFF;--bg:#F4F6F9;--bg2:#EEF1F6;
+  --txt:#0F1B2D;--txt2:#4A5568;--txt3:#718096;
+  --border:#E2E8F0;--border2:#CBD5E0;
+  --green:#276749;--green-bg:#E6F4ED;
+  --red:#C53030;--red-bg:#FEF2F2;
+  --amber:#975A16;--amber-bg:#FFFBEB;
+  --blue:#2B6CB0;--blue-bg:#EBF4FF;
+  --purple:#553C9A;--purple-bg:#F5F0FF;
+  --teal:#285E61;--teal-bg:#E6FFFA;
+  --sidebar-w:220px;
+  --topbar-h:56px;
+  --r:8px;--r2:12px;
+  --shadow:0 1px 3px rgba(0,0,0,.1),0 1px 2px rgba(0,0,0,.06);
+  --shadow-md:0 4px 6px rgba(0,0,0,.07),0 2px 4px rgba(0,0,0,.05);
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Inter',sans-serif;background:var(--bg);color:var(--txt);height:100vh;overflow:hidden;display:flex;flex-direction:column}
+button{font-family:inherit;cursor:pointer;border:none;background:none}
+input,textarea,select{font-family:inherit;outline:none}
+a{text-decoration:none;color:inherit}
+
+/* ── TOPBAR ── */
+#topbar{height:var(--topbar-h);background:var(--navy);display:flex;align-items:center;padding:0 20px;gap:16px;flex-shrink:0;z-index:30}
+#topbar-logo{font-size:16px;font-weight:700;color:var(--gold);letter-spacing:.03em;white-space:nowrap}
+#topbar-logo span{font-weight:300;opacity:.7;font-size:13px;display:block;letter-spacing:.05em}
+#topbar-spacer{flex:1}
+.topbar-badge{display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer}
+.tb-online{background:rgba(39,103,73,.4);color:#9AE6B4}
+.tb-time{color:rgba(255,255,255,.5);font-size:12px;font-family:monospace}
+.topbar-icon{width:32px;height:32px;border-radius:50%;background:rgba(255,255,255,.1);display:flex;align-items:center;justify-content:center;color:rgba(255,255,255,.7);cursor:pointer;font-size:15px}
+.topbar-icon:hover{background:rgba(255,255,255,.18)}
+.topbar-avatar{width:32px;height:32px;border-radius:50%;background:var(--gold);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--navy);cursor:pointer}
+
+/* ── LAYOUT ── */
+#app-body{display:flex;flex:1;overflow:hidden}
+
+/* ── SIDEBAR ── */
+#sidebar{width:var(--sidebar-w);background:var(--navy);display:flex;flex-direction:column;flex-shrink:0;overflow-y:auto;padding-bottom:16px}
+.nav-section{padding:20px 12px 6px;font-size:10px;font-weight:600;letter-spacing:.1em;color:rgba(255,255,255,.3);text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:9px 12px;border-radius:var(--r);margin:1px 8px;cursor:pointer;color:rgba(255,255,255,.6);font-size:13px;font-weight:500;transition:all .15s;position:relative}
+.nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.9)}
+.nav-item.active{background:rgba(184,148,63,.15);color:var(--gold)}
+.nav-item .nav-icon{font-size:16px;width:20px;text-align:center;flex-shrink:0}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px}
+.nav-sub{padding-left:32px;font-size:12px;color:rgba(255,255,255,.45);margin:1px 8px}
+.nav-divider{border:none;border-top:1px solid rgba(255,255,255,.07);margin:8px 16px}
+
+/* ── MAIN CONTENT ── */
+#main{flex:1;overflow-y:auto;display:flex;flex-direction:column}
+.page{display:none;flex-direction:column;flex:1;min-height:0}
+.page.active{display:flex}
+.page-header{padding:24px 28px 0;flex-shrink:0}
+.page-title{font-size:22px;font-weight:700;color:var(--txt)}
+.page-sub{font-size:13px;color:var(--txt3);margin-top:3px}
+.page-body{padding:20px 28px;flex:1;overflow-y:auto}
+
+/* ── CARDS ── */
+.card{background:var(--white);border:1px solid var(--border);border-radius:var(--r2);box-shadow:var(--shadow)}
+.card-header{padding:16px 20px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px}
+.card-title{font-size:14px;font-weight:600;color:var(--txt);flex:1}
+.card-body{padding:16px 20px}
+
+/* ── METRIC CARDS ── */
+.metric-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:14px;margin-bottom:20px}
+.metric-card{background:var(--white);border:1px solid var(--border);border-radius:var(--r2);padding:16px 18px;box-shadow:var(--shadow)}
+.metric-label{font-size:11px;font-weight:600;color:var(--txt3);letter-spacing:.05em;text-transform:uppercase;margin-bottom:6px}
+.metric-val{font-size:26px;font-weight:700;color:var(--txt);line-height:1}
+.metric-sub{font-size:12px;color:var(--txt3);margin-top:5px}
+.metric-trend{display:inline-flex;align-items:center;gap:3px;font-size:11px;font-weight:600;padding:2px 7px;border-radius:10px;margin-top:6px}
+.trend-up{background:var(--green-bg);color:var(--green)}
+.trend-dn{background:var(--red-bg);color:var(--red)}
+
+/* ── TABLES ── */
+.data-table{width:100%;border-collapse:collapse;font-size:13px}
+.data-table th{padding:10px 14px;text-align:left;font-size:11px;font-weight:600;color:var(--txt3);letter-spacing:.05em;text-transform:uppercase;border-bottom:1px solid var(--border);background:var(--bg);position:sticky;top:0}
+.data-table td{padding:11px 14px;border-bottom:1px solid var(--border);color:var(--txt);vertical-align:middle}
+.data-table tr:last-child td{border:none}
+.data-table tr:hover td{background:var(--bg)}
+.data-table .td-right{text-align:right}
+.data-table .td-mono{font-family:monospace;font-size:12px}
+
+/* ── BUTTONS ── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:var(--r);font-size:13px;font-weight:500;cursor:pointer;transition:all .15s;border:1px solid transparent}
+.btn:active{transform:scale(.98)}
+.btn-primary{background:var(--navy);color:#fff;border-color:var(--navy)}
+.btn-primary:hover{background:var(--navy2)}
+.btn-gold{background:var(--gold);color:#fff;border-color:var(--gold)}
+.btn-gold:hover{background:#9A7A30}
+.btn-outline{background:transparent;color:var(--txt2);border-color:var(--border2)}
+.btn-outline:hover{background:var(--bg);border-color:var(--txt3)}
+.btn-danger{background:var(--red);color:#fff;border-color:var(--red)}
+.btn-sm{padding:5px 11px;font-size:12px}
+.btn-xs{padding:3px 8px;font-size:11px}
+
+/* ── INPUTS ── */
+.inp{width:100%;background:var(--white);border:1px solid var(--border2);border-radius:var(--r);padding:8px 12px;font-size:13px;color:var(--txt);transition:border .15s}
+.inp:focus{border-color:var(--gold);box-shadow:0 0 0 3px rgba(184,148,63,.12)}
+.inp-sm{padding:6px 10px;font-size:12px}
+.lbl{font-size:12px;font-weight:600;color:var(--txt2);margin-bottom:4px;display:block}
+.form-row{display:grid;gap:12px;margin-bottom:14px}
+.form-row.cols-2{grid-template-columns:1fr 1fr}
+.form-row.cols-3{grid-template-columns:1fr 1fr 1fr}
+.form-row.cols-4{grid-template-columns:1fr 1fr 1fr 1fr}
+
+/* ── PILLS ── */
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500}
+.pill-green{background:var(--green-bg);color:var(--green)}
+.pill-red{background:var(--red-bg);color:var(--red)}
+.pill-amber{background:var(--amber-bg);color:var(--amber)}
+.pill-blue{background:var(--blue-bg);color:var(--blue)}
+.pill-purple{background:var(--purple-bg);color:var(--purple)}
+.pill-teal{background:var(--teal-bg);color:var(--teal)}
+.pill-navy{background:var(--navy3);color:rgba(255,255,255,.8)}
+.pill-gray{background:var(--bg2);color:var(--txt3);border:1px solid var(--border)}
+
+/* ── TABS ── */
+.tab-row{display:flex;gap:2px;border-bottom:1px solid var(--border);margin-bottom:18px}
+.tab-btn{padding:8px 16px;font-size:13px;font-weight:500;color:var(--txt3);cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .15s}
+.tab-btn.active{color:var(--navy);border-color:var(--gold);font-weight:600}
+.tab-btn:hover{color:var(--txt)}
+.tab-panel{display:none}.tab-panel.active{display:block}
+
+/* ── MODAL ── */
+.modal-bg{position:fixed;inset:0;background:rgba(15,27,45,.5);z-index:100;display:none;align-items:center;justify-content:center;padding:20px}
+.modal-bg.open{display:flex}
+.modal{background:var(--white);border-radius:var(--r2);box-shadow:0 20px 60px rgba(0,0,0,.2);width:100%;max-width:640px;max-height:90vh;display:flex;flex-direction:column;overflow:hidden}
+.modal-wide{max-width:900px}
+.modal-hd{padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0}
+.modal-title{font-size:16px;font-weight:700;flex:1}
+.modal-close{width:28px;height:28px;border-radius:50%;background:var(--bg2);display:flex;align-items:center;justify-content:center;font-size:16px;color:var(--txt3);cursor:pointer}
+.modal-close:hover{background:var(--border)}
+.modal-body{padding:22px;overflow-y:auto;flex:1}
+.modal-footer{padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0}
+
+/* ── TOGGLE ── */
+.toggle{width:40px;height:22px;background:var(--border2);border-radius:11px;position:relative;cursor:pointer;flex-shrink:0;transition:background .2s}
+.toggle.on{background:var(--green)}
+.toggle-thumb{width:18px;height:18px;background:#fff;border-radius:50%;position:absolute;top:2px;left:2px;transition:left .2s;box-shadow:0 1px 3px rgba(0,0,0,.2)}
+.toggle.on .toggle-thumb{left:20px}
+
+/* ── SEARCH BAR ── */
+.search-row{display:flex;gap:10px;align-items:center;margin-bottom:16px}
+.search-wrap{position:relative;flex:1}
+.search-icon{position:absolute;left:10px;top:50%;transform:translateY(-50%);color:var(--txt3);font-size:14px;pointer-events:none}
+.search-inp{padding-left:32px}
+
+/* ── FLOOR DESIGNER ── */
+#floor-canvas-wrap{flex:1;overflow:auto;background:repeating-linear-gradient(0deg,transparent,transparent 29px,var(--border) 29px,var(--border) 30px),repeating-linear-gradient(90deg,transparent,transparent 29px,var(--border) 30px,var(--border) 30px);background-color:var(--bg2);position:relative;cursor:default;min-height:500px}
+.floor-obj{position:absolute;user-select:none;display:flex;align-items:center;justify-content:center;cursor:move;touch-action:none}
+.floor-obj.selected{outline:2px solid var(--gold);outline-offset:2px}
+.floor-obj:hover{outline:1px solid var(--border2);outline-offset:2px}
+.table-shape{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;font-weight:700;font-size:13px;border:2px solid}
+.ts-round{border-radius:50%}
+.ts-square{border-radius:8px}
+.ts-rect{border-radius:6px}
+.wall-shape{background:var(--navy3);border-radius:4px}
+.bar-shape{background:#8B6B2E;border-radius:6px;display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:600}
+.label-shape{background:transparent;font-size:12px;font-weight:600;color:var(--txt2);white-space:nowrap;cursor:move}
+.floor-toolbar{position:absolute;top:12px;left:12px;display:flex;flex-direction:column;gap:6px;z-index:10}
+.floor-tool{width:36px;height:36px;background:var(--white);border:1px solid var(--border2);border-radius:var(--r);display:flex;align-items:center;justify-content:center;font-size:16px;cursor:pointer;box-shadow:var(--shadow);transition:all .15s}
+.floor-tool:hover{background:var(--gold-l);border-color:var(--gold)}
+.floor-tool.active-tool{background:var(--gold);color:#fff;border-color:var(--gold)}
+.floor-tool-label{font-size:9px;font-weight:600;color:var(--txt3);text-align:center;margin-top:1px}
+.resize-handle{position:absolute;width:8px;height:8px;background:var(--gold);border:1px solid #fff;border-radius:50%;bottom:-4px;right:-4px;cursor:se-resize}
+
+/* ── CHART BARS ── */
+.mini-bar-wrap{display:flex;align-items:flex-end;gap:4px;height:60px;padding-top:4px}
+.mini-bar{flex:1;background:var(--gold-m);border-radius:3px 3px 0 0;position:relative;min-height:3px;transition:height .4s}
+.mini-bar:hover{background:var(--gold)}
+.mini-bar-label{font-size:9px;color:var(--txt3);text-align:center;margin-top:3px}
+
+/* ── STATUS DOT ── */
+.status-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot-green{background:var(--green)}
+.dot-red{background:var(--red)}
+.dot-amber{background:#D97706}
+.dot-gray{background:var(--txt3)}
+
+/* ── ALLERGY SELECTOR ── */
+.allergy-grid{display:flex;flex-wrap:wrap;gap:6px}
+.allergy-chip{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid var(--border2);color:var(--txt2);background:var(--white);cursor:pointer;transition:all .15s}
+.allergy-chip.on{background:var(--red-bg);border-color:var(--red);color:var(--red)}
+.diet-chip{padding:4px 10px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid var(--border2);color:var(--txt2);background:var(--white);cursor:pointer;transition:all .15s}
+.diet-chip.on{background:var(--green-bg);border-color:var(--green);color:var(--green)}
+
+/* ── NOTIFICATION TOAST ── */
+#toast{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.toast-item{background:var(--navy);color:#fff;padding:12px 18px;border-radius:var(--r2);font-size:13px;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:10px;animation:slide-in .25s ease;border-left:3px solid var(--gold)}
+@keyframes slide-in{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
+.toast-item.success{border-color:var(--green)}
+.toast-item.error{border-color:var(--red)}
+
+/* ── CHART AREA ── */
+.chart-wrap{position:relative;height:180px}
+
+/* ── WINE ENTRY ── */
+.vin-label{font-size:10px;font-family:monospace;color:var(--txt3);background:var(--bg2);padding:1px 6px;border-radius:4px;border:1px solid var(--border)}
+
+/* ── SECTION COLORS ── */
+.section-badge{width:12px;height:12px;border-radius:3px;flex-shrink:0}
+</style>
+</head>
+<body>
+
+<!-- ── TOPBAR ── -->
+<div id="topbar">
+  <div id="topbar-logo">The Epicurean House <span>@ The Chocolate Studio — Back of House</span></div>
+  <div id="topbar-spacer"></div>
+  <div class="topbar-badge tb-online">● Live</div>
+  <div class="tb-time" id="clock">--:--:--</div>
+  <div class="topbar-icon" title="Notifications" onclick="showToast('No new alerts','success')">🔔</div>
+  <div class="topbar-icon" title="Help">?</div>
+  <div class="topbar-avatar" id="user-avatar" title="Manager">M</div>
+</div>
+
+<!-- ── APP BODY ── -->
+<div id="app-body">
+
+<!-- ── SIDEBAR ── -->
+<nav id="sidebar">
+  <div class="nav-section">Overview</div>
+  <div class="nav-item active" onclick="navTo('dashboard',this)"><span class="nav-icon">📊</span>Dashboard</div>
+  <div class="nav-item" onclick="navTo('live',this)"><span class="nav-icon">🔴</span>Live Service<span class="nav-badge" id="live-badge">3</span></div>
+
+  <div class="nav-section">Operations</div>
+  <div class="nav-item" onclick="navTo('floor',this)"><span class="nav-icon">🗺️</span>Floor Designer</div>
+  <div class="nav-item" onclick="navTo('menu',this)"><span class="nav-icon">📋</span>Menu Manager</div>
+  <div class="nav-item" onclick="navTo('wine',this)"><span class="nav-icon">🍷</span>Wine Cellar</div>
+  <div class="nav-item" onclick="navTo('staff',this)"><span class="nav-icon">👥</span>Staff & Sections</div>
+  <div class="nav-item" onclick="navTo('guests',this)"><span class="nav-icon">🎩</span>Guest Profiles</div>
+
+  <div class="nav-section">Finance</div>
+  <div class="nav-item" onclick="navTo('sales',this)"><span class="nav-icon">💰</span>Sales & Revenue</div>
+  <div class="nav-item" onclick="navTo('items',this)"><span class="nav-icon">📈</span>Item Performance</div>
+  <div class="nav-item" onclick="navTo('shifts',this)"><span class="nav-icon">🕐</span>Shift Reports</div>
+  <div class="nav-item" onclick="navTo('inventory',this)"><span class="nav-icon">📦</span>Inventory</div>
+
+  <div class="nav-section">Settings</div>
+  <div class="nav-item" onclick="navTo('settings',this)"><span class="nav-icon">⚙️</span>Restaurant Settings</div>
+  <div class="nav-item" onclick="navTo('integrations',this)"><span class="nav-icon">🔗</span>Integrations</div>
+  <hr class="nav-divider">
+  <div class="nav-item" style="color:rgba(255,255,255,.3);font-size:11px;cursor:default">v1.0 Beta — Epicurean OS</div>
+</nav>
+
+<!-- ── MAIN ── -->
+<div id="main">
+
+<!-- ════ PAGE: DASHBOARD ════ -->
+<div class="page active" id="pg-dashboard">
+  <div class="page-header">
+    <div class="page-title">Good evening — <span id="manager-name">Manager</span></div>
+    <div class="page-sub" id="dash-date">Loading&hellip;</div>
+  </div>
+  <div class="page-body">
+    <div class="metric-grid" id="metric-grid"></div>
+    <div style="display:grid;grid-template-columns:2fr 1fr;gap:16px">
+      <!-- Revenue chart -->
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title">Revenue — last 7 days</div>
+          <select class="inp inp-sm" style="width:auto" onchange="renderChart(this.value)">
+            <option value="7">Last 7 days</option>
+            <option value="30">Last 30 days</option>
+          </select>
+        </div>
+        <div class="card-body">
+          <div style="display:flex;align-items:flex-end;gap:3px;height:120px;padding-top:8px" id="bar-chart"></div>
+          <div style="display:flex;gap:3px;margin-top:4px" id="bar-labels"></div>
+        </div>
+      </div>
+      <!-- Top items -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">Top sellers today</div></div>
+        <div id="top-items-list"></div>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:16px">
+      <!-- Recent orders -->
+      <div class="card" style="grid-column:span 2">
+        <div class="card-header">
+          <div class="card-title">Recent orders</div>
+          <button class="btn btn-sm btn-outline" onclick="navTo('live',document.querySelector('.nav-item:nth-child(5))'))">View live →</button>
+        </div>
+        <table class="data-table" id="recent-orders-table"></table>
+      </div>
+      <!-- Staff on shift -->
+      <div class="card">
+        <div class="card-header"><div class="card-title">On shift now</div></div>
+        <div id="staff-on-shift"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PAGE: FLOOR DESIGNER ════ -->
+<div class="page" id="pg-floor">
+  <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
+      <div class="page-title">Floor Designer</div>
+      <div class="page-sub">Drag to move · Click to select · Right-click to delete · Use toolbar to add elements</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <select class="inp inp-sm" style="width:140px" id="floor-selector" onchange="switchFloor(this.value)">
+        <option value="main">Main Dining Room</option>
+        <option value="bar">Bar Area</option>
+        <option value="patio">Patio</option>
+        <option value="private">Private Room</option>
+      </select>
+      <button class="btn btn-sm btn-outline" onclick="addFloor()">+ Add room</button>
+      <button class="btn btn-sm btn-gold" onclick="saveFloor()">💾 Save layout</button>
+    </div>
+  </div>
+  <div style="display:flex;flex:1;overflow:hidden;margin-top:12px">
+    <!-- Toolbar panel -->
+    <div style="width:180px;flex-shrink:0;background:var(--white);border-right:1px solid var(--border);padding:12px;overflow-y:auto">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--txt3);text-transform:uppercase;margin-bottom:10px">Add elements</div>
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <div class="floor-section-label" style="font-size:10px;font-weight:600;color:var(--txt3);margin-top:4px">Tables</div>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px" onclick="addFloorObj('table-round')">⭕ Round table</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px" onclick="addFloorObj('table-square')">🔲 Square table</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px" onclick="addFloorObj('table-rect')">▬ Long table</button>
+        <div class="floor-section-label" style="font-size:10px;font-weight:600;color:var(--txt3);margin-top:8px">Structure</div>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px" onclick="addFloorObj('wall-h')">━ Wall (H)</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px" onclick="addFloorObj('wall-v')">┃ Wall (V)</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px" onclick="addFloorObj('door')">🚪 Door</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px" onclick="addFloorObj('bar')">🍸 Bar counter</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px" onclick="addFloorObj('host')">📍 Host stand</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px" onclick="addFloorObj('plant')">🌿 Plant / divider</button>
+        <div class="floor-section-label" style="font-size:10px;font-weight:600;color:var(--txt3);margin-top:8px">Labels</div>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px" onclick="addFloorObj('label')">🏷️ Text label</button>
+      </div>
+      <hr style="border:none;border-top:1px solid var(--border);margin:14px 0">
+      <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--txt3);text-transform:uppercase;margin-bottom:10px">Selected object</div>
+      <div id="obj-props" style="font-size:12px;color:var(--txt3)">Click an object to edit its properties</div>
+    </div>
+    <!-- Canvas -->
+    <div id="floor-canvas-wrap" onclick="deselectAll(event)">
+      <div id="floor-canvas" style="position:relative;width:1200px;height:800px"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PAGE: MENU MANAGER ════ -->
+<div class="page" id="pg-menu">
+  <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
+      <div class="page-title">Menu Manager</div>
+      <div class="page-sub">Build and manage all menu items, prices, allergens, and availability</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-outline" onclick="exportMenu()">⬇ Export CSV</button>
+      <button class="btn btn-gold" onclick="openItemModal()">+ Add item</button>
+    </div>
+  </div>
+  <div class="page-body">
+    <div class="tab-row" id="menu-cat-tabs"></div>
+    <div class="search-row">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="inp search-inp" id="menu-search" type="text" placeholder="Search items, descriptions, VIN numbers…" oninput="renderMenuTable()">
+      </div>
+      <select class="inp" style="width:150px" id="menu-avail-filter" onchange="renderMenuTable()">
+        <option value="all">All items</option>
+        <option value="available">Available</option>
+        <option value="unavailable">86'd</option>
+      </select>
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div style="overflow-x:auto">
+        <table class="data-table" id="menu-table">
+          <thead><tr>
+            <th>Item</th><th>Category</th><th>Price</th><th>Allergens</th><th>Diet</th><th>Status</th><th style="text-align:right">Actions</th>
+          </tr></thead>
+          <tbody id="menu-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PAGE: WINE CELLAR ════ -->
+<div class="page" id="pg-wine">
+  <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
+      <div class="page-title">Wine Cellar</div>
+      <div class="page-sub">Full wine list with VIN numbers, pricing tiers, and bin locations</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-outline" onclick="exportWines()">⬇ Export</button>
+      <button class="btn btn-gold" onclick="openWineModal()">+ Add wine</button>
+    </div>
+  </div>
+  <div class="page-body">
+    <div class="search-row">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="inp search-inp" id="wine-search" type="text" placeholder="Search wine name, producer, VIN, vintage…" oninput="renderWineTable()">
+      </div>
+      <select class="inp" style="width:160px" id="wine-type-filter" onchange="renderWineTable()">
+        <option value="all">All types</option>
+        <option value="Red">Red</option>
+        <option value="White">White</option>
+        <option value="Champagne">Champagne</option>
+        <option value="Rosé">Rosé</option>
+        <option value="Dessert">Dessert</option>
+        <option value="By Glass">By Glass</option>
+      </select>
+    </div>
+    <div class="card" style="overflow:hidden">
+      <div style="overflow-x:auto">
+        <table class="data-table" id="wine-table">
+          <thead><tr>
+            <th>Wine</th><th>Vintage</th><th>Type</th><th>VIN</th><th>Bottle</th><th>Glass</th><th>Half</th><th>Bin</th><th style="text-align:right">Actions</th>
+          </tr></thead>
+          <tbody id="wine-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PAGE: STAFF ════ -->
+<div class="page" id="pg-staff">
+  <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div><div class="page-title">Staff & Sections</div><div class="page-sub">Manage team members, roles, and dining room sections</div></div>
+    <button class="btn btn-gold" onclick="openStaffModal()">+ Add staff member</button>
+  </div>
+  <div class="page-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Team members</div></div>
+        <div id="staff-list"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Section assignments</div><button class="btn btn-sm btn-outline" onclick="openSectionModal()">Edit sections</button></div>
+        <div id="section-list"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PAGE: GUESTS ════ -->
+<div class="page" id="pg-guests">
+  <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div><div class="page-title">Guest Profiles</div><div class="page-sub">Guest database, preferences, allergies, and visit history</div></div>
+    <button class="btn btn-gold" onclick="openGuestModal()">+ Add guest</button>
+  </div>
+  <div class="page-body">
+    <div class="search-row">
+      <div class="search-wrap">
+        <span class="search-icon">🔍</span>
+        <input class="inp search-inp" id="guest-search" type="text" placeholder="Search by name, phone, email…" oninput="renderGuestTable()">
+      </div>
+    </div>
+    <div class="card" style="overflow:hidden">
+      <table class="data-table">
+        <thead><tr><th>Guest</th><th>Phone</th><th>Visits</th><th>Allergies</th><th>Diet</th><th>Last visit</th><th style="text-align:right">Actions</th></tr></thead>
+        <tbody id="guest-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PAGE: SALES ════ -->
+<div class="page" id="pg-sales">
+  <div class="page-header">
+    <div class="page-title">Sales & Revenue</div>
+    <div class="page-sub">Financial overview, daily totals, and revenue breakdown</div>
+  </div>
+  <div class="page-body">
+    <div class="metric-grid" id="sales-metrics"></div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Revenue by category</div></div>
+        <div class="card-body" id="revenue-by-cat"></div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Hourly covers</div></div>
+        <div class="card-body" id="hourly-covers"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PAGE: SETTINGS ════ -->
+<div class="page" id="pg-settings">
+  <div class="page-header"><div class="page-title">Restaurant Settings</div><div class="page-sub">Configure The Epicurean House @ The Chocolate Studio</div></div>
+  <div class="page-body">
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+      <div class="card">
+        <div class="card-header"><div class="card-title">Restaurant info</div></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:12px">
+          <div><label class="lbl">Restaurant name</label><input class="inp" value="The Epicurean House"></div>
+          <div><label class="lbl">Subtitle / tagline</label><input class="inp" value="@ The Chocolate Studio"></div>
+          <div class="form-row cols-2">
+            <div><label class="lbl">Tax rate (%)</label><input class="inp" type="number" value="8.75" step=".01"></div>
+            <div><label class="lbl">Service charge (%)</label><input class="inp" type="number" value="0" step=".01"></div>
+          </div>
+          <div class="form-row cols-2">
+            <div><label class="lbl">Currency</label><select class="inp"><option>USD ($)</option><option>EUR (€)</option><option>GBP (£)</option></select></div>
+            <div><label class="lbl">Languages</label><select class="inp" multiple size="4" style="height:auto"><option selected>English</option><option selected>Spanish</option><option selected>French</option><option selected>Japanese</option></select></div>
+          </div>
+          <button class="btn btn-primary">Save settings</button>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><div class="card-title">Service hours</div></div>
+        <div class="card-body" style="display:flex;flex-direction:column;gap:10px">
+          <div class="form-row cols-3" style="margin:0;font-size:12px;color:var(--txt3);font-weight:600"><span>Day</span><span>Open</span><span>Close</span></div>
+          <div id="hours-grid"></div>
+          <button class="btn btn-primary" style="margin-top:4px">Save hours</button>
+        </div>
+      </div>
+    </div>
+    <div style="margin-top:16px" class="card">
+      <div class="card-header"><div class="card-title">Manager access</div><button class="btn btn-sm btn-outline" onclick="openManagerModal()">+ Add manager</button></div>
+      <div id="manager-list" class="card-body"></div>
+    </div>
+  </div>
+</div>
+
+<!-- Stub pages -->
+<div class="page" id="pg-live"><div class="page-header"><div class="page-title">Live Service</div><div class="page-sub">Real-time table status — coming in next build</div></div></div>
+<div class="page" id="pg-items"><div class="page-header"><div class="page-title">Item Performance</div><div class="page-sub">Coming in next build</div></div></div>
+<div class="page" id="pg-shifts"><div class="page-header"><div class="page-title">Shift Reports</div><div class="page-sub">Coming in next build</div></div></div>
+<div class="page" id="pg-inventory"><div class="page-header"><div class="page-title">Inventory</div><div class="page-sub">Coming in next build</div></div></div>
+<div class="page" id="pg-integrations"><div class="page-header"><div class="page-title">Integrations</div><div class="page-sub">Square, Firebase, printer — coming in next build</div></div></div>
+
+</div><!-- /main -->
+</div><!-- /app-body -->
+
+<!-- ── TOAST ── -->
+<div id="toast"></div>
+
+<!-- ════════ MODAL: MENU ITEM ════════ -->
+<div class="modal-bg" id="modal-item">
+  <div class="modal modal-wide">
+    <div class="modal-hd">
+      <div class="modal-title" id="item-modal-title">Add menu item</div>
+      <div class="modal-close" onclick="closeModal('modal-item')">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-row cols-2">
+        <div><label class="lbl">Item name *</label><input class="inp" id="item-name" placeholder="e.g. Seared Duck Breast"></div>
+        <div><label class="lbl">Category *</label>
+          <select class="inp" id="item-cat">
+            <option>Tapas</option><option>Mains</option><option>Desserts</option>
+            <option>Cocktails</option><option>Beverages</option>
+            <option>Wines by Glass</option><option>Wine Cellar</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div><label class="lbl">Description</label><textarea class="inp" id="item-desc" rows="2" placeholder="Ingredients and preparation style…"></textarea></div>
+      </div>
+      <div class="form-row cols-4">
+        <div><label class="lbl">Price ($)</label><input class="inp" id="item-price" type="number" step=".01" placeholder="0.00"></div>
+        <div><label class="lbl">Glass price ($)</label><input class="inp" id="item-glass" type="number" step=".01" placeholder="Wine only"></div>
+        <div><label class="lbl">Half glass ($)</label><input class="inp" id="item-half" type="number" step=".01" placeholder="Wine only"></div>
+        <div><label class="lbl">VIN / SKU</label><input class="inp" id="item-vin" placeholder="Auto-generated" style="font-family:monospace"></div>
+      </div>
+      <div class="form-row cols-2">
+        <div>
+          <label class="lbl">Allergens (click to toggle)</label>
+          <div class="allergy-grid" id="item-allergy-grid"></div>
+        </div>
+        <div>
+          <label class="lbl">Dietary suitability</label>
+          <div class="allergy-grid" id="item-diet-grid"></div>
+          <div style="margin-top:10px">
+            <label class="lbl">Preparation notes (kitchen)</label>
+            <textarea class="inp inp-sm" id="item-kitchen-note" rows="2" placeholder="Kitchen instructions, plating notes…"></textarea>
+          </div>
+        </div>
+      </div>
+      <div class="form-row cols-3">
+        <div><label class="lbl">Available</label>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+            <div class="toggle on" id="item-avail-toggle" onclick="toggleEl(this)"><div class="toggle-thumb"></div></div>
+            <span id="item-avail-label" style="font-size:12px;color:var(--txt2)">Available</span>
+          </div>
+        </div>
+        <div><label class="lbl">Featured / Chef's pick</label>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+            <div class="toggle" id="item-feat-toggle" onclick="toggleEl(this)"><div class="toggle-thumb"></div></div>
+            <span style="font-size:12px;color:var(--txt2)">Featured</span>
+          </div>
+        </div>
+        <div><label class="lbl">Diabetic-friendly</label>
+          <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+            <div class="toggle" id="item-diab-toggle" onclick="toggleEl(this)"><div class="toggle-thumb"></div></div>
+            <span style="font-size:12px;color:var(--txt2)">Low sugar / diabetic</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-item')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveMenuItem()">Save item</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ MODAL: WINE ════════ -->
+<div class="modal-bg" id="modal-wine">
+  <div class="modal modal-wide">
+    <div class="modal-hd">
+      <div class="modal-title" id="wine-modal-title">Add wine</div>
+      <div class="modal-close" onclick="closeModal('modal-wine')">✕</div>
+    </div>
+    <div class="modal-body">
+      <div class="form-row cols-2">
+        <div><label class="lbl">Wine name *</label><input class="inp" id="wine-name" placeholder="e.g. Joh. Jos. Prüm Riesling Spätlese"></div>
+        <div><label class="lbl">Producer</label><input class="inp" id="wine-producer" placeholder="e.g. Weingut Joh. Jos. Prüm"></div>
+      </div>
+      <div class="form-row cols-4">
+        <div><label class="lbl">Vintage</label><input class="inp" id="wine-vintage" placeholder="2023 or NV"></div>
+        <div><label class="lbl">Region</label><input class="inp" id="wine-region" placeholder="Mosel, Germany"></div>
+        <div><label class="lbl">Type</label>
+          <select class="inp" id="wine-type">
+            <option>Red</option><option>White</option><option>Champagne</option>
+            <option>Rosé</option><option>Dessert</option><option>Sparkling</option><option>Orange</option>
+          </select>
+        </div>
+        <div><label class="lbl">Grape(s)</label><input class="inp" id="wine-grape" placeholder="Riesling"></div>
+      </div>
+      <div class="form-row cols-4">
+        <div><label class="lbl">Bottle price ($)</label><input class="inp" id="wine-bottle" type="number" step=".01"></div>
+        <div><label class="lbl">Glass price ($)</label><input class="inp" id="wine-glass" type="number" step=".01"></div>
+        <div><label class="lbl">Half glass ($)</label><input class="inp" id="wine-half" type="number" step=".01"></div>
+        <div><label class="lbl">Bin location</label><input class="inp" id="wine-bin" placeholder="A-12"></div>
+      </div>
+      <div class="form-row cols-3">
+        <div><label class="lbl">VIN number</label><input class="inp" id="wine-vin" placeholder="Auto-generated" style="font-family:monospace"></div>
+        <div><label class="lbl">Stock (bottles)</label><input class="inp" id="wine-stock" type="number" placeholder="0"></div>
+        <div><label class="lbl">Low stock alert</label><input class="inp" id="wine-alert" type="number" placeholder="3"></div>
+      </div>
+      <div class="form-row">
+        <div><label class="lbl">Tasting notes</label><textarea class="inp" id="wine-notes" rows="2" placeholder="Describe aromas, palate, finish…"></textarea></div>
+      </div>
+      <div class="form-row">
+        <div><label class="lbl">Food pairings</label><input class="inp" id="wine-pairings" placeholder="e.g. Miso-Glazed Sea Bass, Flourless Chocolate Cake"></div>
+      </div>
+      <div class="form-row cols-2">
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="toggle on" id="wine-avail" onclick="toggleEl(this)"><div class="toggle-thumb"></div></div>
+            <span style="font-size:13px;color:var(--txt2)">Available on menu</span>
+          </div>
+        </div>
+        <div>
+          <div style="display:flex;align-items:center;gap:8px">
+            <div class="toggle" id="wine-byGlass" onclick="toggleEl(this)"><div class="toggle-thumb"></div></div>
+            <span style="font-size:13px;color:var(--txt2)">Available by the glass</span>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-wine')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveWine()">Save wine</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ MODAL: STAFF ════════ -->
+<div class="modal-bg" id="modal-staff">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title">Add staff member</div><div class="modal-close" onclick="closeModal('modal-staff')">✕</div></div>
+    <div class="modal-body">
+      <div class="form-row cols-2">
+        <div><label class="lbl">Full name *</label><input class="inp" id="staff-name" placeholder="First and last name"></div>
+        <div><label class="lbl">Role *</label>
+          <select class="inp" id="staff-role">
+            <option>Food Master</option><option>Sommelier</option><option>Bartender</option>
+            <option>Host/Hostess</option><option>Busser</option><option>Kitchen</option><option>Manager</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row cols-2">
+        <div><label class="lbl">Access code (PIN)</label><input class="inp" id="staff-pin" type="text" placeholder="4-8 characters" maxlength="8"></div>
+        <div><label class="lbl">Phone</label><input class="inp" id="staff-phone" type="tel" placeholder="+1 (000) 000-0000"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-staff')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveStaff()">Add member</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ MODAL: GUEST ════════ -->
+<div class="modal-bg" id="modal-guest">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title">Guest profile</div><div class="modal-close" onclick="closeModal('modal-guest')">✕</div></div>
+    <div class="modal-body">
+      <div class="form-row cols-2">
+        <div><label class="lbl">Full name *</label><input class="inp" id="g-name"></div>
+        <div><label class="lbl">Phone *</label><input class="inp" id="g-phone" type="tel" placeholder="Any format — digits only stored"></div>
+      </div>
+      <div><label class="lbl">Email</label><input class="inp" id="g-email" type="email" style="margin-bottom:12px"></div>
+      <div style="margin-bottom:12px">
+        <label class="lbl">Allergies</label>
+        <div class="allergy-grid" id="g-allergy-grid"></div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label class="lbl">Dietary preferences</label>
+        <div class="allergy-grid" id="g-diet-grid"></div>
+      </div>
+      <div><label class="lbl">Notes (private)</label><textarea class="inp" id="g-notes" rows="2" placeholder="Seating preferences, occasion notes, wine preferences…"></textarea></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-guest')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveGuest()">Save guest</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════════
+// DATA STORE
+// ══════════════════════════════════════════════════════════
+var DB={
+  menuItems:[
+    {id:'m1',name:'Seared Duck Breast',cat:'Mains',desc:'Cherry gastrique, roasted root vegetables, thyme jus',price:42,glass:0,half:0,vin:'EH-M-001',allergens:[],diets:[],available:true,featured:true,diabetic:true,kitchenNote:''},
+    {id:'m2',name:'White Truffle Risotto',cat:'Mains',desc:'Carnaroli rice, shaved fresh white truffle, aged Parmigiano-Reggiano, chive oil',price:80,glass:0,half:0,vin:'EH-M-002',allergens:['Dairy','Eggs'],diets:['Vegetarian'],available:true,featured:true,diabetic:false,kitchenNote:'Shave truffle tableside'},
+    {id:'m3',name:'Miso-Glazed Sea Bass',cat:'Mains',desc:'Dashi broth, pickled ginger, forbidden rice, scallion oil',price:46,glass:0,half:0,vin:'EH-M-003',allergens:['Fish','Soy','Gluten'],diets:['Pescatarian'],available:true,featured:false,diabetic:false,kitchenNote:'Chilean Sea Bass — Global Seafood'},
+    {id:'m4',name:'Chocolate Braised Short Rib',cat:'Mains',desc:'72% cacao mole, celery root purée, crispy shallots',price:54,glass:0,half:0,vin:'EH-M-004',allergens:[],diets:[],available:true,featured:true,diabetic:true,kitchenNote:'Craincrest Farms NY — grass fed'},
+    {id:'d1',name:'Flourless Chocolate Cake',cat:'Desserts',desc:'Sugarless 72% dark chocolate, baked flourless — pistachio or vanilla gelato',price:22,glass:0,half:0,vin:'EH-D-001',allergens:['Eggs','Dairy','Tree Nuts'],diets:['Vegetarian','Low Sugar'],available:true,featured:true,diabetic:true,kitchenNote:'Bronte pistachios (DOP) or Ecuadorian vanilla odorata'},
+    {id:'c1',name:'Cacao Old Fashioned',cat:'Cocktails',desc:'Bourbon, cacao nib bitters, demerara, smoked orange peel',price:28,glass:0,half:0,vin:'EH-C-001',allergens:[],diets:[],available:true,featured:false,diabetic:false,kitchenNote:''},
+    {id:'c2',name:'Chocolate Martini',cat:'Cocktails',desc:'100% pure cacao, double espresso, aged rum, monk fruit — zero sugar',price:28,glass:0,half:0,vin:'EH-C-002',allergens:[],diets:['Low Sugar'],available:true,featured:true,diabetic:true,kitchenNote:'No sugar whatsoever — monk fruit only'},
+    {id:'c3',name:'Hibiscus Mezcal Spritz',cat:'Cocktails',desc:'Mezcal, real hibiscus juice, monk fruit, prosecco — no sugar added',price:25,glass:0,half:0,vin:'EH-C-003',allergens:['Sulfites'],diets:['Vegan','Low Sugar'],available:true,featured:false,diabetic:true,kitchenNote:''},
+    {id:'b1',name:'Single Origin Espresso',cat:'Beverages',desc:'Ethiopian Yirgacheffe, direct trade',price:6,glass:0,half:0,vin:'EH-B-001',allergens:[],diets:['Vegan'],available:true,featured:false,diabetic:true,kitchenNote:''},
+    {id:'b2',name:'Drinking Chocolate',cat:'Beverages',desc:'72% Valrhona cacao, steamed oat milk, cinnamon',price:10,glass:0,half:0,vin:'EH-B-002',allergens:[],diets:['Vegan'],available:true,featured:true,diabetic:false,kitchenNote:''}
+  ],
+  wines:[
+    {id:'w1',name:'Joh. Jos. Prüm Graacher Himmelreich Riesling Spätlese',producer:'Weingut Joh. Jos. Prüm',vintage:'2023',region:'Mosel, Germany',type:'White',grape:'Riesling',bottle:180,glass:45,half:15,bin:'W-A01',vin:'JP-2023-001',stock:12,alert:3,notes:'Off-dry, stone fruit, slate minerality, vibrant acidity',pairings:'Miso-Glazed Sea Bass, Flourless Chocolate Cake',available:true,byGlass:true},
+    {id:'w2',name:"Château d'Yquem Premier Cru Supérieur",producer:"Château d'Yquem",vintage:'2009',region:'Sauternes, France',type:'Dessert',grape:'Sémillon / Sauvignon Blanc',bottle:1200,glass:225,half:115,bin:'W-D01',vin:'YQM-2009-001',stock:3,alert:1,notes:'Honeyed apricot, saffron, candied citrus, extraordinary concentration',pairings:'Flourless Chocolate Cake, White Truffle Risotto',available:true,byGlass:true},
+    {id:'w3',name:'Teso La Monja Almirez',producer:'Teso La Monja',vintage:'2021',region:'Toro, Spain',type:'Red',grape:'Tinta de Toro',bottle:110,glass:28,half:7,bin:'W-R05',vin:'TLM-2021-001',stock:18,alert:4,notes:'Dense dark fruit, iron minerality, firm structured tannins',pairings:'Chocolate Braised Short Rib, Seared Duck Breast',available:true,byGlass:true},
+    {id:'w4',name:'Bollinger Brut Spécial Cuvée',producer:'Bollinger',vintage:'NV',region:'Champagne, France',type:'Champagne',grape:'Pinot Noir / Chardonnay / Meunier',bottle:152,glass:38,half:10,bin:'W-C01',vin:'BOL-NV-001',stock:24,alert:6,notes:'Toasted brioche, green apple, persistent fine mousse',pairings:'White Truffle Risotto, Chocolate Martini',available:true,byGlass:true},
+    {id:'w5',name:'Produttori del Barbaresco DOCG',producer:'Produttori del Barbaresco',vintage:'2020',region:'Barbaresco, Piedmont',type:'Red',grape:'Nebbiolo',bottle:180,glass:45,half:13,bin:'W-R08',vin:'PDB-2020-001',stock:9,alert:3,notes:'Rose, tar, velvet tannins, electric acidity, truffle undertones',pairings:'Chocolate Braised Short Rib, White Truffle Risotto',available:true,byGlass:true},
+    {id:'w6',name:"Château d'Yquem (375ml)",producer:"Château d'Yquem",vintage:'2009',region:'Sauternes, France',type:'Dessert',grape:'Sémillon',bottle:1200,glass:225,half:115,bin:'W-D02',vin:'YQM-2009-375',stock:6,alert:2,notes:'375ml format — same as W-D01',pairings:'Desserts',available:true,byGlass:false}
+  ],
+  staff:[
+    {id:'s1',name:'Andre Mendoza',role:'Food Master',pin:'AM2024',phone:'551-486-2688',active:true},
+    {id:'s2',name:'Paco Arias',role:'Sommelier',pin:'PA2024',phone:'+34 689 67 0359',active:true},
+    {id:'s3',name:'Max Rodriguez',role:'Food Master',pin:'MR2024',phone:'718-916-8239',active:true},
+    {id:'s4',name:'Edwin Perez',role:'Bartender',pin:'EP2024',phone:'917-531-4900',active:true}
+  ],
+  guests:[
+    {id:'g1',name:'Andre Mendoza',phone:'5514862688',email:'',visits:3,lastVisit:'2025-06-08',allergies:['Tree Nuts'],diets:['Vegetarian'],notes:'Prefers window table. Likes Riesling.'},
+    {id:'g2',name:'Paco Arias',phone:'346896670359',email:'paco@example.com',visits:7,lastVisit:'2025-06-09',allergies:['Shellfish','Gluten'],diets:[],notes:'Regular. Always orders Barbaresco. Anniversary in September.'},
+    {id:'g3',name:'Max Rodriguez',phone:'7189168239',email:'',visits:2,lastVisit:'2025-05-20',allergies:[],diets:['Vegan'],notes:''},
+    {id:'g4',name:'Alfonso Galindo',phone:'7184404363',email:'',visits:5,lastVisit:'2025-06-01',allergies:['Lactose'],diets:['Pescatarian'],notes:'Birthday in June. Table 8 preferred.'},
+    {id:'g5',name:'Edwin Perez',phone:'9175314900',email:'',visits:1,lastVisit:'2025-06-05',allergies:['Diabetic','Low Sugar'],diets:[],notes:'New guest. Very health-conscious.'}
+  ],
+  sections:[
+    {id:'sec1',name:'Main Floor',color:'#2B6CB0',tables:[1,2,3,4,5,6,7,8],staff:'s1'},
+    {id:'sec2',name:'Window',color:'#276749',tables:[9,10,11,12],staff:'s3'},
+    {id:'sec3',name:'Bar Area',color:'#975A16',tables:[13,14,15,16],staff:'s4'}
+  ],
+  floors:{
+    main:[],bar:[],patio:[],private:[]
+  },
+  settings:{
+    name:'The Epicurean House',sub:'@ The Chocolate Studio',
+    tax:8.75,currency:'USD',
+    hours:{Mon:{open:'17:00',close:'23:00'},Tue:{open:'17:00',close:'23:00'},Wed:{open:'17:00',close:'23:00'},Thu:{open:'17:00',close:'23:00'},Fri:{open:'17:00',close:'00:00'},Sat:{open:'12:00',close:'00:00'},Sun:{open:'12:00',close:'22:00'}}
+  }
+};
+
+var ALLERGENS=['Tree Nuts','Peanuts','Gluten','Dairy','Eggs','Shellfish','Fish','Soy','Sesame','Sulfites','Onion/Garlic','Nightshades'];
+var DIETS=['Vegetarian','Vegan','Pescatarian','Keto','Halal','Kosher','Low Sugar','Diabetic'];
+
+// ══════════════════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════════════════
+function navTo(page,el){
+  document.querySelectorAll('.page').forEach(function(p){p.classList.remove('active');});
+  document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
+  document.getElementById('pg-'+page).classList.add('active');
+  if(el&&el.classList) el.classList.add('active');
+  var renders={dashboard:renderDashboard,menu:renderMenuPage,wine:renderWinePage,staff:renderStaffPage,guests:renderGuestPage,sales:renderSalesPage,settings:renderSettingsPage,floor:initFloorPage};
+  if(renders[page]) renders[page]();
+}
+
+// ══════════════════════════════════════════════════════════
+// CLOCK
+// ══════════════════════════════════════════════════════════
+function updateClock(){
+  var now=new Date();
+  document.getElementById('clock').textContent=now.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  var days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  var months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  var ds=days[now.getDay()]+', '+months[now.getMonth()]+' '+now.getDate()+', '+now.getFullYear();
+  var el=document.getElementById('dash-date');
+  if(el) el.textContent=ds+' — Evening service';
+}
+setInterval(updateClock,1000); updateClock();
+
+// ══════════════════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════════════════
+var SAMPLE_SALES=[1840,2210,1950,3100,2680,3450,2890];
+var SAMPLE_LABELS=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+var TOP_ITEMS=[{name:'Chocolate Braised Short Rib',qty:8,rev:432},{name:'White Truffle Risotto',qty:5,rev:400},{name:'Barbaresco DOCG',qty:12,rev:540},{name:'Cacao Old Fashioned',qty:18,rev:504},{name:'Miso-Glazed Sea Bass',qty:6,rev:276}];
+var RECENT_ORDERS=[
+  {table:5,guest:'Paco Arias',items:3,total:318,status:'Confirmed',time:'8:42 PM'},
+  {table:12,guest:'Alfonso Galindo',items:5,total:224,status:'In Kitchen',time:'8:35 PM'},
+  {table:3,guest:'Walk-in',items:2,total:96,status:'Sent',time:'8:20 PM'},
+  {table:8,guest:'Andre Mendoza',items:4,total:186,status:'Payment',time:'8:05 PM'}
+];
+
+function renderDashboard(){
+  var metrics=[
+    {label:'Today\'s Revenue',val:'$3,450',sub:'vs $2,890 yesterday',trend:'+19.4%',up:true},
+    {label:'Covers',val:'42',sub:'18 remaining tonight',trend:'+8',up:true},
+    {label:'Avg Check',val:'$82',sub:'per cover',trend:'+$6',up:true},
+    {label:'Tables Active',val:'7',sub:'of 24 sections',trend:'',up:null},
+    {label:'Wine Revenue',val:'$1,240',sub:'36% of total',trend:'+22%',up:true},
+    {label:'Return Guests',val:'61%',sub:'of tonight\'s covers',trend:'+5%',up:true}
+  ];
+  var grid=document.getElementById('metric-grid');
+  grid.innerHTML='';
+  metrics.forEach(function(m){
+    var trendHtml=m.trend?'<div class="metric-trend '+(m.up?'trend-up':'trend-dn')+'">'+m.trend+'</div>':'';
+    grid.innerHTML+='<div class="metric-card"><div class="metric-label">'+m.label+'</div><div class="metric-val">'+m.val+'</div><div class="metric-sub">'+m.sub+'</div>'+trendHtml+'</div>';
+  });
+  renderChart(7);
+  var topList=document.getElementById('top-items-list');
+  topList.innerHTML='';
+  var maxRev=Math.max.apply(null,TOP_ITEMS.map(function(i){return i.rev;}));
+  TOP_ITEMS.forEach(function(item,idx){
+    var pct=Math.round(item.rev/maxRev*100);
+    topList.innerHTML+='<div style="padding:10px 16px;border-bottom:1px solid var(--border)">'
+      +'<div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">'
+      +'<span style="font-weight:500;color:var(--txt)">'+item.name+'</span>'
+      +'<span style="color:var(--gold);font-weight:600">$'+item.rev+'</span></div>'
+      +'<div style="background:var(--bg2);border-radius:4px;height:5px;overflow:hidden">'
+      +'<div style="background:var(--gold);width:'+pct+'%;height:100%;border-radius:4px"></div></div>'
+      +'<div style="font-size:11px;color:var(--txt3);margin-top:2px">'+item.qty+' served</div></div>';
+  });
+  var ordTable=document.getElementById('recent-orders-table');
+  var statusColors={Confirmed:'pill-green','In Kitchen':'pill-blue',Sent:'pill-teal',Payment:'pill-amber'};
+  ordTable.innerHTML='<thead><tr><th>Table</th><th>Guest</th><th>Items</th><th>Total</th><th>Status</th><th>Time</th></tr></thead>';
+  var tbody=document.createElement('tbody');
+  RECENT_ORDERS.forEach(function(o){
+    tbody.innerHTML+='<tr><td><strong>'+o.table+'</strong></td><td>'+o.guest+'</td><td>'+o.items+'</td>'
+      +'<td style="font-weight:600;color:var(--gold)">$'+o.total+'</td>'
+      +'<td><span class="pill '+(statusColors[o.status]||'pill-gray')+'">'+o.status+'</span></td>'
+      +'<td style="color:var(--txt3)">'+o.time+'</td></tr>';
+  });
+  ordTable.appendChild(tbody);
+  var shiftEl=document.getElementById('staff-on-shift');
+  shiftEl.innerHTML='';
+  DB.staff.filter(function(s){return s.active;}).forEach(function(s){
+    var initials=s.name.split(' ').map(function(n){return n[0];}).join('');
+    var sectionInfo=DB.sections.find(function(sec){return sec.staff===s.id;});
+    shiftEl.innerHTML+='<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-bottom:1px solid var(--border)">'
+      +'<div style="width:34px;height:34px;border-radius:50%;background:var(--gold-l);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--amber)">'+initials+'</div>'
+      +'<div style="flex:1"><div style="font-size:13px;font-weight:500">'+s.name+'</div>'
+      +'<div style="font-size:11px;color:var(--txt3)">'+s.role+(sectionInfo?' — '+sectionInfo.name:'')+'</div></div>'
+      +'<div class="status-dot dot-green"></div></div>';
+  });
+}
+
+function renderChart(days){
+  var data=SAMPLE_SALES.slice(-days);
+  var labels=SAMPLE_LABELS.slice(-days);
+  var max=Math.max.apply(null,data);
+  var chart=document.getElementById('bar-chart');
+  var labelsEl=document.getElementById('bar-labels');
+  chart.innerHTML=''; labelsEl.innerHTML='';
+  data.forEach(function(v,i){
+    var pct=Math.round(v/max*100);
+    var bar=document.createElement('div');
+    bar.style.cssText='flex:1;background:var(--gold-m);border-radius:4px 4px 0 0;height:'+pct+'%;position:relative;min-height:4px;transition:height .4s;cursor:pointer';
+    bar.title=labels[i]+': $'+v;
+    bar.onmouseover=function(){this.style.background='var(--gold)';};
+    bar.onmouseout=function(){this.style.background='var(--gold-m)';};
+    chart.appendChild(bar);
+    var lbl=document.createElement('div');
+    lbl.style.cssText='flex:1;font-size:10px;color:var(--txt3);text-align:center';
+    lbl.textContent=labels[i];
+    labelsEl.appendChild(lbl);
+  });
+}
+
+// ══════════════════════════════════════════════════════════
+// MENU PAGE
+// ══════════════════════════════════════════════════════════
+var menuEditId=null;
+var CAT_ORDER=['Tapas','Mains','Desserts','Cocktails','Beverages','Wines by Glass','Wine Cellar'];
+
+function renderMenuPage(){
+  var cats=['All'].concat(CAT_ORDER);
+  var tabRow=document.getElementById('menu-cat-tabs');
+  tabRow.innerHTML='';
+  cats.forEach(function(cat){
+    var btn=document.createElement('div');
+    btn.className='tab-btn'+(cat==='All'?' active':'');
+    btn.textContent=cat;
+    btn.onclick=function(){
+      document.querySelectorAll('#menu-cat-tabs .tab-btn').forEach(function(b){b.classList.remove('active');});
+      btn.classList.add('active');
+      renderMenuTable(cat==='All'?'all':cat);
+    };
+    tabRow.appendChild(btn);
+  });
+  renderMenuTable('all');
+}
+
+function renderMenuTable(catFilter){
+  var filter=catFilter||'all';
+  var q=(document.getElementById('menu-search').value||'').toLowerCase();
+  var avail=document.getElementById('menu-avail-filter').value;
+  var items=DB.menuItems.filter(function(item){
+    if(filter!=='all'&&item.cat!==filter) return false;
+    if(q&&!item.name.toLowerCase().includes(q)&&!(item.desc||'').toLowerCase().includes(q)&&!(item.vin||'').toLowerCase().includes(q)) return false;
+    if(avail==='available'&&!item.available) return false;
+    if(avail==='unavailable'&&item.available) return false;
+    return true;
+  });
+  var tbody=document.getElementById('menu-tbody');
+  tbody.innerHTML='';
+  items.forEach(function(item){
+    var allergenHtml=item.allergens.slice(0,3).map(function(a){return '<span class="pill pill-red" style="font-size:10px">'+a+'</span>';}).join('')
+      +(item.allergens.length>3?'<span class="pill pill-gray" style="font-size:10px">+'+( item.allergens.length-3)+'</span>':'');
+    var dietHtml=item.diets.slice(0,2).map(function(d){return '<span class="pill pill-green" style="font-size:10px">'+d+'</span>';}).join('');
+    var vinBadge='<span class="vin-label">'+item.vin+'</span>';
+    tbody.innerHTML+='<tr>'
+      +'<td><div style="font-weight:500">'+item.name+(item.featured?' ⭐':'')+'</div>'
+      +'<div style="font-size:11px;color:var(--txt3);margin-top:2px">'+vinBadge+'</div></td>'
+      +'<td><span class="pill pill-navy">'+item.cat+'</span></td>'
+      +'<td style="font-weight:600;color:var(--gold)">$'+item.price+'</td>'
+      +'<td><div style="display:flex;flex-wrap:wrap;gap:3px">'+(allergenHtml||'<span style="color:var(--txt3);font-size:11px">None</span>')+'</div></td>'
+      +'<td><div style="display:flex;flex-wrap:wrap;gap:3px">'+(dietHtml||'<span style="color:var(--txt3);font-size:11px">—</span>')+'</div></td>'
+      +'<td>'+(item.available?'<span class="pill pill-green">Available</span>':'<span class="pill pill-red">86\'d</span>')+'</td>'
+      +'<td class="td-right">'
+      +'<button class="btn btn-xs btn-outline" onclick="editMenuItem(\''+item.id+'\')">Edit</button> '
+      +'<button class="btn btn-xs" style="color:var(--red);border:1px solid rgba(197,48,48,.3)" onclick="toggle86(\''+item.id+'\')">'+( item.available?'86':'Restore')+'</button>'
+      +'</td></tr>';
+  });
+  if(!items.length) tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--txt3)">No items found</td></tr>';
+}
+
+function openItemModal(editId){
+  menuEditId=editId||null;
+  document.getElementById('item-modal-title').textContent=menuEditId?'Edit menu item':'Add menu item';
+  var item=menuEditId?DB.menuItems.find(function(i){return i.id===menuEditId;}):{};
+  document.getElementById('item-name').value=item.name||'';
+  document.getElementById('item-cat').value=item.cat||'Mains';
+  document.getElementById('item-desc').value=item.desc||'';
+  document.getElementById('item-price').value=item.price||'';
+  document.getElementById('item-glass').value=item.glass||'';
+  document.getElementById('item-half').value=item.half||'';
+  document.getElementById('item-vin').value=item.vin||generateVIN(item.cat||'Mains');
+  document.getElementById('item-kitchen-note').value=item.kitchenNote||'';
+  buildChipGrid('item-allergy-grid',ALLERGENS,'allergy-chip',item.allergens||[]);
+  buildChipGrid('item-diet-grid',DIETS,'diet-chip',item.diets||[]);
+  setToggle('item-avail-toggle',item.available!==false);
+  setToggle('item-feat-toggle',item.featured||false);
+  setToggle('item-diab-toggle',item.diabetic||false);
+  openModal('modal-item');
+}
+
+function editMenuItem(id){openItemModal(id);}
+
+function saveMenuItem(){
+  var name=document.getElementById('item-name').value.trim();
+  if(!name){showToast('Item name is required','error');return;}
+  var allergens=getChipSelections('item-allergy-grid');
+  var diets=getChipSelections('item-diet-grid');
+  var item={
+    id:menuEditId||'m'+Date.now(),
+    name:name,cat:document.getElementById('item-cat').value,
+    desc:document.getElementById('item-desc').value,
+    price:parseFloat(document.getElementById('item-price').value)||0,
+    glass:parseFloat(document.getElementById('item-glass').value)||0,
+    half:parseFloat(document.getElementById('item-half').value)||0,
+    vin:document.getElementById('item-vin').value||generateVIN(),
+    allergens:allergens,diets:diets,
+    available:document.getElementById('item-avail-toggle').classList.contains('on'),
+    featured:document.getElementById('item-feat-toggle').classList.contains('on'),
+    diabetic:document.getElementById('item-diab-toggle').classList.contains('on'),
+    kitchenNote:document.getElementById('item-kitchen-note').value
+  };
+  if(menuEditId){var idx=DB.menuItems.findIndex(function(i){return i.id===menuEditId;});if(idx>-1)DB.menuItems[idx]=item;}
+  else DB.menuItems.push(item);
+  closeModal('modal-item');
+  renderMenuTable();
+  showToast(menuEditId?'Item updated':'Item added to menu','success');
+}
+
+function toggle86(id){
+  var item=DB.menuItems.find(function(i){return i.id===id;});
+  if(item){item.available=!item.available;renderMenuTable();}
+  showToast(item.available?item.name+' restored':'86\'d: '+item.name,'success');
+}
+
+function exportMenu(){
+  var csv='Name,Category,Price,Allergens,Diets,VIN,Available\n';
+  DB.menuItems.forEach(function(i){
+    csv+='"'+i.name+'","'+i.cat+'","$'+i.price+'","'+i.allergens.join('; ')+'","'+i.diets.join('; ')+'","'+i.vin+'",'+(i.available?'Yes':'No')+'\n';
+  });
+  downloadCSV(csv,'epicurean_menu.csv');
+}
+
+// ══════════════════════════════════════════════════════════
+// WINE PAGE
+// ══════════════════════════════════════════════════════════
+var wineEditId=null;
+function renderWinePage(){renderWineTable();}
+
+function renderWineTable(){
+  var q=(document.getElementById('wine-search').value||'').toLowerCase();
+  var typeFilter=document.getElementById('wine-type-filter').value;
+  var wines=DB.wines.filter(function(w){
+    if(typeFilter!=='all'&&w.type!==typeFilter&&!(typeFilter==='By Glass'&&w.byGlass)) return false;
+    if(q&&!w.name.toLowerCase().includes(q)&&!(w.producer||'').toLowerCase().includes(q)&&!(w.vin||'').toLowerCase().includes(q)&&!(w.vintage||'').includes(q)) return false;
+    return true;
+  });
+  var tbody=document.getElementById('wine-tbody');
+  tbody.innerHTML='';
+  wines.forEach(function(w){
+    var low=w.stock<=w.alert;
+    tbody.innerHTML+='<tr>'
+      +'<td><div style="font-weight:500;max-width:220px">'+w.name+'</div>'
+      +'<div style="font-size:11px;color:var(--txt3)">'+w.producer+'</div></td>'
+      +'<td style="white-space:nowrap">'+w.vintage+'</td>'
+      +'<td><span class="pill '+(w.type==='Red'?'pill-red':w.type==='White'?'pill-blue':w.type==='Champagne'?'pill-purple':'pill-amber')+'">'+w.type+'</span>'+(w.byGlass?'<span class="pill pill-teal" style="margin-left:3px">Glass</span>':'')+'</td>'
+      +'<td class="td-mono"><span class="vin-label">'+w.vin+'</span></td>'
+      +'<td style="font-weight:600;color:var(--gold)">$'+w.bottle+'</td>'
+      +'<td>'+(w.glass?'$'+w.glass:'—')+'</td>'
+      +'<td>'+(w.half?'$'+w.half:'—')+'</td>'
+      +'<td><div style="font-size:12px">'+w.bin+'</div>'
+      +'<div style="font-size:11px;color:'+(low?'var(--red)':'var(--txt3)')+'">'+w.stock+' btl'+(low?' ⚠️ LOW':'')+'</div></td>'
+      +'<td class="td-right">'
+      +'<button class="btn btn-xs btn-outline" onclick="editWine(\''+w.id+'\')">Edit</button>'
+      +'</td></tr>';
+  });
+  if(!wines.length) tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:32px;color:var(--txt3)">No wines found</td></tr>';
+}
+
+function openWineModal(editId){
+  wineEditId=editId||null;
+  document.getElementById('wine-modal-title').textContent=wineEditId?'Edit wine':'Add wine';
+  var w=wineEditId?DB.wines.find(function(i){return i.id===wineEditId;}):{};
+  document.getElementById('wine-name').value=w.name||'';
+  document.getElementById('wine-producer').value=w.producer||'';
+  document.getElementById('wine-vintage').value=w.vintage||'';
+  document.getElementById('wine-region').value=w.region||'';
+  document.getElementById('wine-type').value=w.type||'Red';
+  document.getElementById('wine-grape').value=w.grape||'';
+  document.getElementById('wine-bottle').value=w.bottle||'';
+  document.getElementById('wine-glass').value=w.glass||'';
+  document.getElementById('wine-half').value=w.half||'';
+  document.getElementById('wine-bin').value=w.bin||'';
+  document.getElementById('wine-vin').value=w.vin||generateWineVIN();
+  document.getElementById('wine-stock').value=w.stock||'';
+  document.getElementById('wine-alert').value=w.alert||3;
+  document.getElementById('wine-notes').value=w.notes||'';
+  document.getElementById('wine-pairings').value=w.pairings||'';
+  setToggle('wine-avail',w.available!==false);
+  setToggle('wine-byGlass',w.byGlass||false);
+  openModal('modal-wine');
+}
+
+function editWine(id){openWineModal(id);}
+
+function saveWine(){
+  var name=document.getElementById('wine-name').value.trim();
+  if(!name){showToast('Wine name is required','error');return;}
+  var wine={
+    id:wineEditId||'w'+Date.now(),
+    name:name,producer:document.getElementById('wine-producer').value,
+    vintage:document.getElementById('wine-vintage').value,region:document.getElementById('wine-region').value,
+    type:document.getElementById('wine-type').value,grape:document.getElementById('wine-grape').value,
+    bottle:parseFloat(document.getElementById('wine-bottle').value)||0,
+    glass:parseFloat(document.getElementById('wine-glass').value)||0,
+    half:parseFloat(document.getElementById('wine-half').value)||0,
+    bin:document.getElementById('wine-bin').value,
+    vin:document.getElementById('wine-vin').value||generateWineVIN(),
+    stock:parseInt(document.getElementById('wine-stock').value)||0,
+    alert:parseInt(document.getElementById('wine-alert').value)||3,
+    notes:document.getElementById('wine-notes').value,
+    pairings:document.getElementById('wine-pairings').value,
+    available:document.getElementById('wine-avail').classList.contains('on'),
+    byGlass:document.getElementById('wine-byGlass').classList.contains('on')
+  };
+  if(wineEditId){var idx=DB.wines.findIndex(function(i){return i.id===wineEditId;});if(idx>-1)DB.wines[idx]=wine;}
+  else DB.wines.push(wine);
+  closeModal('modal-wine');renderWineTable();
+  showToast(wineEditId?'Wine updated':'Wine added to cellar','success');
+}
+
+function exportWines(){
+  var csv='Name,Producer,Vintage,Region,Type,Grape,VIN,Bottle,Glass,Half,Bin,Stock\n';
+  DB.wines.forEach(function(w){
+    csv+='"'+w.name+'","'+w.producer+'","'+w.vintage+'","'+w.region+'","'+w.type+'","'+w.grape+'","'+w.vin+'",$'+w.bottle+',$'+w.glass+',$'+w.half+',"'+w.bin+'",'+w.stock+'\n';
+  });
+  downloadCSV(csv,'epicurean_wines.csv');
+}
+
+// ══════════════════════════════════════════════════════════
+// STAFF PAGE
+// ══════════════════════════════════════════════════════════
+function renderStaffPage(){
+  var list=document.getElementById('staff-list');
+  list.innerHTML='';
+  DB.staff.forEach(function(s){
+    var initials=s.name.split(' ').map(function(n){return n[0];}).join('');
+    var section=DB.sections.find(function(sec){return sec.staff===s.id;});
+    list.innerHTML+='<div style="display:flex;align-items:center;gap:12px;padding:12px 16px;border-bottom:1px solid var(--border)">'
+      +'<div style="width:36px;height:36px;border-radius:50%;background:var(--gold-l);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--amber)">'+initials+'</div>'
+      +'<div style="flex:1"><div style="font-size:13px;font-weight:600">'+s.name+'</div>'
+      +'<div style="font-size:11px;color:var(--txt3)">'+s.role+(section?' · '+section.name:'')+'</div>'
+      +'<div style="font-size:11px;color:var(--txt3);font-family:monospace">PIN: '+s.pin+'</div></div>'
+      +'<div class="status-dot '+(s.active?'dot-green':'dot-gray')+'"></div>'
+      +'<button class="btn btn-xs btn-outline" onclick="editStaff(\''+s.id+'\')">Edit</button>'
+      +'</div>';
+  });
+  var secList=document.getElementById('section-list');
+  secList.innerHTML='';
+  DB.sections.forEach(function(sec){
+    var staffMember=DB.staff.find(function(s){return s.id===sec.staff;});
+    secList.innerHTML+='<div style="padding:12px 16px;border-bottom:1px solid var(--border)">'
+      +'<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">'
+      +'<div style="width:12px;height:12px;border-radius:3px;background:'+sec.color+'"></div>'
+      +'<div style="font-size:13px;font-weight:600">'+sec.name+'</div>'
+      +'<div style="margin-left:auto;font-size:12px;color:var(--txt3)">'+(staffMember?staffMember.name:'Unassigned')+'</div></div>'
+      +'<div style="font-size:11px;color:var(--txt3)">Tables: '+sec.tables.join(', ')+'</div>'
+      +'</div>';
+  });
+}
+
+function openStaffModal(){openModal('modal-staff');}
+function saveStaff(){
+  var name=document.getElementById('staff-name').value.trim();
+  if(!name){showToast('Name required','error');return;}
+  DB.staff.push({id:'s'+Date.now(),name:name,role:document.getElementById('staff-role').value,pin:document.getElementById('staff-pin').value,phone:document.getElementById('staff-phone').value,active:true});
+  closeModal('modal-staff');renderStaffPage();showToast('Staff member added','success');
+}
+
+// ══════════════════════════════════════════════════════════
+// GUEST PAGE
+// ══════════════════════════════════════════════════════════
+function renderGuestPage(){renderGuestTable();}
+function renderGuestTable(){
+  var q=(document.getElementById('guest-search').value||'').toLowerCase();
+  var guests=DB.guests.filter(function(g){return !q||g.name.toLowerCase().includes(q)||g.phone.includes(q)||g.email.includes(q);});
+  var tbody=document.getElementById('guest-tbody');
+  tbody.innerHTML='';
+  guests.forEach(function(g){
+    var initials=g.name.split(' ').map(function(n){return n[0];}).join('');
+    var aHtml=g.allergies.map(function(a){return '<span class="pill pill-red" style="font-size:10px">'+a+'</span>';}).join('');
+    var dHtml=g.diets.map(function(d){return '<span class="pill pill-green" style="font-size:10px">'+d+'</span>';}).join('');
+    tbody.innerHTML+='<tr>'
+      +'<td><div style="display:flex;align-items:center;gap:8px">'
+      +'<div style="width:30px;height:30px;border-radius:50%;background:var(--gold-l);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--amber)">'+initials+'</div>'
+      +'<div><div style="font-weight:500">'+g.name+'</div>'+(g.notes?'<div style="font-size:11px;color:var(--txt3)">'+g.notes.substring(0,40)+'…</div>':'')+'</div></div></td>'
+      +'<td style="font-family:monospace;font-size:12px">'+g.phone+'</td>'
+      +'<td style="text-align:center;font-weight:600">'+g.visits+'</td>'
+      +'<td><div style="display:flex;flex-wrap:wrap;gap:3px">'+(aHtml||'<span style="font-size:11px;color:var(--txt3)">None</span>')+'</div></td>'
+      +'<td><div style="display:flex;flex-wrap:wrap;gap:3px">'+(dHtml||'<span style="font-size:11px;color:var(--txt3)">—</span>')+'</div></td>'
+      +'<td style="color:var(--txt3);font-size:12px">'+(g.lastVisit||'—')+'</td>'
+      +'<td class="td-right"><button class="btn btn-xs btn-outline" onclick="editGuest(\''+g.id+'\')">Edit</button></td>'
+      +'</tr>';
+  });
+  if(!guests.length) tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--txt3)">No guests found</td></tr>';
+}
+
+function openGuestModal(editId){
+  var g=editId?DB.guests.find(function(i){return i.id===editId;}):{};
+  document.getElementById('g-name').value=g.name||'';
+  document.getElementById('g-phone').value=g.phone||'';
+  document.getElementById('g-email').value=g.email||'';
+  document.getElementById('g-notes').value=g.notes||'';
+  buildChipGrid('g-allergy-grid',ALLERGENS,'allergy-chip',g.allergies||[]);
+  buildChipGrid('g-diet-grid',DIETS,'diet-chip',g.diets||[]);
+  openModal('modal-guest');
+}
+function editGuest(id){openGuestModal(id);}
+function saveGuest(){
+  var name=document.getElementById('g-name').value.trim();
+  if(!name){showToast('Name required','error');return;}
+  DB.guests.push({id:'g'+Date.now(),name:name,phone:document.getElementById('g-phone').value.replace(/[^0-9]/g,''),email:document.getElementById('g-email').value,visits:0,lastVisit:'',allergies:getChipSelections('g-allergy-grid'),diets:getChipSelections('g-diet-grid'),notes:document.getElementById('g-notes').value});
+  closeModal('modal-guest');renderGuestTable();showToast('Guest profile saved','success');
+}
+
+// ══════════════════════════════════════════════════════════
+// SALES PAGE
+// ══════════════════════════════════════════════════════════
+function renderSalesPage(){
+  var metrics=[
+    {label:'Week Revenue',val:'$18,120',sub:'vs $15,340 last week',trend:'+18%',up:true},
+    {label:'Month Revenue',val:'$72,450',sub:'On track for $85k',trend:'+12%',up:true},
+    {label:'Avg Daily Covers',val:'38',sub:'target: 45',trend:'-7',up:false},
+    {label:'Top Category',val:'Wine',sub:'$1,240 tonight',trend:'',up:null}
+  ];
+  var grid=document.getElementById('sales-metrics');grid.innerHTML='';
+  metrics.forEach(function(m){
+    var trendHtml=m.trend?'<div class="metric-trend '+(m.up?'trend-up':'trend-dn')+'">'+m.trend+'</div>':'';
+    grid.innerHTML+='<div class="metric-card"><div class="metric-label">'+m.label+'</div><div class="metric-val">'+m.val+'</div><div class="metric-sub">'+m.sub+'</div>'+trendHtml+'</div>';
+  });
+  var cats=[{name:'Food',rev:1890,pct:55},{name:'Wine',rev:1240,pct:36},{name:'Cocktails',rev:315,pct:9}];
+  var catEl=document.getElementById('revenue-by-cat');catEl.innerHTML='';
+  cats.forEach(function(c){
+    catEl.innerHTML+='<div style="margin-bottom:14px"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:5px"><span style="font-weight:500">'+c.name+'</span><span style="color:var(--gold);font-weight:600">$'+c.rev+' ('+c.pct+'%)</span></div>'
+      +'<div style="background:var(--bg2);border-radius:4px;height:8px"><div style="background:var(--gold);width:'+c.pct+'%;height:100%;border-radius:4px"></div></div></div>';
+  });
+  var hours=[18,19,20,21,22];var covers=[4,12,18,14,8];var maxC=Math.max.apply(null,covers);
+  var hourEl=document.getElementById('hourly-covers');
+  var barHtml='<div style="display:flex;align-items:flex-end;gap:8px;height:100px">';
+  hours.forEach(function(h,i){
+    var pct=Math.round(covers[i]/maxC*100);
+    barHtml+='<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:4px">'
+      +'<div style="font-size:10px;color:var(--txt3)">'+covers[i]+'</div>'
+      +'<div style="width:100%;background:var(--blue-bg);border-radius:4px 4px 0 0;height:'+pct+'%;min-height:4px"></div>'
+      +'<div style="font-size:10px;color:var(--txt3)">'+h+':00</div></div>';
+  });
+  barHtml+='</div>';
+  hourEl.innerHTML=barHtml;
+}
+
+// ══════════════════════════════════════════════════════════
+// SETTINGS PAGE
+// ══════════════════════════════════════════════════════════
+function renderSettingsPage(){
+  var days=['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  var grid=document.getElementById('hours-grid');grid.innerHTML='';
+  days.forEach(function(d){
+    var h=DB.settings.hours[d]||{open:'17:00',close:'23:00'};
+    grid.innerHTML+='<div class="form-row cols-3" style="margin:0 0 6px"><span style="font-size:13px;padding-top:8px;color:var(--txt2)">'+d+'</span>'
+      +'<input class="inp inp-sm" type="time" value="'+h.open+'">'
+      +'<input class="inp inp-sm" type="time" value="'+h.close+'"></div>';
+  });
+  var mgrs=document.getElementById('manager-list');
+  mgrs.innerHTML='<div style="display:flex;align-items:center;gap:10px"><div style="width:34px;height:34px;border-radius:50%;background:var(--navy3);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:var(--gold)">M</div><div><div style="font-size:13px;font-weight:500">General Manager</div><div style="font-size:11px;color:var(--txt3)">Full access · PIN: ADMIN</div></div></div>';
+}
+
+// ══════════════════════════════════════════════════════════
+// FLOOR DESIGNER
+// ══════════════════════════════════════════════════════════
+var floorObjs={main:[],bar:[],patio:[],private:[]};
+var currentFloor='main';
+var selectedObj=null;
+var objIdCounter=1;
+
+var TABLE_COLORS={
+  free:{bg:'#FFFFFF',border:'#CBD5E0',text:'#4A5568'},
+  seated:{bg:'#FFFBEB',border:'#D97706',text:'#92400E'},
+  ordering:{bg:'#EBF4FF',border:'#2B6CB0',text:'#1A365D'},
+  calling:{bg:'#FEF2F2',border:'#C53030',text:'#742A2A'},
+  confirmed:{bg:'#E6F4ED',border:'#276749',text:'#1C4532'}
+};
+
+function initFloorPage(){if(!floorObjs.main.length) addDefaultTables();renderFloor();}
+
+function addDefaultTables(){
+  var positions=[];
+  var cols=6,rows=4,startX=60,startY=60,gapX=140,gapY=110;
+  var n=1;
+  for(var r=0;r<rows;r++){for(var c=0;c<cols;c++){
+    if(n>24) break;
+    positions.push({x:startX+c*gapX,y:startY+r*gapY,num:n++});
+  }}
+  positions.forEach(function(p){
+    floorObjs.main.push({id:'t'+objIdCounter++,type:'table-round',x:p.x,y:p.y,w:70,h:70,num:p.num,status:'free',label:'',seats:4});
+  });
+  floorObjs.main.push({id:'wall'+objIdCounter++,type:'wall-h',x:40,y:30,w:800,h:12,label:''});
+  floorObjs.main.push({id:'bar'+objIdCounter++,type:'bar',x:860,y:60,w:180,h:120,label:'Bar'});
+}
+
+function renderFloor(){
+  var canvas=document.getElementById('floor-canvas');
+  canvas.innerHTML='';
+  (floorObjs[currentFloor]||[]).forEach(function(obj){drawObj(canvas,obj);});
+}
+
+function drawObj(canvas,obj){
+  var el=document.createElement('div');
+  el.className='floor-obj';
+  el.style.left=obj.x+'px'; el.style.top=obj.y+'px';
+  el.style.width=obj.w+'px'; el.style.height=obj.h+'px';
+  el.dataset.id=obj.id;
+  if(obj.type.startsWith('table')){
+    var col=TABLE_COLORS[obj.status||'free'];
+    var shape=obj.type==='table-round'?'ts-round':obj.type==='table-rect'?'ts-rect':'ts-square';
+    el.innerHTML='<div class="table-shape '+shape+'" style="background:'+col.bg+';border-color:'+col.border+';color:'+col.text+'">'
+      +'<span style="font-size:15px;font-weight:700;line-height:1">'+obj.num+'</span>'
+      +'<span style="font-size:9px;margin-top:1px">'+(obj.seats||4)+' seats</span></div>';
+  } else if(obj.type==='wall-h'||obj.type==='wall-v'){
+    el.innerHTML='<div class="wall-shape" style="width:100%;height:100%"></div>';
+  } else if(obj.type==='bar'){
+    el.innerHTML='<div class="bar-shape" style="width:100%;height:100%">'+obj.label+'</div>';
+  } else if(obj.type==='label'){
+    el.innerHTML='<div class="label-shape">'+obj.label+'</div>';
+  } else if(obj.type==='door'){
+    el.innerHTML='<div style="width:100%;height:100%;background:var(--bg2);border:2px solid var(--border2);border-radius:50% 0 0 0;display:flex;align-items:center;justify-content:center;font-size:18px">🚪</div>';
+  } else if(obj.type==='plant'){
+    el.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px">🌿</div>';
+  } else if(obj.type==='host'){
+    el.innerHTML='<div style="width:100%;height:100%;background:var(--navy3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--gold)">HOST</div>';
+  }
+  el.onclick=function(e){e.stopPropagation();selectObj(obj.id);};
+  el.oncontextmenu=function(e){e.preventDefault();deleteObj(obj.id);};
+  makeDraggableDesktop(el,obj);
+  canvas.appendChild(el);
+}
+
+function makeDraggableDesktop(el,obj){
+  var startX,startY,ox,oy,dragging=false;
+  el.onmousedown=function(e){
+    if(e.button!==0) return;
+    e.preventDefault();
+    selectObj(obj.id);
+    startX=e.clientX; startY=e.clientY; ox=obj.x; oy=obj.y; dragging=true;
+    document.onmousemove=function(ev){
+      if(!dragging) return;
+      var dx=ev.clientX-startX, dy=ev.clientY-startY;
+      obj.x=Math.max(0,Math.round((ox+dx)/10)*10);
+      obj.y=Math.max(0,Math.round((oy+dy)/10)*10);
+      el.style.left=obj.x+'px'; el.style.top=obj.y+'px';
+    };
+    document.onmouseup=function(){dragging=false;document.onmousemove=null;document.onmouseup=null;};
+  };
+}
+
+function selectObj(id){
+  selectedObj=id;
+  document.querySelectorAll('.floor-obj').forEach(function(el){el.classList.toggle('selected',el.dataset.id===id);});
+  var obj=(floorObjs[currentFloor]||[]).find(function(o){return o.id===id;});
+  if(!obj) return;
+  var props=document.getElementById('obj-props');
+  if(obj.type.startsWith('table')){
+    props.innerHTML='<div style="display:flex;flex-direction:column;gap:8px">'
+      +'<div><label class="lbl">Table number</label><input class="inp inp-sm" value="'+obj.num+'" onchange="updateProp(\''+id+'\',\'num\',parseInt(this.value))"></div>'
+      +'<div><label class="lbl">Seats</label><input class="inp inp-sm" type="number" value="'+(obj.seats||4)+'" onchange="updateProp(\''+id+'\',\'seats\',parseInt(this.value))"></div>'
+      +'<div><label class="lbl">Shape</label><select class="inp inp-sm" onchange="updateProp(\''+id+'\',\'type\',this.value);renderFloor()">'
+      +'<option value="table-round" '+(obj.type==='table-round'?'selected':'')+'>Round</option>'
+      +'<option value="table-square" '+(obj.type==='table-square'?'selected':'')+'>Square</option>'
+      +'<option value="table-rect" '+(obj.type==='table-rect'?'selected':'')+'>Rectangle</option></select></div>'
+      +'<div><label class="lbl">Size W×H (px)</label><div style="display:flex;gap:4px">'
+      +'<input class="inp inp-sm" type="number" value="'+obj.w+'" onchange="updateProp(\''+id+'\',\'w\',parseInt(this.value));renderFloor()">'
+      +'<input class="inp inp-sm" type="number" value="'+obj.h+'" onchange="updateProp(\''+id+'\',\'h\',parseInt(this.value));renderFloor()"></div></div>'
+      +'<button class="btn btn-sm btn-danger" style="margin-top:4px" onclick="deleteObj(\''+id+'\')">🗑 Delete</button></div>';
+  } else {
+    props.innerHTML='<div style="display:flex;flex-direction:column;gap:8px">'
+      +'<div><label class="lbl">Label</label><input class="inp inp-sm" value="'+(obj.label||'')+'" onchange="updateProp(\''+id+'\',\'label\',this.value);renderFloor()"></div>'
+      +'<div><label class="lbl">W × H (px)</label><div style="display:flex;gap:4px">'
+      +'<input class="inp inp-sm" type="number" value="'+obj.w+'" onchange="updateProp(\''+id+'\',\'w\',parseInt(this.value));renderFloor()">'
+      +'<input class="inp inp-sm" type="number" value="'+obj.h+'" onchange="updateProp(\''+id+'\',\'h\',parseInt(this.value));renderFloor()"></div></div>'
+      +'<button class="btn btn-sm btn-danger" style="margin-top:4px" onclick="deleteObj(\''+id+'\')">🗑 Delete</button></div>';
+  }
+}
+
+function updateProp(id,key,val){
+  var obj=(floorObjs[currentFloor]||[]).find(function(o){return o.id===id;});
+  if(obj) obj[key]=val;
+}
+
+function deleteObj(id){
+  floorObjs[currentFloor]=(floorObjs[currentFloor]||[]).filter(function(o){return o.id!==id;});
+  document.getElementById('obj-props').textContent='Click an object to edit its properties';
+  renderFloor();
+}
+
+function deselectAll(e){if(e.target.id==='floor-canvas'||e.target.id==='floor-canvas-wrap'){selectedObj=null;document.querySelectorAll('.floor-obj').forEach(function(el){el.classList.remove('selected');});document.getElementById('obj-props').textContent='Click an object to edit its properties';}}
+
+function addFloorObj(type){
+  var defaults={
+    'table-round':{w:70,h:70,num:getNextTableNum(),seats:4,status:'free',label:''},
+    'table-square':{w:70,h:70,num:getNextTableNum(),seats:4,status:'free',label:''},
+    'table-rect':{w:120,h:70,num:getNextTableNum(),seats:6,status:'free',label:''},
+    'wall-h':{w:200,h:14,label:''},'wall-v':{w:14,h:200,label:''},
+    'door':{w:50,h:50,label:'Door'},'bar':{w:180,h:80,label:'Bar'},
+    'host':{w:60,h:40,label:'Host'},'plant':{w:40,h:40,label:''},
+    'label':{w:100,h:30,label:'Label text'}
+  };
+  var d=defaults[type]||{w:60,h:60,label:''};
+  var obj=Object.assign({id:'obj'+objIdCounter++,type:type,x:200,y:200},d);
+  if(!floorObjs[currentFloor]) floorObjs[currentFloor]=[];
+  floorObjs[currentFloor].push(obj);
+  renderFloor();
+  showToast('Added to floor — drag to position','success');
+}
+
+function getNextTableNum(){
+  var nums=(floorObjs[currentFloor]||[]).filter(function(o){return o.type.startsWith('table');}).map(function(o){return o.num||0;});
+  return nums.length?Math.max.apply(null,nums)+1:1;
+}
+
+function switchFloor(floor){currentFloor=floor;if(!floorObjs[floor])floorObjs[floor]=[];renderFloor();}
+
+function addFloor(){
+  var name=prompt('Room name:');
+  if(!name) return;
+  var key=name.toLowerCase().replace(/\s+/g,'-');
+  var sel=document.getElementById('floor-selector');
+  var opt=document.createElement('option');opt.value=key;opt.textContent=name;sel.appendChild(opt);
+  floorObjs[key]=[];sel.value=key;switchFloor(key);
+}
+
+function saveFloor(){showToast('Floor layout saved','success');}
+
+// ══════════════════════════════════════════════════════════
+// HELPERS
+// ══════════════════════════════════════════════════════════
+function generateVIN(cat){
+  var prefix={Mains:'EH-M',Tapas:'EH-T',Desserts:'EH-D',Cocktails:'EH-C',Beverages:'EH-B','Wines by Glass':'EH-WG','Wine Cellar':'EH-WC'}[cat]||'EH-X';
+  return prefix+'-'+(Date.now().toString().slice(-4));
+}
+function generateWineVIN(){return 'W-'+Date.now().toString().slice(-6);}
+
+function buildChipGrid(elId,items,cls,selected){
+  var el=document.getElementById(elId); el.innerHTML='';
+  items.forEach(function(item){
+    var chip=document.createElement('div');
+    chip.className=cls+(selected.includes(item)?' on':'');
+    chip.textContent=item;
+    chip.onclick=function(){chip.classList.toggle('on');};
+    el.appendChild(chip);
+  });
+}
+
+function getChipSelections(elId){
+  var chips=document.getElementById(elId).querySelectorAll('.on');
+  return Array.from(chips).map(function(c){return c.textContent;});
+}
+
+function toggleEl(el){
+  el.classList.toggle('on');
+  var lbl=el.nextElementSibling;
+  if(lbl&&lbl.id==='item-avail-label') lbl.textContent=el.classList.contains('on')?'Available':'86\'d';
+}
+function setToggle(id,on){var el=document.getElementById(id);if(on)el.classList.add('on');else el.classList.remove('on');}
+
+function openModal(id){document.getElementById(id).classList.add('open');}
+function closeModal(id){document.getElementById(id).classList.remove('open');}
+document.querySelectorAll('.modal-bg').forEach(function(bg){
+  bg.addEventListener('click',function(e){if(e.target===bg) bg.classList.remove('open');});
+});
+
+var toastTimer;
+function showToast(msg,type){
+  var container=document.getElementById('toast');
+  var item=document.createElement('div');
+  item.className='toast-item '+(type||'');
+  item.innerHTML='<span>'+(type==='success'?'✓':type==='error'?'✕':'ℹ')+'</span><span>'+msg+'</span>';
+  container.appendChild(item);
+  setTimeout(function(){item.remove();},3000);
+}
+
+function downloadCSV(csv,filename){
+  var blob=new Blob([csv],{type:'text/csv'});
+  var a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=filename;a.click();
+}
+
+// ══════════════════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════════════════
+renderDashboard();
+</script>
+</body>
+</html>
