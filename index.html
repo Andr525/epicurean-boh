@@ -242,6 +242,10 @@ a{text-decoration:none;color:inherit}
 .prog-dot.done{background:#B8943F}
 .prog-dot.active{background:#B8943F;box-shadow:0 0 0 3px rgba(184,148,63,.2)}
 
+
+.avatar-menu-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;color:#0F1B2D;cursor:pointer;transition:background .12s}
+.avatar-menu-item:hover{background:#F4F6F9}
+.ami-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 </head>
@@ -348,7 +352,35 @@ a{text-decoration:none;color:inherit}
   <div class="tb-time" id="clock">--:--:--</div>
   <div class="topbar-icon" title="Notifications" onclick="showToast('No new alerts','success')">🔔</div>
   <div class="topbar-icon" title="Help">?</div>
-  <div class="topbar-avatar" id="user-avatar" title="Manager">M</div>
+  <div style="position:relative" id="avatar-wrap">
+  <div class="topbar-avatar" id="user-avatar" title="Click to open menu" onclick="toggleAvatarMenu()" style="cursor:pointer">M</div>
+  <div id="avatar-menu" style="display:none;position:absolute;right:0;top:calc(100% + 8px);background:#FFFFFF;border:1px solid #E2E8F0;border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.15);min-width:220px;z-index:200;overflow:hidden">
+    <!-- User info -->
+    <div style="padding:14px 16px;border-bottom:1px solid #E2E8F0;background:#F8F6F2">
+      <div style="font-size:13px;font-weight:600;color:#0F1B2D" id="avatar-menu-name">General Manager</div>
+      <div style="font-size:11px;color:#718096;margin-top:2px">Back of House Access</div>
+    </div>
+    <!-- Menu items -->
+    <div style="padding:6px 0">
+      <div class="avatar-menu-item" onclick="navTo('settings',null);closeAvatarMenu()">
+        <span class="ami-icon">⚙️</span> Settings
+      </div>
+      <div class="avatar-menu-item" onclick="navTo('staff',null);closeAvatarMenu()">
+        <span class="ami-icon">👥</span> Staff management
+      </div>
+      <div class="avatar-menu-item" onclick="showSecurityLog();closeAvatarMenu()">
+        <span class="ami-icon">🔒</span> Security log
+      </div>
+      <div style="border-top:1px solid #E2E8F0;margin:4px 0"></div>
+      <div class="avatar-menu-item" onclick="changeCodePrompt();closeAvatarMenu()">
+        <span class="ami-icon">🔑</span> Change access code
+      </div>
+      <div class="avatar-menu-item" style="color:#C53030" onclick="confirmLogout()">
+        <span class="ami-icon">🚪</span> <strong>Sign out</strong>
+      </div>
+    </div>
+  </div>
+</div>
 </div>
 
 <!-- ── APP BODY ── -->
@@ -1992,6 +2024,64 @@ document.addEventListener('DOMContentLoaded',function(){
   // Load face models in background
   if(typeof faceapi !== 'undefined') loadFaceModels();
 });
+
+// ── AVATAR DROPDOWN MENU ──
+function toggleAvatarMenu(){
+  var menu = document.getElementById('avatar-menu');
+  var isOpen = menu.style.display === 'block';
+  if(isOpen){ closeAvatarMenu(); }
+  else {
+    // Update name in menu
+    var name = sessionStorage.getItem('eh_manager') || (AUTH.currentManager ? AUTH.currentManager.name : 'Manager');
+    document.getElementById('avatar-menu-name').textContent = name;
+    menu.style.display = 'block';
+    // Close on outside click
+    setTimeout(function(){
+      document.addEventListener('click', outsideAvatarClick);
+    }, 10);
+  }
+}
+
+function closeAvatarMenu(){
+  document.getElementById('avatar-menu').style.display = 'none';
+  document.removeEventListener('click', outsideAvatarClick);
+}
+
+function outsideAvatarClick(e){
+  var wrap = document.getElementById('avatar-wrap');
+  if(wrap && !wrap.contains(e.target)) closeAvatarMenu();
+}
+
+function confirmLogout(){
+  if(confirm('Sign out of Back of House?\n\nYou will need your access code and face verification to sign back in.')){
+    doLogout();
+  }
+}
+
+function changeCodePrompt(){
+  var current = prompt('Enter your CURRENT access code:');
+  if(!current) return;
+  var manager = AUTH.managers.find(function(m){ return m.code === current; });
+  if(!manager){ showToast('Incorrect current code','error'); return; }
+  var newCode = prompt('Enter your NEW access code (min 6 characters):');
+  if(!newCode || newCode.length < 6){ showToast('Code must be at least 6 characters','error'); return; }
+  var confirm2 = prompt('Confirm your new code:');
+  if(newCode !== confirm2){ showToast('Codes do not match','error'); return; }
+  manager.code = newCode;
+  saveManagers();
+  showToast('Access code updated successfully','success');
+}
+
+function showSecurityLog(){
+  var log = JSON.parse(localStorage.getItem('eh_security_log') || '[]');
+  if(!log.length){ showToast('No security events recorded yet','success'); return; }
+  var msg = 'Recent security events:\n\n';
+  log.slice(-10).reverse().forEach(function(entry){
+    var time = new Date(entry.time).toLocaleString();
+    msg += time + '\n' + entry.type + ' — ' + entry.detail + '\n\n';
+  });
+  alert(msg);
+}
 
 // Dashboard renders after successful auth
 </script>
