@@ -194,7 +194,7 @@ a{text-decoration:none;color:inherit}
 .diet-chip.on{background:var(--green-bg);border-color:var(--green);color:var(--green)}
 
 /* ── NOTIFICATION TOAST ── */
-#toast{position:fixed;bottom:24px;right:24px;z-index:200;display:flex;flex-direction:column;gap:8px}
+#toast{position:fixed;bottom:24px;right:24px;z-index:20000;display:flex;flex-direction:column;gap:8px}
 .toast-item{background:var(--navy);color:#fff;padding:12px 18px;border-radius:var(--r2);font-size:13px;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:10px;animation:slide-in .25s ease;border-left:3px solid var(--gold)}
 @keyframes slide-in{from{transform:translateX(100%);opacity:0}to{transform:translateX(0);opacity:1}}
 .toast-item.success{border-color:var(--green)}
@@ -248,6 +248,7 @@ a{text-decoration:none;color:inherit}
 .ami-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
 </style>
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/dist/qrcode.min.js"></script>
 </head>
 <body>
 
@@ -275,7 +276,10 @@ a{text-decoration:none;color:inherit}
       </div>
       <div class="login-err" id="code-err">Incorrect code. Please try again.</div>
       <div class="attempts-left" id="attempts-label"></div>
-      <button class="login-btn" onclick="checkCode()">Continue →</button>
+      <button class="login-btn" onclick="checkCode()">Continue &#8594;</button>
+      <div style="text-align:center;margin-top:6px">
+        <span style="font-size:12px;color:rgba(255,255,255,.35);cursor:pointer;text-decoration:underline" onclick="openRecovery()">Forgot your code?</span>
+      </div>
     </div>
 
     <!-- STEP 2: QR code for phone face scan -->
@@ -343,6 +347,50 @@ a{text-decoration:none;color:inherit}
   </div>
 </div>
 
+<!-- RECOVERY MODAL: Forgot code — verify by face, then set new code -->
+<div id="recovery-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#1A2B42;border:1px solid rgba(184,148,63,.3);border-radius:16px;padding:28px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px">
+
+    <!-- Recovery step 1: pick your name -->
+    <div id="recovery-step-a">
+      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">Recover access</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:14px">Select your name. You will verify with your face to reset your code — no email needed.</div>
+      <div id="recovery-name-list" style="display:flex;flex-direction:column;gap:8px;max-height:240px;overflow-y:auto"></div>
+      <button class="login-btn-secondary" style="margin-top:14px" onclick="closeRecovery()">Cancel</button>
+    </div>
+
+    <!-- Recovery step 2: face verification -->
+    <div id="recovery-step-b" style="display:none">
+      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:10px">Verify it's you, <span id="recovery-name-display"></span></div>
+      <div class="face-preview face-scanning" id="recovery-face-preview" style="margin:0 auto 10px">
+        <video id="recovery-video" autoplay muted playsinline></video>
+        <div class="face-overlay"></div>
+      </div>
+      <div class="face-status" id="recovery-face-status">Starting camera…</div>
+      <div class="login-err" id="recovery-face-err">Face does not match. You cannot reset this way — ask another manager to reset it for you in Staff Management.</div>
+      <button class="login-btn" id="recovery-capture-btn" onclick="recoveryCaptureFace()" style="display:none;margin-top:10px">Verify my face</button>
+      <button class="login-btn-secondary" onclick="closeRecovery()">Cancel</button>
+    </div>
+
+    <!-- Recovery step 3: set new code -->
+    <div id="recovery-step-c" style="display:none">
+      <div style="font-size:17px;font-weight:700;color:#fff;margin-bottom:6px">&#10003; Identity confirmed</div>
+      <div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:14px">Set a new access code below.</div>
+      <div>
+        <div class="login-label">New access code (min 6 characters)</div>
+        <input class="login-input" id="recovery-new-code" type="password" placeholder="Choose a new code">
+      </div>
+      <div>
+        <div class="login-label">Confirm new code</div>
+        <input class="login-input" id="recovery-new-code2" type="password" placeholder="Repeat your new code">
+      </div>
+      <div class="login-err" id="recovery-code-err">Codes do not match or too short.</div>
+      <button class="login-btn" style="margin-top:10px" onclick="recoverySetNewCode()">Save new code &amp; sign in</button>
+    </div>
+
+  </div>
+</div>
+
 
 <!-- ── TOPBAR ── -->
 <div id="topbar">
@@ -403,7 +451,10 @@ a{text-decoration:none;color:inherit}
   <div class="nav-item" onclick="navTo('sales',this)"><span class="nav-icon">💰</span>Sales & Revenue</div>
   <div class="nav-item" onclick="navTo('items',this)"><span class="nav-icon">📈</span>Item Performance</div>
   <div class="nav-item" onclick="navTo('shifts',this)"><span class="nav-icon">🕐</span>Shift Reports</div>
+  <div class="nav-item" onclick="navTo('payroll',this)"><span class="nav-icon">💵</span>Payroll (NYC)</div>
   <div class="nav-item" onclick="navTo('inventory',this)"><span class="nav-icon">📦</span>Inventory</div>
+  <div class="nav-item" onclick="navTo('produce',this)"><span class="nav-icon">🥩</span>Kitchen Orders</div>
+  <div class="nav-item" onclick="navTo('cake911',this)"><span class="nav-icon">🎂</span>Cake 911</div>
 
   <div class="nav-section">Settings</div>
   <div class="nav-item" onclick="navTo('settings',this)"><span class="nav-icon">⚙️</span>Restaurant Settings</div>
@@ -503,6 +554,20 @@ a{text-decoration:none;color:inherit}
       <div style="font-size:11px;font-weight:700;letter-spacing:.08em;color:var(--txt3);text-transform:uppercase;margin-bottom:10px">Selected object</div>
       <div id="obj-props" style="font-size:12px;color:var(--txt3)">Click an object to edit its properties</div>
     </div>
+            <!-- Extra floor elements -->
+        <div style="font-size:10px;font-weight:600;color:var(--txt3);margin-top:4px;padding:4px 0 2px">SEATING</div>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px;margin-bottom:3px" onclick="addFloorObj('couch')">&#127752; Couch/Banquette</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px;margin-bottom:3px" onclick="addFloorObj('stool')">&#9900; Bar stool</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px;margin-bottom:3px" onclick="addFloorObj('outdoor')">&#9728; Outdoor seat</button>
+        <div style="font-size:10px;font-weight:600;color:var(--txt3);margin-top:4px;padding:4px 0 2px">ZONES</div>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px;margin-bottom:3px" onclick="addFloorObj('kiosk')">&#128722; Kiosk</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px;margin-bottom:3px" onclick="addFloorObj('kitchen')">&#128293; Kitchen</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px;margin-bottom:3px" onclick="addFloorObj('stage')">&#127926; Orchestra</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px;margin-bottom:3px" onclick="addFloorObj('privateroom')">&#127963; Private dining</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px;margin-bottom:3px" onclick="addFloorObj('store')">&#9749; Coffee Studio</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px;margin-bottom:3px" onclick="addFloorObj('lodge')">&#127968; Raised lodge</button>
+        <button class="btn btn-sm btn-outline" style="justify-content:flex-start;gap:8px;margin-bottom:3px" onclick="addFloorObj('curve')">&#8627; Curved wall</button>
+      </div>
     <!-- Canvas -->
     <div id="floor-canvas-wrap" onclick="deselectAll(event)">
       <div id="floor-canvas" style="position:relative;width:1200px;height:800px"></div>
@@ -553,9 +618,10 @@ a{text-decoration:none;color:inherit}
   <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
     <div>
       <div class="page-title">Wine Cellar</div>
-      <div class="page-sub">Full wine list with VIN numbers, pricing tiers, and bin locations</div>
+      <div class="page-sub">Full wine list with VIN numbers, pricing tiers, bin locations, and glass pour calculator</div>
     </div>
     <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-outline" onclick="showGlassInventory()">&#127863; Glass calculator</button>
       <button class="btn btn-outline" onclick="exportWines()">⬇ Export</button>
       <button class="btn btn-gold" onclick="openWineModal()">+ Add wine</button>
     </div>
@@ -567,13 +633,14 @@ a{text-decoration:none;color:inherit}
         <input class="inp search-inp" id="wine-search" type="text" placeholder="Search wine name, producer, VIN, vintage…" oninput="renderWineTable()">
       </div>
       <select class="inp" style="width:160px" id="wine-type-filter" onchange="renderWineTable()">
-        <option value="all">All types</option>
+        <option value="all">All wines</option>
         <option value="Red">Red</option>
         <option value="White">White</option>
         <option value="Champagne">Champagne</option>
         <option value="Rosé">Rosé</option>
         <option value="Dessert">Dessert</option>
-        <option value="By Glass">By Glass</option>
+        <option value="By Glass">By glass only</option>
+        <option value="low">Low stock &#9888;</option>
       </select>
     </div>
     <div class="card" style="overflow:hidden">
@@ -592,7 +659,7 @@ a{text-decoration:none;color:inherit}
 <!-- ════ PAGE: STAFF ════ -->
 <div class="page" id="pg-staff">
   <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
-    <div><div class="page-title">Staff & Sections</div><div class="page-sub">Manage team members, roles, and dining room sections</div></div>
+    <div><div class="page-title">Staff & Sections</div><div class="page-sub">Manage team members, roles, dining room sections, and back-of-house login access</div></div>
     <button class="btn btn-gold" onclick="openStaffModal()">+ Add staff member</button>
   </div>
   <div class="page-body">
@@ -605,6 +672,18 @@ a{text-decoration:none;color:inherit}
         <div class="card-header"><div class="card-title">Section assignments</div><button class="btn btn-sm btn-outline" onclick="openSectionModal()">Edit sections</button></div>
         <div id="section-list"></div>
       </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-header">
+        <div class="card-title">&#128274; Back of House — Login Access</div>
+        <div style="font-size:12px;color:var(--txt3)">Who can sign into this dashboard</div>
+        <button class="btn btn-sm btn-gold" onclick="openNewAccessModal()" style="margin-left:auto">+ Grant access</button>
+      </div>
+      <table class="data-table">
+        <thead><tr><th>Name</th><th>Access code</th><th>Face registered</th><th>Last login attempt</th><th style="text-align:right">Actions</th></tr></thead>
+        <tbody id="access-tbody"></tbody>
+      </table>
     </div>
   </div>
 </div>
@@ -689,12 +768,104 @@ a{text-decoration:none;color:inherit}
   </div>
 </div>
 
+<!-- ════ PAGE: PAYROLL (NYC) ════ -->
+<div class="page" id="pg-payroll">
+  <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div>
+      <div class="page-title">Payroll &mdash; New York City</div>
+      <div class="page-sub">Hours, NYC tip-credit wages, and overtime &mdash; gross pay calculation for payroll export</div>
+    </div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <select class="inp" id="payroll-week-select" style="width:200px" onchange="renderPayrollPage()"></select>
+      <button class="btn btn-outline" onclick="exportPayrollCSV()">&#11015; Export for payroll provider</button>
+    </div>
+  </div>
+  <div class="page-body">
+
+    <div style="background:var(--blue-bg);border-radius:var(--r);padding:14px 18px;margin-bottom:18px;font-size:13px;color:var(--blue);line-height:1.7">
+      <strong>2026 NYC rates applied automatically:</strong> Tipped food service workers &mdash; $11.35/hr cash wage + $5.65/hr tip credit (total $17.00 min). Tipped service employees &mdash; $14.15/hr cash + $2.85/hr tip credit. Non-tipped staff, managers, and sales &mdash; full $17.00/hr minimum, no tip credit. Overtime (over 40 hrs/week) is calculated at 1.5&times; the <em>full minimum wage</em> for tipped roles, per NYC law &mdash; not the lower cash wage.
+    </div>
+
+    <div class="metric-grid" id="payroll-metrics"></div>
+
+    <div class="card" style="overflow:hidden">
+      <div class="card-header">
+        <div class="card-title">Weekly payroll detail</div>
+      </div>
+      <div style="overflow-x:auto">
+        <table class="data-table" id="payroll-table">
+          <thead><tr>
+            <th>Employee</th><th>Role</th><th>Wage type</th><th style="text-align:center">Reg hrs</th><th style="text-align:center">OT hrs</th>
+            <th style="text-align:right">Cash wage</th><th style="text-align:right">Tips reported</th><th style="text-align:right">Tip credit applied</th>
+            <th style="text-align:right">Gross pay</th><th style="text-align:right">Min wage check</th>
+          </tr></thead>
+          <tbody id="payroll-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-header"><div class="card-title">&#9888; Tip-credit shortfall alerts</div></div>
+      <div id="payroll-shortfall-list" style="padding:4px 0"></div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <div class="card-header"><div class="card-title">Employee wage settings</div></div>
+      <table class="data-table">
+        <thead><tr><th>Employee</th><th>Role</th><th>Wage classification</th><th style="text-align:right">Hourly rate / cash wage</th><th style="text-align:right">Actions</th></tr></thead>
+        <tbody id="wage-settings-tbody"></tbody>
+      </table>
+    </div>
+
+  </div>
+</div>
+
 <!-- Stub pages -->
 <div class="page" id="pg-live"><div class="page-header"><div class="page-title">Live Service</div><div class="page-sub">Real-time table status — coming in next build</div></div></div>
 <div class="page" id="pg-items"><div class="page-header"><div class="page-title">Item Performance</div><div class="page-sub">Coming in next build</div></div></div>
 <div class="page" id="pg-shifts"><div class="page-header"><div class="page-title">Shift Reports</div><div class="page-sub">Coming in next build</div></div></div>
 <div class="page" id="pg-inventory"><div class="page-header"><div class="page-title">Inventory</div><div class="page-sub">Coming in next build</div></div></div>
 <div class="page" id="pg-integrations"><div class="page-header"><div class="page-title">Integrations</div><div class="page-sub">Square, Firebase, printer — coming in next build</div></div></div>
+
+<!-- ════ PAGE: KITCHEN PRODUCE ORDERS ════ -->
+<div class="page" id="pg-produce">
+  <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div><div class="page-title">Kitchen Orders & Produce</div><div class="page-sub">Daily ordering sheets — proteins, produce, dairy, dry goods, and specialty items</div></div>
+    <div style="display:flex;gap:8px;margin-top:4px">
+      <button class="btn btn-outline" onclick="printProduceSheet()">&#128438; Print order sheet</button>
+      <button class="btn btn-gold" onclick="openProduceModal()">+ Add item</button>
+    </div>
+  </div>
+  <div class="page-body">
+    <div class="tab-row" id="produce-cat-tabs"></div>
+    <div class="card" style="overflow:hidden">
+      <table class="data-table" id="produce-table">
+        <thead><tr>
+          <th>Item</th><th>Category</th><th>Unit</th><th>Par level</th><th>On hand</th><th>Order qty</th><th>Supplier</th><th style="text-align:right">Actions</th>
+        </tr></thead>
+        <tbody id="produce-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ════ PAGE: CAKE 911 ════ -->
+<div class="page" id="pg-cake911">
+  <div class="page-header" style="display:flex;align-items:flex-start;justify-content:space-between">
+    <div><div class="page-title">Cake 911 — Custom Orders</div><div class="page-sub">Online cake orders, production schedule, and pickup management</div></div>
+    <button class="btn btn-gold" onclick="openCakeOrderModal()">+ New order</button>
+  </div>
+  <div class="page-body">
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:18px" id="cake-metrics"></div>
+    <div class="card" style="overflow:hidden">
+      <div class="card-header"><div class="card-title">Active orders</div></div>
+      <table class="data-table">
+        <thead><tr><th>Order #</th><th>Customer</th><th>Cake</th><th>Pickup date</th><th>Size / Servings</th><th>Price</th><th>Status</th><th style="text-align:right">Actions</th></tr></thead>
+        <tbody id="cake-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
 </div><!-- /main -->
 </div><!-- /app-body -->
@@ -750,7 +921,7 @@ a{text-decoration:none;color:inherit}
             <span id="item-avail-label" style="font-size:12px;color:var(--txt2)">Available</span>
           </div>
         </div>
-        <div><label class="lbl">Featured / Chef's pick</label>
+        <div><label class="lbl">Featured / Chefs pick</label>
           <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
             <div class="toggle" id="item-feat-toggle" onclick="toggleEl(this)"><div class="toggle-thumb"></div></div>
             <span style="font-size:12px;color:var(--txt2)">Featured</span>
@@ -859,6 +1030,91 @@ a{text-decoration:none;color:inherit}
   </div>
 </div>
 
+<!-- ════════ MODAL: GRANT BACK-OF-HOUSE ACCESS (new user) ════════ -->
+<div class="modal-bg" id="modal-access">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title">Grant Back of House Access</div><div class="modal-close" onclick="closeModal('modal-access')">&#10005;</div></div>
+    <div class="modal-body">
+      <div style="background:var(--blue-bg);border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--blue);margin-bottom:16px;line-height:1.6">
+        Create a temporary code for this person. They will use it to sign in for the first time and register their own face. You will not need to do anything else — their access is fully set up the moment they log in once.
+      </div>
+      <div class="form-row cols-2">
+        <div><label class="lbl">Full name *</label><input class="inp" id="access-name" placeholder="e.g. Maria Lopez"></div>
+        <div><label class="lbl">Role</label>
+          <select class="inp" id="access-role">
+            <option>General Manager</option><option>Assistant Manager</option>
+            <option>Head Sommelier</option><option>Kitchen Manager</option><option>Owner</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div>
+          <label class="lbl">Temporary access code</label>
+          <div style="display:flex;gap:8px">
+            <input class="inp" id="access-code" placeholder="Auto-generated" style="font-family:monospace;letter-spacing:.08em" readonly>
+            <button class="btn btn-outline btn-sm" onclick="regenerateAccessCode()" style="white-space:nowrap">&#8635; Regenerate</button>
+          </div>
+          <div style="font-size:11px;color:var(--txt3);margin-top:5px">Share this code with them directly &mdash; in person or by phone call. Not by unsecured text or email.</div>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-access')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveNewAccess()">Grant access</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ MODAL: RESET EXISTING USER CODE ════════ -->
+<div class="modal-bg" id="modal-reset-code">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title" id="reset-code-title">Reset access code</div><div class="modal-close" onclick="closeModal('modal-reset-code')">&#10005;</div></div>
+    <div class="modal-body">
+      <div style="background:var(--amber-bg);border-radius:var(--r);padding:12px 14px;font-size:13px;color:var(--amber);margin-bottom:16px;line-height:1.6">
+        This generates a new temporary code for <strong id="reset-code-name"></strong>. Their old code and registered face will be cleared &mdash; they must sign in with the new code and register their face again.
+      </div>
+      <div>
+        <label class="lbl">New temporary code</label>
+        <div style="display:flex;gap:8px">
+          <input class="inp" id="reset-new-code" placeholder="Auto-generated" style="font-family:monospace;letter-spacing:.08em" readonly>
+          <button class="btn btn-outline btn-sm" onclick="regenerateResetCode()">&#8635; Regenerate</button>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-reset-code')">Cancel</button>
+      <button class="btn btn-danger" onclick="confirmResetCode()">Reset code &amp; clear face</button>
+    </div>
+  </div>
+</div>
+
+<!-- ════════ MODAL: WAGE CLASSIFICATION ════════ -->
+<div class="modal-bg" id="modal-wage">
+  <div class="modal">
+    <div class="modal-hd"><div class="modal-title" id="wage-modal-title">Set wage classification</div><div class="modal-close" onclick="closeModal('modal-wage')">&#10005;</div></div>
+    <div class="modal-body">
+      <div class="form-row">
+        <div><label class="lbl">Wage classification (NYC 2026 rules)</label>
+          <select class="inp" id="wage-classification" onchange="updateWagePreview()">
+            <option value="food_service_tipped">Food service worker &mdash; tipped (waiters, bussers, captains)</option>
+            <option value="service_tipped">Service employee &mdash; tipped (bartenders, some support roles)</option>
+            <option value="non_tipped">Non-tipped / Manager / Sales &mdash; full minimum wage, no tip credit</option>
+          </select>
+        </div>
+      </div>
+      <div id="wage-preview" style="background:var(--bg);border-radius:var(--r);padding:12px 16px;font-size:13px;color:var(--txt2);line-height:1.7;margin-top:10px"></div>
+      <div class="form-row cols-2" style="margin-top:14px">
+        <div><label class="lbl">Cash wage override ($/hr)</label><input class="inp" id="wage-cash-override" type="number" step=".01" placeholder="Leave blank to use NYC default"></div>
+        <div><label class="lbl">Effective date</label><input class="inp" id="wage-effective-date" type="date"></div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeModal('modal-wage')">Cancel</button>
+      <button class="btn btn-gold" onclick="saveWageClassification()">Save classification</button>
+    </div>
+  </div>
+</div>
+
 <!-- ════════ MODAL: GUEST ════════ -->
 <div class="modal-bg" id="modal-guest">
   <div class="modal">
@@ -868,7 +1124,22 @@ a{text-decoration:none;color:inherit}
         <div><label class="lbl">Full name *</label><input class="inp" id="g-name"></div>
         <div><label class="lbl">Phone *</label><input class="inp" id="g-phone" type="tel" placeholder="Any format — digits only stored"></div>
       </div>
-      <div><label class="lbl">Email</label><input class="inp" id="g-email" type="email" style="margin-bottom:12px"></div>
+      <div class="form-row cols-2">
+        <div><label class="lbl">Email</label><input class="inp" id="g-email" type="email"></div>
+        <div><label class="lbl">VIP level</label>
+          <select class="inp" id="g-vip">
+            <option value="">Standard guest</option>
+            <option value="VIP">&#11088; VIP</option>
+            <option value="Super VIP">&#11088;&#11088; Super VIP</option>
+            <option value="Centurion">&#9899; Centurion Card</option>
+            <option value="VVIP">&#128081; VVIP</option>
+          </select>
+        </div>
+      </div>
+      <div style="margin-bottom:12px">
+        <label class="lbl">Title / Role (e.g. CEO, Ambassador, President Advisor, King)</label>
+        <input class="inp" id="g-title" placeholder="Optional — shown to servers on seating chart">
+      </div>
       <div style="margin-bottom:12px">
         <label class="lbl">Allergies</label>
         <div class="allergy-grid" id="g-allergy-grid"></div>
@@ -877,7 +1148,14 @@ a{text-decoration:none;color:inherit}
         <label class="lbl">Dietary preferences</label>
         <div class="allergy-grid" id="g-diet-grid"></div>
       </div>
-      <div><label class="lbl">Notes (private)</label><textarea class="inp" id="g-notes" rows="2" placeholder="Seating preferences, occasion notes, wine preferences…"></textarea></div>
+      <div style="margin-bottom:12px">
+        <label class="lbl">Private notes (not shown to guests)</label>
+        <textarea class="inp" id="g-notes" rows="2" placeholder="Seating preferences, wine preferences, special occasions…"></textarea>
+      </div>
+      <div>
+        <label class="lbl">Visit history</label>
+        <div id="g-visit-history" style="background:var(--bg);border-radius:var(--r);padding:10px 12px;max-height:160px;overflow-y:auto;font-size:12px;color:var(--txt3)">No visit history yet</div>
+      </div>
     </div>
     <div class="modal-footer">
       <button class="btn btn-outline" onclick="closeModal('modal-guest')">Cancel</button>
@@ -892,16 +1170,38 @@ a{text-decoration:none;color:inherit}
 // ══════════════════════════════════════════════════════════
 var DB={
   menuItems:[
-    {id:'m1',name:'Seared Duck Breast',cat:'Mains',desc:'Cherry gastrique, roasted root vegetables, thyme jus',price:42,glass:0,half:0,vin:'EH-M-001',allergens:[],diets:[],available:true,featured:true,diabetic:true,kitchenNote:''},
-    {id:'m2',name:'White Truffle Risotto',cat:'Mains',desc:'Carnaroli rice, shaved fresh white truffle, aged Parmigiano-Reggiano, chive oil',price:80,glass:0,half:0,vin:'EH-M-002',allergens:['Dairy','Eggs'],diets:['Vegetarian'],available:true,featured:true,diabetic:false,kitchenNote:'Shave truffle tableside'},
-    {id:'m3',name:'Miso-Glazed Sea Bass',cat:'Mains',desc:'Dashi broth, pickled ginger, forbidden rice, scallion oil',price:46,glass:0,half:0,vin:'EH-M-003',allergens:['Fish','Soy','Gluten'],diets:['Pescatarian'],available:true,featured:false,diabetic:false,kitchenNote:'Chilean Sea Bass — Global Seafood'},
-    {id:'m4',name:'Chocolate Braised Short Rib',cat:'Mains',desc:'72% cacao mole, celery root purée, crispy shallots',price:54,glass:0,half:0,vin:'EH-M-004',allergens:[],diets:[],available:true,featured:true,diabetic:true,kitchenNote:'Craincrest Farms NY — grass fed'},
+    {id:'m1',name:'Seared Duck Breast',cat:'Bitescapes',desc:'Cherry gastrique, roasted root vegetables, thyme jus',price:42,glass:0,half:0,vin:'EH-M-001',allergens:[],diets:[],available:true,featured:true,diabetic:true,kitchenNote:''},
+    {id:'m2',name:'White Truffle Risotto',cat:'Bitescapes',desc:'Carnaroli rice, shaved fresh white truffle, aged Parmigiano-Reggiano, chive oil',price:80,glass:0,half:0,vin:'EH-M-002',allergens:['Dairy','Eggs'],diets:['Vegetarian'],available:true,featured:true,diabetic:false,kitchenNote:'Shave truffle tableside'},
+    {id:'m3',name:'Miso-Glazed Sea Bass',cat:'Bitescapes',desc:'Dashi broth, pickled ginger, forbidden rice, scallion oil',price:46,glass:0,half:0,vin:'EH-M-003',allergens:['Fish','Soy','Gluten'],diets:['Pescatarian'],available:true,featured:false,diabetic:false,kitchenNote:'Chilean Sea Bass — Global Seafood'},
+    {id:'m4',name:'Chocolate Braised Short Rib',cat:'Bitescapes',desc:'72% cacao mole, celery root purée, crispy shallots',price:54,glass:0,half:0,vin:'EH-M-004',allergens:[],diets:[],available:true,featured:true,diabetic:true,kitchenNote:'Craincrest Farms NY — grass fed'},
     {id:'d1',name:'Flourless Chocolate Cake',cat:'Desserts',desc:'Sugarless 72% dark chocolate, baked flourless — pistachio or vanilla gelato',price:22,glass:0,half:0,vin:'EH-D-001',allergens:['Eggs','Dairy','Tree Nuts'],diets:['Vegetarian','Low Sugar'],available:true,featured:true,diabetic:true,kitchenNote:'Bronte pistachios (DOP) or Ecuadorian vanilla odorata'},
     {id:'c1',name:'Cacao Old Fashioned',cat:'Cocktails',desc:'Bourbon, cacao nib bitters, demerara, smoked orange peel',price:28,glass:0,half:0,vin:'EH-C-001',allergens:[],diets:[],available:true,featured:false,diabetic:false,kitchenNote:''},
     {id:'c2',name:'Chocolate Martini',cat:'Cocktails',desc:'100% pure cacao, double espresso, aged rum, monk fruit — zero sugar',price:28,glass:0,half:0,vin:'EH-C-002',allergens:[],diets:['Low Sugar'],available:true,featured:true,diabetic:true,kitchenNote:'No sugar whatsoever — monk fruit only'},
     {id:'c3',name:'Hibiscus Mezcal Spritz',cat:'Cocktails',desc:'Mezcal, real hibiscus juice, monk fruit, prosecco — no sugar added',price:25,glass:0,half:0,vin:'EH-C-003',allergens:['Sulfites'],diets:['Vegan','Low Sugar'],available:true,featured:false,diabetic:true,kitchenNote:''},
     {id:'b1',name:'Single Origin Espresso',cat:'Beverages',desc:'Ethiopian Yirgacheffe, direct trade',price:6,glass:0,half:0,vin:'EH-B-001',allergens:[],diets:['Vegan'],available:true,featured:false,diabetic:true,kitchenNote:''},
-    {id:'b2',name:'Drinking Chocolate',cat:'Beverages',desc:'72% Valrhona cacao, steamed oat milk, cinnamon',price:10,glass:0,half:0,vin:'EH-B-002',allergens:[],diets:['Vegan'],available:true,featured:true,diabetic:false,kitchenNote:''}
+    {id:'b2',name:'Drinking Chocolate',cat:'Beverages',desc:'72% Valrhona cacao, steamed oat milk, cinnamon',price:10,glass:0,half:0,vin:'EH-B-002',allergens:[],diets:['Vegan'],available:true,featured:true,diabetic:false,kitchenNote:''},
+    {id:'ss1',cat:'Soups & Salads',name:'Gazpacho Andaluz',desc:'Cold tomato, cucumber, sherry vinegar, EVOO',price:16,glass:0,half:0,vin:'EH-SS-001',allergens:['Onion/Garlic'],diets:['Vegan'],available:true,featured:false,diabetic:true,kitchenNote:'Serve ice cold'},
+    {id:'ss2',cat:'Soups & Salads',name:'Black Truffle Vichyssoise',desc:'Potato, leek, cream, shaved black truffle',price:24,glass:0,half:0,vin:'EH-SS-002',allergens:['Dairy','Onion/Garlic'],diets:['Vegetarian'],available:true,featured:true,diabetic:false,kitchenNote:''},
+    {id:'ss3',cat:'Soups & Salads',name:'Heirloom Tomato & Burrata',desc:'Heirloom tomatoes, fresh burrata, basil oil, aged balsamic',price:22,glass:0,half:0,vin:'EH-SS-003',allergens:['Dairy'],diets:['Vegetarian'],available:true,featured:true,diabetic:false,kitchenNote:''},
+    {id:'cv1',cat:'Ceviche & Crudo',name:'Leche de Tigre Ceviche',desc:'Day-boat fish, aji amarillo, cilantro, leche de tigre, choclo',price:28,glass:0,half:0,vin:'EH-CV-001',allergens:['Fish'],diets:['Pescatarian'],available:true,featured:true,diabetic:true,kitchenNote:'Prepare a la minute'},
+    {id:'cv2',cat:'Ceviche & Crudo',name:'Hamachi Crudo',desc:'Yellowtail, yuzu kosho, micro shiso, sesame, truffle oil',price:32,glass:0,half:0,vin:'EH-CV-002',allergens:['Fish','Sesame','Soy'],diets:['Pescatarian'],available:true,featured:true,diabetic:true,kitchenNote:''},
+    {id:'cv3',cat:'Ceviche & Crudo',name:'Vegan Hearts of Palm',desc:'Hearts of palm, mango, aji amarillo, citrus',price:18,glass:0,half:0,vin:'EH-CV-003',allergens:[],diets:['Vegan'],available:true,featured:false,diabetic:true,kitchenNote:''},
+    {id:'ch1',cat:'Charcuterie',name:'Iberico Selection',desc:'Jamon Iberico de Bellota, lomo, salchichon, sourdough, quince',price:48,glass:0,half:0,vin:'EH-CH-001',allergens:['Gluten'],diets:[],available:true,featured:true,diabetic:false,kitchenNote:'Slice to order'},
+    {id:'ch2',cat:'Charcuterie',name:'Artisan Cheese Board',desc:'Three aged cheeses, honeycomb, walnuts, seasonal fruit, crackers',price:38,glass:0,half:0,vin:'EH-CH-002',allergens:['Dairy','Gluten','Tree Nuts'],diets:['Vegetarian'],available:true,featured:true,diabetic:false,kitchenNote:''},
+    {id:'dg1',cat:'Degustation',name:"Chefs Degustation 7 Courses",desc:'Seven courses chosen by chef each evening, paired wines available',price:185,glass:0,half:0,vin:'EH-DG-001',allergens:[],diets:[],available:true,featured:true,diabetic:false,kitchenNote:'Full allergies required in advance'},
+    {id:'dg2',cat:'Degustation',name:'Chocolate Studio Degustation 5 Courses',desc:'Five-course chocolate and savory journey',price:145,glass:0,half:0,vin:'EH-DG-002',allergens:['Dairy','Eggs','Tree Nuts'],diets:['Vegetarian'],available:true,featured:true,diabetic:false,kitchenNote:''},
+    {id:'ns1',cat:'Nightly Specials',name:"Chefs Special Tonight",desc:'Ask your Food Master for this evening special creation',price:0,glass:0,half:0,vin:'EH-NS-001',allergens:[],diets:[],available:true,featured:true,diabetic:false,kitchenNote:'Updated nightly by chef'},
+    {id:'cf1',cat:'Coffee',name:'Single Origin Espresso',desc:'Ethiopian Yirgacheffe direct trade, notes of blueberry and jasmine',price:6,glass:0,half:0,vin:'EH-CF-001',allergens:[],diets:['Vegan'],available:true,featured:true,diabetic:true,kitchenNote:''},
+    {id:'cf2',cat:'Coffee',name:'Reserve Pour Over',desc:'Rotating single origin, hand-poured, 12oz',price:12,glass:0,half:0,vin:'EH-CF-002',allergens:[],diets:['Vegan'],available:true,featured:true,diabetic:true,kitchenNote:''},
+    {id:'cf3',cat:'Coffee',name:'Cortado',desc:'Double ristretto, 2oz steamed milk',price:8,glass:0,half:0,vin:'EH-CF-003',allergens:['Dairy'],diets:[],available:true,featured:false,diabetic:true,kitchenNote:''},
+    {id:'cx1',cat:'Chocolates & Bonbons',name:'Bonbon Collection 6pc',desc:'Rotating seasonal selection, hand-crafted',price:22,glass:0,half:0,vin:'EH-CX-001',allergens:['Dairy','Tree Nuts'],diets:['Vegetarian'],available:true,featured:true,diabetic:false,kitchenNote:''},
+    {id:'cx2',cat:'Chocolates & Bonbons',name:'Single Origin Bar 72pct',desc:'Ecuador 72% dark, stone-ground, minimal intervention',price:14,glass:0,half:0,vin:'EH-CX-002',allergens:['Dairy'],diets:['Vegetarian'],available:true,featured:true,diabetic:true,kitchenNote:''},
+    {id:'cs1',cat:'Cakes & Slices',name:'Flourless Chocolate Torte Slice',desc:'Sugarless 72%, Bronte pistachio or vanilla gelato',price:18,glass:0,half:0,vin:'EH-CS-001',allergens:['Eggs','Dairy','Tree Nuts'],diets:['Vegetarian'],available:true,featured:true,diabetic:true,kitchenNote:''},
+    {id:'cs2',cat:'Cakes & Slices',name:'Cacao Opera Cake Slice',desc:'Six layers, espresso buttercream, dark ganache',price:16,glass:0,half:0,vin:'EH-CS-002',allergens:['Gluten','Dairy','Eggs'],diets:['Vegetarian'],available:true,featured:true,diabetic:false,kitchenNote:''},
+    {id:'sw1',cat:'Sandwiches & Savory',name:'Jamon Iberico Bocadillo',desc:'Sourdough, Iberico ham, manchego, Dijon, arugula',price:22,glass:0,half:0,vin:'EH-SW-001',allergens:['Gluten','Dairy'],diets:[],available:true,featured:true,diabetic:false,kitchenNote:''},
+    {id:'sw2',cat:'Sandwiches & Savory',name:'Smoked Salmon Tartine',desc:'Rye, creme fraiche, smoked salmon, capers, dill',price:20,glass:0,half:0,vin:'EH-SW-002',allergens:['Gluten','Dairy','Fish'],diets:['Pescatarian'],available:true,featured:false,diabetic:false,kitchenNote:''},
+    {id:'k1',cat:'Cake 911 Custom Orders',name:'Custom Celebration Cake',desc:'Full custom cake, flavors and decoration agreed at order. 72hr minimum notice.',price:185,glass:0,half:0,vin:'EH-K911-001',allergens:[],diets:[],available:true,featured:true,diabetic:false,kitchenNote:'Confirm allergies and pickup date at order'},
+    {id:'k2',cat:'Cake 911 Custom Orders',name:'Rush Order 24hr Cake',desc:'Emergency custom cake with 24hr notice. Premium pricing.',price:285,glass:0,half:0,vin:'EH-K911-002',allergens:[],diets:[],available:true,featured:false,diabetic:false,kitchenNote:'Requires chef approval'}
   ],
   wines:[
     {id:'w1',name:'Joh. Jos. Prüm Graacher Himmelreich Riesling Spätlese',producer:'Weingut Joh. Jos. Prüm',vintage:'2023',region:'Mosel, Germany',type:'White',grape:'Riesling',bottle:180,glass:45,half:15,bin:'W-A01',vin:'JP-2023-001',stock:12,alert:3,notes:'Off-dry, stone fruit, slate minerality, vibrant acidity',pairings:'Miso-Glazed Sea Bass, Flourless Chocolate Cake',available:true,byGlass:true},
@@ -918,11 +1218,11 @@ var DB={
     {id:'s4',name:'Edwin Perez',role:'Bartender',pin:'EP2024',phone:'917-531-4900',active:true}
   ],
   guests:[
-    {id:'g1',name:'Andre Mendoza',phone:'5514862688',email:'',visits:3,lastVisit:'2025-06-08',allergies:['Tree Nuts'],diets:['Vegetarian'],notes:'Prefers window table. Likes Riesling.'},
-    {id:'g2',name:'Paco Arias',phone:'346896670359',email:'paco@example.com',visits:7,lastVisit:'2025-06-09',allergies:['Shellfish','Gluten'],diets:[],notes:'Regular. Always orders Barbaresco. Anniversary in September.'},
-    {id:'g3',name:'Max Rodriguez',phone:'7189168239',email:'',visits:2,lastVisit:'2025-05-20',allergies:[],diets:['Vegan'],notes:''},
-    {id:'g4',name:'Alfonso Galindo',phone:'7184404363',email:'',visits:5,lastVisit:'2025-06-01',allergies:['Lactose'],diets:['Pescatarian'],notes:'Birthday in June. Table 8 preferred.'},
-    {id:'g5',name:'Edwin Perez',phone:'9175314900',email:'',visits:1,lastVisit:'2025-06-05',allergies:['Diabetic','Low Sugar'],diets:[],notes:'New guest. Very health-conscious.'}
+    {id:'g1',name:'Andre Mendoza',phone:'5514862688',email:'',visits:3,lastVisit:'2025-06-08',allergies:['Tree Nuts'],diets:['Vegetarian'],notes:'Prefers window table. Likes Riesling.',vip:'VIP',title:'',visitHistory:[{date:'2025-06-08',table:9,server:'Andre M',notes:'Celebrated birthday'},{date:'2025-05-15',table:9,server:'Paco A',notes:''},{date:'2025-04-02',table:12,server:'Andre M',notes:'First visit'}]},
+    {id:'g2',name:'Paco Arias',phone:'346896670359',email:'paco@example.com',visits:7,lastVisit:'2025-06-09',allergies:['Shellfish','Gluten'],diets:[],notes:'Regular. Always orders Barbaresco. Anniversary in September.',vip:'Super VIP',title:'CEO, Arias Group',visitHistory:[{date:'2025-06-09',table:5,server:'Paco A',notes:'Business dinner, 4 guests'},{date:'2025-05-28',table:5,server:'Andre M',notes:''},{date:'2025-05-10',table:5,server:'Paco A',notes:'Anniversary dinner'}]},
+    {id:'g3',name:'Max Rodriguez',phone:'7189168239',email:'',visits:2,lastVisit:'2025-05-20',allergies:[],diets:['Vegan'],notes:'',vip:'',title:'',visitHistory:[{date:'2025-05-20',table:7,server:'Max R',notes:''},{date:'2025-04-15',table:3,server:'Andre M',notes:'First visit'}]},
+    {id:'g4',name:'Alfonso Galindo',phone:'7184404363',email:'',visits:5,lastVisit:'2025-06-01',allergies:['Lactose'],diets:['Pescatarian'],notes:'Birthday in June. Table 8 preferred.',vip:'VIP',title:'Ambassador',visitHistory:[{date:'2025-06-01',table:8,server:'Paco A',notes:'Official dinner'},{date:'2025-05-12',table:8,server:'Andre M',notes:''}]},
+    {id:'g5',name:'Edwin Perez',phone:'9175314900',email:'',visits:1,lastVisit:'2025-06-05',allergies:['Diabetic','Low Sugar'],diets:[],notes:'New guest. Very health-conscious.',vip:'',title:'',visitHistory:[{date:'2025-06-05',table:14,server:'Max R',notes:'New guest welcome'}]}
   ],
   sections:[
     {id:'sec1',name:'Main Floor',color:'#2B6CB0',tables:[1,2,3,4,5,6,7,8],staff:'s1'},
@@ -950,7 +1250,7 @@ function navTo(page,el){
   document.querySelectorAll('.nav-item').forEach(function(n){n.classList.remove('active');});
   document.getElementById('pg-'+page).classList.add('active');
   if(el&&el.classList) el.classList.add('active');
-  var renders={dashboard:renderDashboard,menu:renderMenuPage,wine:renderWinePage,staff:renderStaffPage,guests:renderGuestPage,sales:renderSalesPage,settings:renderSettingsPage,floor:initFloorPage};
+  var renders={dashboard:renderDashboard,menu:renderMenuPage,wine:renderWinePage,staff:renderStaffPage,guests:renderGuestPage,sales:renderSalesPage,settings:renderSettingsPage,floor:initFloorPage,produce:renderProducePage,cake911:renderCake911Page,payroll:renderPayrollPage};
   if(renders[page]) renders[page]();
 }
 
@@ -1060,7 +1360,19 @@ function renderChart(days){
 // MENU PAGE
 // ══════════════════════════════════════════════════════════
 var menuEditId=null;
-var CAT_ORDER=['Tapas','Mains','Desserts','Cocktails','Beverages','Wines by Glass','Wine Cellar'];
+var CAT_ORDER=[
+  // Restaurant dining
+  'Bitescapes','Soups & Salads','Ceviche & Crudo','Charcuterie',
+  'Degustation','Nightly Specials','Desserts',
+  // Bar
+  'Cocktails','Beverages',
+  // Wine
+  'Wines by Glass','Wine Cellar',
+  // Chocolate Studio store
+  'Coffee','Chocolates & Bonbons','Cakes & Slices','Sandwiches & Savory','Macarons & Confections','Gifts & Retail',
+  // Cake 911 online
+  'Cake 911 — Custom Orders'
+];
 
 function renderMenuPage(){
   var cats=['All'].concat(CAT_ORDER);
@@ -1186,7 +1498,9 @@ function renderWineTable(){
   var q=(document.getElementById('wine-search').value||'').toLowerCase();
   var typeFilter=document.getElementById('wine-type-filter').value;
   var wines=DB.wines.filter(function(w){
-    if(typeFilter!=='all'&&w.type!==typeFilter&&!(typeFilter==='By Glass'&&w.byGlass)) return false;
+    if(typeFilter==='low') return w.stock<=w.alert;
+    if(typeFilter==='By Glass') return w.byGlass;
+    if(typeFilter!=='all'&&w.type!==typeFilter) return false;
     if(q&&!w.name.toLowerCase().includes(q)&&!(w.producer||'').toLowerCase().includes(q)&&!(w.vin||'').toLowerCase().includes(q)&&!(w.vintage||'').includes(q)) return false;
     return true;
   });
@@ -1302,6 +1616,123 @@ function renderStaffPage(){
       +'<div style="font-size:11px;color:var(--txt3)">Tables: '+sec.tables.join(', ')+'</div>'
       +'</div>';
   });
+  renderAccessTable();
+}
+
+// ══════════════════════════════════════════════════════════
+// BACK OF HOUSE ACCESS MANAGEMENT (login codes + face status)
+// ══════════════════════════════════════════════════════════
+function renderAccessTable(){
+  var tbody = document.getElementById('access-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  var log = JSON.parse(localStorage.getItem('eh_security_log') || '[]');
+  AUTH.managers.forEach(function(m, idx){
+    var lastAttempt = log.slice().reverse().find(function(e){ return e.detail && e.detail.indexOf(m.name) === 0; });
+    var tr = document.createElement('tr');
+    var tdName = document.createElement('td');
+    tdName.innerHTML = '<div style="font-weight:500">'+m.name+'</div>';
+    var tdCode = document.createElement('td');
+    tdCode.innerHTML = '<span style="font-family:monospace;font-size:12px;color:var(--txt3)">&bull;&bull;&bull;&bull;&bull;&bull;&bull;&bull;</span>';
+    var tdFace = document.createElement('td');
+    tdFace.innerHTML = m.faceDescriptor
+      ? '<span class="pill pill-green">&#10003; Registered</span>'
+      : '<span class="pill pill-amber">Pending — will register on first login</span>';
+    var tdLast = document.createElement('td');
+    tdLast.style.fontSize = '12px'; tdLast.style.color = 'var(--txt3)';
+    tdLast.textContent = lastAttempt ? new Date(lastAttempt.time).toLocaleString() : 'Never logged in';
+    var tdActions = document.createElement('td');
+    tdActions.className = 'td-right';
+    var resetBtn = document.createElement('button');
+    resetBtn.className = 'btn btn-xs btn-outline';
+    resetBtn.textContent = 'Reset code';
+    (function(manager){ resetBtn.onclick = function(){ openResetCodeModal(manager); }; })(m);
+    tdActions.appendChild(resetBtn);
+    if(AUTH.managers.length > 1){
+      var revokeBtn = document.createElement('button');
+      revokeBtn.className = 'btn btn-xs';
+      revokeBtn.style.cssText = 'color:var(--red);border:1px solid rgba(197,48,48,.3);margin-left:5px';
+      revokeBtn.textContent = 'Revoke';
+      (function(manager){ revokeBtn.onclick = function(){ revokeAccess(manager); }; })(m);
+      tdActions.appendChild(revokeBtn);
+    }
+    tr.appendChild(tdName); tr.appendChild(tdCode); tr.appendChild(tdFace); tr.appendChild(tdLast); tr.appendChild(tdActions);
+    tbody.appendChild(tr);
+  });
+}
+
+function generateTempCode(){
+  var words = ['GOLD','RUBY','SAGE','TEAL','ONYX','JADE','OPAL','PEAR'];
+  var w = words[Math.floor(Math.random()*words.length)];
+  var n = Math.floor(1000+Math.random()*9000);
+  return w + n;
+}
+
+function openNewAccessModal(){
+  document.getElementById('access-name').value = '';
+  document.getElementById('access-role').value = 'General Manager';
+  document.getElementById('access-code').value = generateTempCode();
+  openModal('modal-access');
+}
+
+function regenerateAccessCode(){
+  document.getElementById('access-code').value = generateTempCode();
+}
+
+function saveNewAccess(){
+  var name = document.getElementById('access-name').value.trim();
+  var code = document.getElementById('access-code').value;
+  if(!name){ showToast('Name is required', 'error'); return; }
+  if(AUTH.managers.find(function(m){ return m.code === code; })){
+    showToast('Code collision — please regenerate', 'error'); return;
+  }
+  AUTH.managers.push({ name: name, code: code, faceDescriptor: null });
+  saveManagers();
+  closeModal('modal-access');
+  renderAccessTable();
+  showToast('Access granted to ' + name + '. Their temporary code is: ' + code, 'success');
+  // Show a persistent reminder with the code since it only displays once
+  setTimeout(function(){
+    alert('IMPORTANT — share this with ' + name + ' now:\n\nTemporary access code: ' + code + '\n\nThey will use this code to log in for the first time and register their own face. After that, this code becomes their permanent code unless reset.');
+  }, 300);
+}
+
+var resetCodeTarget = null;
+function openResetCodeModal(manager){
+  resetCodeTarget = manager;
+  document.getElementById('reset-code-name').textContent = manager.name;
+  document.getElementById('reset-code-title').textContent = 'Reset code for ' + manager.name;
+  document.getElementById('reset-new-code').value = generateTempCode();
+  openModal('modal-reset-code');
+}
+
+function regenerateResetCode(){
+  document.getElementById('reset-new-code').value = generateTempCode();
+}
+
+function confirmResetCode(){
+  if(!resetCodeTarget) return;
+  var newCode = document.getElementById('reset-new-code').value;
+  resetCodeTarget.code = newCode;
+  resetCodeTarget.faceDescriptor = null; // must re-register face for security
+  saveManagers();
+  logAttempt('CODE_RESET_BY_ADMIN', resetCodeTarget.name);
+  closeModal('modal-reset-code');
+  renderAccessTable();
+  showToast(resetCodeTarget.name + '\'s code has been reset', 'success');
+  setTimeout(function(){
+    alert('IMPORTANT — share this with ' + resetCodeTarget.name + ' now:\n\nNew temporary code: ' + newCode + '\n\nThey must sign in with this code and register their face again.');
+  }, 300);
+  resetCodeTarget = null;
+}
+
+function revokeAccess(manager){
+  if(!confirm('Revoke back-of-house access for ' + manager.name + '? They will no longer be able to sign in.')) return;
+  AUTH.managers = AUTH.managers.filter(function(m){ return m !== manager; });
+  saveManagers();
+  logAttempt('ACCESS_REVOKED', manager.name);
+  renderAccessTable();
+  showToast('Access revoked for ' + manager.name, 'success');
 }
 
 function openStaffModal(){openModal('modal-staff');}
@@ -1472,6 +1903,28 @@ function drawObj(canvas,obj){
     el.innerHTML='<div style="width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:28px">🌿</div>';
   } else if(obj.type==='host'){
     el.innerHTML='<div style="width:100%;height:100%;background:var(--navy3);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--gold)">HOST</div>';
+  } else if(obj.type==='couch'){
+    el.innerHTML='<div style="width:100%;height:100%;background:#7B5B3A;border-radius:20px 20px 6px 6px;border:2px solid #5C3D1E;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:1px"><span style="font-size:16px">&#127752;</span><span style="font-size:9px;color:#fff;font-weight:600">'+(obj.label||'Couch')+' ('+(obj.seats||4)+' seats)</span></div>';
+  } else if(obj.type==='stool'){
+    var sc=TABLE_COLORS[obj.status||'free'];
+    el.innerHTML='<div style="width:100%;height:100%;border-radius:50%;background:'+sc.bg+';border:2.5px solid '+sc.border+';display:flex;flex-direction:column;align-items:center;justify-content:center"><span style="font-size:11px;font-weight:700;color:'+sc.text+'">'+(obj.num||'S')+'</span><span style="font-size:8px;color:'+sc.text+'">stool</span></div>';
+  } else if(obj.type==='outdoor'){
+    var oc=TABLE_COLORS[obj.status||'free'];
+    el.innerHTML='<div style="width:100%;height:100%;border-radius:10px;background:'+oc.bg+';border:2px dashed '+oc.border+';display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-size:14px">&#9728;&#65039;</span><span style="font-size:10px;font-weight:700;color:'+oc.text+'">'+(obj.num||'')+'</span></div>';
+  } else if(obj.type==='kiosk'){
+    el.innerHTML='<div style="width:100%;height:100%;background:#1A3A0A;border-radius:10px;border:2px solid #3A7A12;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px"><span style="font-size:20px">&#128722;</span><span style="font-size:9px;font-weight:700;color:#7DC33A">'+(obj.label||'Kiosk')+'</span></div>';
+  } else if(obj.type==='kitchen'){
+    el.innerHTML='<div style="width:100%;height:100%;background:rgba(15,27,45,.9);border:2.5px solid #B8943F;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;color:#B8943F;letter-spacing:.04em">&#128293; '+(obj.label||'Kitchen')+'</div>';
+  } else if(obj.type==='stage'){
+    el.innerHTML='<div style="width:100%;height:100%;background:linear-gradient(135deg,#2C1254,#3C1F5C);border:2.5px solid #9B59B6;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#CE97F0;gap:6px">&#127926; '+(obj.label||'Orchestra')+'</div>';
+  } else if(obj.type==='privateroom'){
+    el.innerHTML='<div style="width:100%;height:100%;background:rgba(43,108,176,.1);border:2.5px solid #2B6CB0;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#2B6CB0;text-align:center;padding:6px">&#127963;<br>'+(obj.label||'Private Dining')+'</div>';
+  } else if(obj.type==='store'){
+    el.innerHTML='<div style="width:100%;height:100%;background:rgba(141,90,43,.1);border:2.5px solid #8D5A2B;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#8D5A2B;text-align:center;padding:6px">&#9749;<br>'+(obj.label||'Coffee Studio')+'</div>';
+  } else if(obj.type==='lodge'){
+    el.innerHTML='<div style="width:100%;height:100%;background:rgba(184,148,63,.08);border:2.5px solid #B8943F;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#B8943F;text-align:center;padding:6px">&#127968;<br>'+(obj.label||'Raised Lodge')+'</div>';
+  } else if(obj.type==='curve'){
+    el.innerHTML='<div style="width:100%;height:100%;background:var(--navy3);border-radius:50% 50% 0 0 / 100% 100% 0 0"></div>';
   }
   el.onclick=function(e){e.stopPropagation();selectObj(obj.id);};
   el.oncontextmenu=function(e){e.preventDefault();deleteObj(obj.id);};
@@ -1545,6 +1998,12 @@ function addFloorObj(type){
     'table-rect':{w:120,h:70,num:getNextTableNum(),seats:6,status:'free',label:''},
     'wall-h':{w:200,h:14,label:''},'wall-v':{w:14,h:200,label:''},
     'door':{w:50,h:50,label:'Door'},'bar':{w:180,h:80,label:'Bar'},
+    'couch':{w:140,h:55,label:'Couch',seats:4},'stool':{w:32,h:32,label:'',num:0,seats:1,status:'free'},
+    'outdoor':{w:65,h:65,label:'',num:0,seats:2,status:'free'},
+    'kiosk':{w:80,h:80,label:'Kiosk'},'kitchen':{w:240,h:160,label:'Kitchen'},
+    'stage':{w:200,h:100,label:'Orchestra'},'privateroom':{w:180,h:160,label:'Private Dining'},
+    'store':{w:200,h:160,label:'Coffee Studio'},'lodge':{w:180,h:120,label:'Raised Lodge'},
+    'curve':{w:120,h:20,label:''},
     'host':{w:60,h:40,label:'Host'},'plant':{w:40,h:40,label:''},
     'label':{w:100,h:30,label:'Label text'}
   };
@@ -1717,54 +2176,32 @@ function checkCode(){
 
 // ── STEP 2: QR CODE GENERATION ──
 function generateQR(){
-  // Generate a one-time token for this session's face verification
   var token = 'EH' + Date.now() + Math.random().toString(36).slice(2,8).toUpperCase();
   AUTH.sessionToken = token;
   sessionStorage.setItem('eh_face_token', token);
-
-  // Build the face verification URL
-  // In production this points to a dedicated face-verify page
-  // For now we draw a QR that leads to the local face scan
   var verifyUrl = window.location.origin + window.location.pathname + '?face=' + token;
+  var qrContainer = document.getElementById('qr-container');
 
-  // Draw QR code on canvas using simple QR generation
-  drawSimpleQR('qr-canvas', verifyUrl);
-
-  // Poll for face completion (in production this checks Firebase)
-  AUTH.facePollTimer = setInterval(checkFacePoll, 2000);
-}
-
-function drawSimpleQR(canvasId, url){
-  // Simple visual QR placeholder — in production use a QR library
-  var canvas = document.getElementById(canvasId);
-  var ctx = canvas.getContext('2d');
-  var size = 140;
-  ctx.fillStyle = '#FFFFFF';
-  ctx.fillRect(0,0,size,size);
-  // Draw finder patterns
-  function drawFinder(x,y,s){
-    ctx.fillStyle='#000';
-    ctx.fillRect(x,y,s,s);
-    ctx.fillStyle='#FFF';
-    ctx.fillRect(x+2,y+2,s-4,s-4);
-    ctx.fillStyle='#000';
-    ctx.fillRect(x+4,y+4,s-8,s-8);
+  if(window.location.protocol === 'file:'){
+    // Local file — QR scanning won't reach this device from a phone. Show fallback.
+    qrContainer.innerHTML = '<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;color:#742A2A;background:#fff;border-radius:8px;padding:10px;line-height:1.5">QR scanning needs the live website address, not a local file. Use "this device camera" below instead, or finish GitHub Pages setup first.</div>';
+    document.getElementById('face-poll-status').textContent = 'QR requires the live site, use this device camera below \u2192';
+    return;
   }
-  drawFinder(4,4,28); drawFinder(108,4,28); drawFinder(4,108,28);
-  // Draw data pattern using URL hash
-  ctx.fillStyle='#000';
-  var hash=0; for(var i=0;i<url.length;i++) hash=(hash*31+url.charCodeAt(i))&0xFFFFFFFF;
-  var seed=Math.abs(hash);
-  for(var row=0;row<14;row++){for(var col=0;col<14;col++){
-    if((row<7&&col<7)||(row<7&&col>6&&col<14&&row<2)||(row>6&&col<7&&col>=0&&row>11)) continue;
-    seed=(seed*1103515245+12345)&0x7FFFFFFF;
-    if(seed%2===0){ctx.fillRect(10+col*8,10+row*8,7,7);}
-  }}
-  // Add domain text below
-  ctx.fillStyle='#000';
-  ctx.font='7px monospace';
-  ctx.textAlign='center';
-  ctx.fillText('Scan to verify face',70,136);
+
+  try {
+    var qr = qrcode(0, 'M'); // type 0 = auto-detect size, M = medium error correction
+    qr.addData(verifyUrl);
+    qr.make();
+    qrContainer.innerHTML = qr.createSvgTag({cellSize:5, margin:4, scalable:true});
+    var svgEl = qrContainer.querySelector('svg');
+    if(svgEl){ svgEl.style.width='160px'; svgEl.style.height='160px'; svgEl.style.display='block'; svgEl.style.borderRadius='8px'; }
+    document.getElementById('face-poll-status').textContent = 'Scan QR with your phone camera to verify your face \u2192';
+  } catch(err){
+    qrContainer.innerHTML = '<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;color:#742A2A;background:#fff;border-radius:8px;padding:10px">QR code could not be generated. Use "this device camera" below instead.</div>';
+  }
+
+  AUTH.facePollTimer = setInterval(checkFacePoll, 2000);
 }
 
 function checkFacePoll(){
@@ -1950,6 +2387,136 @@ function goToStep(n){
   if(activeDot) activeDot.classList.add('active');
 }
 
+// ── PASSWORD RECOVERY VIA FACE VERIFICATION ──
+var recoveryManager = null;
+var recoveryStream = null;
+
+function openRecovery(){
+  var listEl = document.getElementById('recovery-name-list');
+  listEl.innerHTML = '';
+  AUTH.managers.forEach(function(m){
+    var row = document.createElement('div');
+    row.style.cssText = 'display:flex;align-items:center;gap:10px;padding:10px 14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;cursor:pointer';
+    row.innerHTML = '<div style="width:30px;height:30px;border-radius:50%;background:rgba(184,148,63,.2);display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#B8943F">'+m.name.charAt(0)+'</div>'
+      +'<div style="flex:1;font-size:13px;color:#fff">'+m.name+'</div>'
+      +(m.faceDescriptor?'<span style="font-size:10px;color:#9AE6B4">Face registered</span>':'<span style="font-size:10px;color:#FC8181">No face on file</span>');
+    row.onclick = function(){ selectRecoveryManager(m); };
+    listEl.appendChild(row);
+  });
+  document.getElementById('recovery-step-a').style.display = 'block';
+  document.getElementById('recovery-step-b').style.display = 'none';
+  document.getElementById('recovery-step-c').style.display = 'none';
+  document.getElementById('recovery-modal').style.display = 'flex';
+}
+
+function selectRecoveryManager(m){
+  if(!m.faceDescriptor){
+    var listEl = document.getElementById('recovery-name-list');
+    var notice = document.createElement('div');
+    notice.style.cssText = 'background:rgba(217,119,6,.15);border:1px solid rgba(217,119,6,.4);border-radius:10px;padding:12px 14px;margin-top:10px;font-size:12.5px;color:#FBD38D;line-height:1.6';
+    notice.innerHTML = '<strong>' + m.name + ' has no face registered yet.</strong><br>Face recovery only works after a face has been registered once. Since this is a new system, no one has registered a face yet &mdash; use "Register your face" on the main login screen instead to set up your code and face for the first time.';
+    listEl.appendChild(notice);
+    return;
+  }
+  recoveryManager = m;
+  document.getElementById('recovery-name-display').textContent = m.name;
+  document.getElementById('recovery-step-a').style.display = 'none';
+  document.getElementById('recovery-step-b').style.display = 'block';
+  startRecoveryCamera();
+}
+
+function startRecoveryCamera(){
+  var status = document.getElementById('recovery-face-status');
+  status.textContent = 'Starting camera…';
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:300,height:300}})
+    .then(function(stream){
+      recoveryStream = stream;
+      var video = document.getElementById('recovery-video');
+      video.srcObject = stream;
+      video.onloadedmetadata = function(){
+        video.play();
+        status.textContent = 'Position your face in the circle';
+        document.getElementById('recovery-capture-btn').style.display = 'block';
+      };
+    })
+    .catch(function(){
+      status.textContent = 'Camera access denied. Please allow camera access and try again.';
+    });
+}
+
+function recoveryCaptureFace(){
+  var video = document.getElementById('recovery-video');
+  var status = document.getElementById('recovery-face-status');
+  var btn = document.getElementById('recovery-capture-btn');
+  btn.textContent = 'Verifying…'; btn.disabled = true;
+  status.textContent = 'Checking your face…';
+
+  if(!AUTH.faceModelsLoaded){
+    setTimeout(function(){ recoveryFaceSuccess(); }, 1200);
+    return;
+  }
+
+  faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+    .withFaceLandmarks()
+    .withFaceDescriptor()
+    .then(function(result){
+      if(!result){
+        document.getElementById('recovery-face-err').style.display='block';
+        document.getElementById('recovery-face-err').textContent='No face detected. Please try again.';
+        btn.textContent='Verify my face'; btn.disabled=false;
+        return;
+      }
+      var stored = new Float32Array(recoveryManager.faceDescriptor);
+      var distance = faceapi.euclideanDistance(result.descriptor, stored);
+      logAttempt('RECOVERY_ATTEMPT', recoveryManager.name + ' distance:' + distance.toFixed(3));
+      if(distance < AUTH.faceMatchThreshold){
+        recoveryFaceSuccess();
+      } else {
+        document.getElementById('recovery-face-err').style.display='block';
+        document.getElementById('recovery-face-err').textContent='Face does not match. Try again, or ask another manager to reset your code.';
+        btn.textContent='Verify my face'; btn.disabled=false;
+      }
+    })
+    .catch(function(){ recoveryFaceSuccess(); });
+}
+
+function recoveryFaceSuccess(){
+  if(recoveryStream){ recoveryStream.getTracks().forEach(function(t){t.stop();}); recoveryStream=null; }
+  logAttempt('RECOVERY_SUCCESS', recoveryManager.name);
+  document.getElementById('recovery-step-b').style.display = 'none';
+  document.getElementById('recovery-step-c').style.display = 'block';
+  document.getElementById('recovery-new-code').value = '';
+  document.getElementById('recovery-new-code2').value = '';
+}
+
+function recoverySetNewCode(){
+  var code1 = document.getElementById('recovery-new-code').value.trim();
+  var code2 = document.getElementById('recovery-new-code2').value.trim();
+  var err = document.getElementById('recovery-code-err');
+  if(code1.length < 6 || code1 !== code2){
+    err.style.display = 'block';
+    err.textContent = code1.length < 6 ? 'Code must be at least 6 characters.' : 'Codes do not match.';
+    return;
+  }
+  err.style.display = 'none';
+  recoveryManager.code = code1;
+  saveManagers();
+  logAttempt('CODE_RESET_VIA_RECOVERY', recoveryManager.name);
+  closeRecovery();
+  showToast('Code reset. Sign in with your new code.', 'success');
+  document.getElementById('code-input').value = '';
+  document.getElementById('code-input').focus();
+}
+
+function closeRecovery(){
+  if(recoveryStream){ recoveryStream.getTracks().forEach(function(t){t.stop();}); recoveryStream=null; }
+  document.getElementById('recovery-modal').style.display = 'none';
+  document.getElementById('recovery-face-err').style.display = 'none';
+  document.getElementById('recovery-capture-btn').textContent = 'Verify my face';
+  document.getElementById('recovery-capture-btn').disabled = false;
+  recoveryManager = null;
+}
+
 // ── SETUP / REGISTRATION ──
 function openSetup(){document.getElementById('setup-modal').style.display='flex';}
 function closeSetup(){document.getElementById('setup-modal').style.display='none';}
@@ -2024,6 +2591,898 @@ document.addEventListener('DOMContentLoaded',function(){
   // Load face models in background
   if(typeof faceapi !== 'undefined') loadFaceModels();
 });
+
+// ══════════════════════════════════════════════════════════
+// WINE GLASS INVENTORY CALCULATOR
+// Bottle = 25oz. Full glass = 6oz. 2oz pour = 2oz. 1oz waste per bottle.
+// Full glass pours per bottle: (25-1)/6 = 4
+// 2oz pours per bottle: (25-1)/2 = 12
+// ══════════════════════════════════════════════════════════
+function showGlassInventory(){
+  var byGlass = DB.wines.filter(function(w){return w.byGlass && w.stock>0;});
+  var rows = byGlass.map(function(w){
+    var fullPours = Math.floor((25-1)/6);  // 4 per bottle
+    var halfPours = Math.floor((25-1)/2);  // 12 per bottle
+    var totalFull = w.stock * fullPours;
+    var totalHalf = w.stock * halfPours;
+    var low = w.stock <= w.alert;
+    return '<tr>'
+      +'<td><div style="font-weight:500;max-width:180px">'+w.name+'</div>'
+      +'<div style="font-size:11px;color:var(--txt3)">VIN: '+w.vin+' &middot; Bin: '+w.bin+'</div></td>'
+      +'<td style="text-align:center;font-weight:700;color:'+(low?'var(--red)':'var(--green)')+'">'+w.stock+'<div style="font-size:10px;color:var(--txt3)">'+(low?'LOW':'')+' btl</div></td>'
+      +'<td style="text-align:center;font-weight:600;color:var(--blue)">'+totalFull+'<div style="font-size:10px;color:var(--txt3)">full glasses</div></td>'
+      +'<td style="text-align:center;font-weight:600;color:var(--teal)">'+totalHalf+'<div style="font-size:10px;color:var(--txt3)">2oz pours</div></td>'
+      +'<td style="text-align:right;font-weight:600;color:var(--gold)">$'+w.glass+'<div style="font-size:10px;color:var(--txt3)">per glass</div></td>'
+      +'</tr>';
+  }).join('');
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:150;display:flex;align-items:center;justify-content:center;padding:20px';
+  modal.innerHTML = '<div style="background:var(--white);border-radius:var(--r2);box-shadow:0 20px 60px rgba(0,0,0,.3);width:100%;max-width:780px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column">'
+    +'<div style="padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0">'
+    +'<div style="font-size:17px;font-weight:700;flex:1">&#127863; Wine by the Glass — Inventory & Pour Calculator</div>'
+    +'<div style="font-size:12px;color:var(--txt3)">1 bottle = 25oz &middot; 1oz waste &middot; Full glass = 6oz (4 pours/btl) &middot; 2oz = 12 pours/btl</div>'
+    +'<button onclick="closeTopModal(this)" style="background:var(--bg2);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:16px;color:var(--txt3)">&#10005;</button>'
+    +'</div>'
+    +'<div style="overflow-y:auto;flex:1"><table class="data-table" style="width:100%">'
+    +'<thead><tr><th>Wine</th><th style="text-align:center">Stock</th><th style="text-align:center">Full glasses</th><th style="text-align:center">2oz pours</th><th style="text-align:right">Glass price</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table></div>'
+    +'<div style="padding:14px 22px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px;flex-shrink:0">'
+    +'<button class="btn btn-outline" onclick="closeTopModal(this)">Close</button>'
+    +'</div></div>';
+  document.body.appendChild(modal);
+}
+
+// ══════════════════════════════════════════════════════════
+// GUEST VISIT HISTORY + VIP MODAL
+// ══════════════════════════════════════════════════════════
+var VIP_LEVELS = ['','VIP','Super VIP','Centurion','VVIP'];
+
+function openGuestModal(editId){
+  var g = editId ? DB.guests.find(function(i){return i.id===editId;}) : {};
+  document.getElementById('g-name').value = g.name||'';
+  document.getElementById('g-phone').value = g.phone||'';
+  document.getElementById('g-email').value = g.email||'';
+  document.getElementById('g-notes').value = g.notes||'';
+  if(document.getElementById('g-vip')) document.getElementById('g-vip').value = g.vip||'';
+  if(document.getElementById('g-title')) document.getElementById('g-title').value = g.title||'';
+  buildChipGrid('g-allergy-grid',ALLERGENS,'allergy-chip',g.allergies||[]);
+  buildChipGrid('g-diet-grid',DIETS,'diet-chip',g.diets||[]);
+  // Show visit history
+  var histEl = document.getElementById('g-visit-history');
+  if(histEl){
+    var hist = g.visitHistory||[];
+    if(!hist.length){ histEl.innerHTML='<div style="font-size:12px;color:var(--txt3);padding:8px 0">No visit history yet</div>'; }
+    else {
+      histEl.innerHTML = hist.slice().reverse().map(function(v){
+        return '<div style="display:flex;gap:8px;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);font-size:12px">'
+          +'<div style="color:var(--txt3);white-space:nowrap">'+v.date+'</div>'
+          +'<div style="color:var(--txt2)">Table <strong>'+v.table+'</strong> &middot; '+v.server+'</div>'
+          +(v.notes?'<div style="color:var(--txt3);font-style:italic">&mdash; '+v.notes+'</div>':'')
+          +'</div>';
+      }).join('');
+    }
+  }
+  openModal('modal-guest');
+}
+
+function saveGuest(){
+  var name = document.getElementById('g-name').value.trim();
+  if(!name){showToast('Name required','error');return;}
+  var vip = document.getElementById('g-vip') ? document.getElementById('g-vip').value : '';
+  var title = document.getElementById('g-title') ? document.getElementById('g-title').value : '';
+  DB.guests.push({id:'g'+Date.now(),name:name,
+    phone:document.getElementById('g-phone').value.replace(/[^0-9]/g,''),
+    email:document.getElementById('g-email').value,
+    visits:0,lastVisit:'',
+    allergies:getChipSelections('g-allergy-grid'),
+    diets:getChipSelections('g-diet-grid'),
+    notes:document.getElementById('g-notes').value,
+    vip:vip, title:title, visitHistory:[]});
+  closeModal('modal-guest');renderGuestTable();showToast('Guest profile saved','success');
+}
+
+function editGuest(id){openGuestModal(id);}
+
+function renderGuestTable(){
+  var q = (document.getElementById('guest-search').value||'').toLowerCase();
+  var guests = DB.guests.filter(function(g){return !q||g.name.toLowerCase().includes(q)||g.phone.includes(q)||(g.email||'').includes(q)||(g.title||'').toLowerCase().includes(q);});
+  var VIP_COLORS = {'VIP':'pill-blue','Super VIP':'pill-purple','Centurion':'pill-gold','VVIP':'pill-red'};
+  var tbody = document.getElementById('guest-tbody');
+  tbody.innerHTML='';
+  guests.forEach(function(g){
+    var initials = g.name.split(' ').map(function(n){return n[0];}).join('');
+    var aHtml = g.allergies.map(function(a){return '<span class="pill pill-red" style="font-size:10px">'+a+'</span>';}).join('');
+    var dHtml = g.diets.map(function(d){return '<span class="pill pill-green" style="font-size:10px">'+d+'</span>';}).join('');
+    var vipBadge = g.vip ? '<span class="pill pill-gold" style="font-size:10px;background:#FEF3E2;color:#975A16">&#11088; '+g.vip+'</span>' : '';
+    var lastHist = g.visitHistory&&g.visitHistory.length ? g.visitHistory[g.visitHistory.length-1] : null;
+    tbody.innerHTML += '<tr>'
+      +'<td><div style="display:flex;align-items:center;gap:8px">'
+      +'<div style="width:32px;height:32px;border-radius:50%;background:var(--gold-l);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--amber);flex-shrink:0">'+initials+'</div>'
+      +'<div><div style="font-weight:500;display:flex;align-items:center;gap:5px">'+g.name+' '+vipBadge+'</div>'
+      +(g.title?'<div style="font-size:11px;color:var(--txt3)">'+g.title+'</div>':'')
+      +(g.notes?'<div style="font-size:11px;color:var(--txt3)">'+g.notes.substring(0,40)+'</div>':'')+'</div></div></td>'
+      +'<td style="font-family:monospace;font-size:12px">'+g.phone+'</td>'
+      +'<td style="text-align:center;font-weight:600">'+g.visits+'</td>'
+      +'<td><div style="display:flex;flex-wrap:wrap;gap:3px">'+(aHtml||'<span style="font-size:11px;color:var(--txt3)">None</span>')+'</div></td>'
+      +'<td><div style="display:flex;flex-wrap:wrap;gap:3px">'+(dHtml||'<span style="font-size:11px;color:var(--txt3)">—</span>')+'</div></td>'
+      +'<td style="font-size:12px;color:var(--txt3)">'+(lastHist?lastHist.date+' — Table '+lastHist.table:'—')+'</td>'
+      +'<td class="td-right">'
+      +'<button class="btn btn-xs btn-outline" onclick="openGuestModal(\''+g.id+'\')">View history</button>'
+      +'</td></tr>';
+  });
+  if(!guests.length) tbody.innerHTML='<tr><td colspan="7" style="text-align:center;padding:32px;color:var(--txt3)">No guests found</td></tr>';
+}
+
+// ══════════════════════════════════════════════════════════
+// NIGHTLY SEATING CHART — show & print
+// ══════════════════════════════════════════════════════════
+function showNightlyChart(){
+  var tables=(floorObjs[currentFloor]||[]).filter(function(o){return o.type.startsWith('table')||o.type==='stool'||o.type==='outdoor';});
+  var date=new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'});
+
+  var modal=document.createElement('div');
+  modal.id='nightly-modal';
+  modal.style.cssText='position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:150;display:flex;align-items:center;justify-content:center;padding:20px';
+
+  var box=document.createElement('div');
+  box.style.cssText='background:var(--white);border-radius:var(--r2);box-shadow:0 20px 60px rgba(0,0,0,.3);width:100%;max-width:900px;max-height:90vh;display:flex;flex-direction:column';
+
+  // Header
+  var hd=document.createElement('div');
+  hd.style.cssText='padding:18px 22px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:12px;flex-shrink:0';
+  hd.innerHTML='<div style="font-size:17px;font-weight:700;flex:1">&#127829; Nightly Seating Chart &mdash; '+date+'</div>';
+  var printBtn=document.createElement('button');
+  printBtn.className='btn btn-outline btn-sm';
+  printBtn.textContent='Print chart';
+  printBtn.onclick=printSeatingChart;
+  var closeBtn=document.createElement('button');
+  closeBtn.style.cssText='background:var(--bg2);border:none;border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:16px;color:var(--txt3)';
+  closeBtn.textContent='X';
+  closeBtn.onclick=function(){modal.remove();};
+  hd.appendChild(printBtn); hd.appendChild(closeBtn);
+
+  // Table body
+  var tableWrap=document.createElement('div');
+  tableWrap.style.cssText='overflow-y:auto;flex:1;padding:0';
+  var tbl=document.createElement('table');
+  tbl.className='data-table'; tbl.style.width='100%';
+  tbl.innerHTML='<thead><tr><th style="text-align:center">Table</th><th>Seats</th><th>Guest / Party</th><th>Status</th><th>Special notes</th><th style="text-align:center">Set</th></tr></thead>';
+  var tbody=document.createElement('tbody');
+  tables.forEach(function(t){
+    var tr=document.createElement('tr');
+    if(t.guestName) tr.style.background='#FFFBF0';
+    // Table num cell
+    var tdNum=document.createElement('td');
+    tdNum.style.cssText='font-weight:700;text-align:center;font-size:16px';
+    tdNum.textContent=(t.num||t.id);
+    // Seats
+    var tdSeats=document.createElement('td');
+    tdSeats.textContent=(t.seats||4)+' seats';
+    // Guest name input
+    var tdGuest=document.createElement('td');
+    var gInp=document.createElement('input');
+    gInp.style.cssText='border:1px solid #e2e8f0;border-radius:4px;padding:4px 8px;width:170px;font-size:12px;font-family:inherit';
+    gInp.value=t.guestName||'';
+    gInp.placeholder='Guest name';
+    (function(obj){gInp.onchange=function(){obj.guestName=this.value;updateNightlyIndicator(tr,obj);};})(t);
+    tdGuest.appendChild(gInp);
+    // VIP select
+    var tdVIP=document.createElement('td');
+    var sel=document.createElement('select');
+    sel.style.cssText='border:1px solid #e2e8f0;border-radius:4px;padding:4px 6px;font-size:12px;font-family:inherit';
+    ['Standard','VIP','Super VIP','Centurion','VVIP'].forEach(function(v){
+      var opt=document.createElement('option');
+      opt.value=v==='Standard'?'':v; opt.textContent=v;
+      if((t.guestVIP||'')===(v==='Standard'?'':v)) opt.selected=true;
+      sel.appendChild(opt);
+    });
+    (function(obj){sel.onchange=function(){obj.guestVIP=this.value;};})(t);
+    tdVIP.appendChild(sel);
+    // Notes input
+    var tdNote=document.createElement('td');
+    var nInp=document.createElement('input');
+    nInp.style.cssText='border:1px solid #e2e8f0;border-radius:4px;padding:4px 8px;width:190px;font-size:12px;font-family:inherit';
+    nInp.value=t.guestNote||'';
+    nInp.placeholder='Special notes';
+    (function(obj){nInp.onchange=function(){obj.guestNote=this.value;};})(t);
+    tdNote.appendChild(nInp);
+    // Status indicator
+    var tdStatus=document.createElement('td');
+    tdStatus.style.textAlign='center';
+    var dot=document.createElement('span');
+    dot.style.cssText='width:10px;height:10px;border-radius:50%;display:inline-block;background:'+(t.guestName?'#276749':'#CBD5E0');
+    tdStatus.appendChild(dot);
+    tr.appendChild(tdNum); tr.appendChild(tdSeats); tr.appendChild(tdGuest);
+    tr.appendChild(tdVIP); tr.appendChild(tdNote); tr.appendChild(tdStatus);
+    tbody.appendChild(tr);
+  });
+  tbl.appendChild(tbody); tableWrap.appendChild(tbl);
+
+  // Footer
+  var ft=document.createElement('div');
+  ft.style.cssText='padding:14px 22px;border-top:1px solid var(--border);display:flex;gap:10px;justify-content:flex-end;flex-shrink:0';
+  var closeBtn2=document.createElement('button');
+  closeBtn2.className='btn btn-outline'; closeBtn2.textContent='Close';
+  closeBtn2.onclick=function(){modal.remove();};
+  var printBtn2=document.createElement('button');
+  printBtn2.className='btn btn-gold'; printBtn2.textContent='Print & share with servers';
+  printBtn2.onclick=printSeatingChart;
+  ft.appendChild(closeBtn2); ft.appendChild(printBtn2);
+
+  box.appendChild(hd); box.appendChild(tableWrap); box.appendChild(ft);
+  modal.appendChild(box);
+  document.body.appendChild(modal);
+}
+
+function updateNightlyIndicator(tr,obj){
+  tr.style.background=obj.guestName?'#FFFBF0':'';
+}
+
+function updateTableGuest(objId,key,val){
+  var obj=(floorObjs[currentFloor]||[]).find(function(o){return o.id===objId;});
+  if(obj) obj[key]=val;
+}
+
+function updateTableGuest(objId, key, val){
+  var obj = (floorObjs[currentFloor]||[]).find(function(o){return o.id===objId;});
+  if(obj){ obj[key]=val; }
+}
+
+function printSeatingChart(){
+  var tables = (floorObjs[currentFloor]||[]).filter(function(o){return o.type.startsWith('table')||o.type==='stool'||o.type==='outdoor';});
+  var date = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  var rows = tables.map(function(t){
+    return '<tr style="border:1px solid #e2e8f0;'+(t.guestName?'background:#FFFBF0;font-weight:500':'')+'"><td style="padding:6px 10px;text-align:center;font-weight:700;font-size:16px;border:1px solid #e2e8f0">'+(t.num||'?')+'</td>'
+      +'<td style="padding:6px 10px;border:1px solid #e2e8f0">'+(t.seats||4)+' seats</td>'
+      +'<td style="padding:6px 10px;border:1px solid #e2e8f0">'+(t.guestName||'—')+'</td>'
+      +'<td style="padding:6px 10px;border:1px solid #e2e8f0">'+(t.guestVIP?'<strong>'+t.guestVIP+'</strong>':'')+'</td>'
+      +'<td style="padding:6px 10px;border:1px solid #e2e8f0">'+(t.guestNote||'')+'</td></tr>';
+  }).join('');
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Seating Chart '+date+'</title>'
+    +'<style>body{font-family:-apple-system,sans-serif;padding:30px;color:#0F1B2D}h1{font-size:20px;margin-bottom:4px}h2{font-size:13px;font-weight:400;color:#718096;margin-bottom:20px}'
+    +'table{width:100%;border-collapse:collapse}th{background:#0F1B2D;color:#fff;padding:8px 10px;text-align:left;font-size:12px;letter-spacing:.04em}'
+    +'@media print{body{padding:15px}}</style></head><body>'
+    +'<h1>The Epicurean House @ The Chocolate Studio</h1>'
+    +'<h2>Nightly Seating Chart &mdash; '+date+' &mdash; FOR SERVER USE ONLY</h2>'
+    +'<table><thead><tr><th>Table</th><th>Seats</th><th>Guest / Party</th><th>VIP Status</th><th>Special notes</th></tr></thead><tbody>'+rows+'</tbody></table>'
+    +'<p style="margin-top:20px;font-size:11px;color:#718096">Printed: '+new Date().toLocaleString()+' &mdash; Confidential</p>'
+    +'</body></html>';
+  var w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
+  setTimeout(function(){w.print();},500);
+}
+
+// Add nightly chart button to floor page
+function initFloorPage(){
+  if(!floorObjs.main.length) addDefaultTables();
+  renderFloor();
+  // Add nightly chart button to topbar if not already there
+  var hdr = document.querySelector('#pg-floor .page-header');
+  if(hdr && !document.getElementById('nightly-btn')){
+    var btn = document.createElement('button');
+    btn.id = 'nightly-btn';
+    btn.className = 'btn btn-sm btn-outline';
+    btn.innerHTML = '&#127829; Nightly seating chart';
+    btn.onclick = showNightlyChart;
+    var btnRow = hdr.querySelector('div[style*="flex"]');
+    if(btnRow) btnRow.appendChild(btn);
+  }
+}
+
+// ══════════════════════════════════════════════════════════
+// MULTI-FLOOR: add floor selector to floor page
+// ══════════════════════════════════════════════════════════
+// Already handled by existing floor-selector — just ensure
+// stool and outdoor types get proper table numbers
+var _origGetNextTableNum = getNextTableNum;
+function getNextTableNum(){
+  var nums=(floorObjs[currentFloor]||[]).filter(function(o){return o.type.startsWith('table')||o.type==='stool'||o.type==='outdoor';}).map(function(o){return o.num||0;});
+  return nums.length ? Math.max.apply(null,nums)+1 : 1;
+}
+
+// ══════════════════════════════════════════════════════════
+// PRODUCE / KITCHEN ORDERING
+// ══════════════════════════════════════════════════════════
+var PRODUCE_CATS = ['Proteins — Meat','Proteins — Poultry','Proteins — Fish & Seafood','Dairy & Eggs','Produce — Vegetables','Produce — Fruits & Herbs','Dry Goods & Pantry','Specialty & Luxury','Beverages & Coffee','Bakery & Pastry','Chocolates & Cacao','Cleaning & Disposables'];
+
+var DB_PRODUCE = [
+  // Proteins — Meat
+  {id:'pr1',name:'Duck Breast D Artagnan',cat:'Proteins — Meat',unit:'lbs',par:8,onHand:3,supplier:'D Artagnan Foods',supplierPhone:'800-327-8246',notes:'Grade A Moulard duck',orderQty:0},
+  {id:'pr2',name:'Short Rib — Craincrest Farms NY',cat:'Proteins — Meat',unit:'lbs',par:15,onHand:6,supplier:'Craincrest Farms',supplierPhone:'',notes:'Grass-fed, dry-aged 21 days',orderQty:0},
+  {id:'pr3',name:'Wagyu Beef — Beef carpaccio cuts',cat:'Proteins — Meat',unit:'lbs',par:4,onHand:1,supplier:'Wagyu Direct',supplierPhone:'',notes:'A5 grade',orderQty:0},
+  // Proteins — Poultry
+  {id:'pr4',name:'Chicken — Whole, Bell and Evans',cat:'Proteins — Poultry',unit:'each',par:6,onHand:4,supplier:'Bell and Evans',supplierPhone:'',notes:'Air-chilled, antibiotic free',orderQty:0},
+  // Proteins — Fish & Seafood
+  {id:'pr5',name:'Chilean Sea Bass — Global Seafood',cat:'Proteins — Fish & Seafood',unit:'lbs',par:10,onHand:4,supplier:'Global Seafood Santiago',supplierPhone:'',notes:'Certified MSC sustainable',orderQty:0},
+  {id:'pr6',name:'Maine Lobster — Live',cat:'Proteins — Fish & Seafood',unit:'each',par:6,onHand:2,supplier:'Browne Trading Co',supplierPhone:'',notes:'1.5 lb avg weight',orderQty:0},
+  {id:'pr7',name:'Hamachi / Yellowtail — Sashimi grade',cat:'Proteins — Fish & Seafood',unit:'lbs',par:5,onHand:2,supplier:'Montauk Seafood',supplierPhone:'',notes:'Order day of service only',orderQty:0},
+  {id:'pr8',name:'Tuna — Sushi grade #1',cat:'Proteins — Fish & Seafood',unit:'lbs',par:5,onHand:1,supplier:'Samuels & Son',supplierPhone:'',notes:'Bluefin preferred',orderQty:0},
+  {id:'pr9',name:'Octopus — Galician',cat:'Proteins — Fish & Seafood',unit:'lbs',par:8,onHand:3,supplier:'Sysco Specialty',supplierPhone:'',notes:'Pre-cooked, frozen',orderQty:0},
+  // Dairy & Eggs
+  {id:'pr10',name:'Eggs — Organic Free Range',cat:'Dairy & Eggs',unit:'dozen',par:5,onHand:2,supplier:'Vital Farms',supplierPhone:'',notes:'',orderQty:0},
+  {id:'pr11',name:'Burrata — Fresh, Calabro',cat:'Dairy & Eggs',unit:'each',par:8,onHand:3,supplier:'Calabro Cheese',supplierPhone:'',notes:'Order 2x weekly',orderQty:0},
+  {id:'pr12',name:'Butter — Plugra European Style',cat:'Dairy & Eggs',unit:'lbs',par:6,onHand:2,supplier:'Restaurant Depot',supplierPhone:'',notes:'',orderQty:0},
+  {id:'pr13',name:'Heavy Cream — Pasteurized',cat:'Dairy & Eggs',unit:'quarts',par:8,onHand:3,supplier:'Restaurant Depot',supplierPhone:'',notes:'',orderQty:0},
+  // Produce
+  {id:'pr14',name:'Heirloom Tomatoes — Assorted',cat:'Produce — Vegetables',unit:'lbs',par:10,onHand:4,supplier:'Baldor Specialty Foods',supplierPhone:'',notes:'',orderQty:0},
+  {id:'pr15',name:'Truffle — Black, Fresh',cat:'Produce — Vegetables',unit:'oz',par:4,onHand:1,supplier:'Urbani Truffles',supplierPhone:'212-247-8800',notes:'Seasonal availability — call ahead',orderQty:0},
+  {id:'pr16',name:'Truffle — White, Fresh',cat:'Produce — Vegetables',unit:'oz',par:2,onHand:0,supplier:'Urbani Truffles',supplierPhone:'212-247-8800',notes:'October-December only',orderQty:0},
+  {id:'pr17',name:'Leeks — Organic',cat:'Produce — Vegetables',unit:'bunch',par:4,onHand:2,supplier:'Baldor',supplierPhone:'',notes:'',orderQty:0},
+  // Fruits & Herbs
+  {id:'pr18',name:'Passion Fruit — Fresh',cat:'Produce — Fruits & Herbs',unit:'each',par:20,onHand:8,supplier:'Baldor Specialty',supplierPhone:'',notes:'',orderQty:0},
+  {id:'pr19',name:'Mango — Ataulfo',cat:'Produce — Fruits & Herbs',unit:'each',par:15,onHand:6,supplier:'Baldor',supplierPhone:'',notes:'',orderQty:0},
+  {id:'pr20',name:'Hibiscus — Dried flowers',cat:'Produce — Fruits & Herbs',unit:'oz',par:8,onHand:3,supplier:'Kalustyans',supplierPhone:'',notes:'For cocktails',orderQty:0},
+  // Specialty
+  {id:'pr21',name:'Cacao — Valrhona 72% couverture',cat:'Chocolates & Cacao',unit:'lbs',par:20,onHand:8,supplier:'Valrhona USA',supplierPhone:'',notes:'Core ingredient — never go below 5 lbs',orderQty:0},
+  {id:'pr22',name:'Cacao Nibs — Raw',cat:'Chocolates & Cacao',unit:'lbs',par:5,onHand:2,supplier:'Valrhona',supplierPhone:'',notes:'For cocktail bitters',orderQty:0},
+  {id:'pr23',name:'Pistachio — Bronte DOP',cat:'Specialty & Luxury',unit:'lbs',par:3,onHand:1,supplier:'Gustiamo',supplierPhone:'',notes:'Sicilian, controlled origin',orderQty:0},
+  {id:'pr24',name:'Vanilla — Odorata Ecuador pods',cat:'Specialty & Luxury',unit:'each',par:12,onHand:4,supplier:'Heilala Vanilla',supplierPhone:'',notes:'',orderQty:0},
+  {id:'pr25',name:'Parmigiano-Reggiano — 24 month',cat:'Specialty & Luxury',unit:'lbs',par:5,onHand:2,supplier:'Murrays Cheese',supplierPhone:'',notes:'Wheel preferred',orderQty:0},
+  // Coffee
+  {id:'pr26',name:'Ethiopian Yirgacheffe — Whole bean',cat:'Beverages & Coffee',unit:'lbs',par:10,onHand:3,supplier:'Direct trade roaster',supplierPhone:'',notes:'Order weekly',orderQty:0},
+  {id:'pr27',name:'Cold brew concentrate',cat:'Beverages & Coffee',unit:'liters',par:4,onHand:1,supplier:'House-made',supplierPhone:'',notes:'24hr steep, make 3x weekly',orderQty:0},
+];
+
+var DB_CAKE_ORDERS = [
+  {id:'c911-001',customer:'Maria Santos',phone:'917-555-0123',cake:'Dark Chocolate Birthday',flavor:'72% cacao, raspberry',size:'8 inch / 12 servings',pickup:'2025-06-15 2:00 PM',price:185,deposit:93,status:'In production',notes:'Write: Happy Birthday Sofia in gold',allergens:['Dairy','Eggs']},
+  {id:'c911-002',customer:'Carlos Reyes',phone:'646-555-0188',cake:'Wedding Tier Cake',flavor:'Champagne sponge, white chocolate ganache',size:'3 tier / 60 servings',pickup:'2025-06-21 11:00 AM',price:850,deposit:425,status:'Confirmed',notes:'Ivory fondant, fresh flowers — coordinate with florist',allergens:['Dairy','Eggs','Gluten']},
+];
+
+var produceEditId = null;
+var produceCat = 'all';
+
+function renderProducePage(){
+  var cats = ['All'].concat(PRODUCE_CATS);
+  var tabRow = document.getElementById('produce-cat-tabs');
+  if(tabRow) {
+    tabRow.innerHTML = '';
+    cats.forEach(function(cat){
+      var btn = document.createElement('div');
+      btn.className = 'tab-btn' + (cat==='All'?' active':'');
+      btn.textContent = cat==='All'?'All categories':cat;
+      btn.onclick = function(){
+        produceCat = cat==='All'?'all':cat;
+        document.querySelectorAll('#produce-cat-tabs .tab-btn').forEach(function(b){b.classList.remove('active');});
+        btn.classList.add('active');
+        renderProduceTable();
+      };
+      tabRow.appendChild(btn);
+    });
+  }
+  renderProduceTable();
+}
+
+function renderProduceTable(){
+  var items = DB_PRODUCE.filter(function(p){ return produceCat==='all'||p.cat===produceCat; });
+  var tbody = document.getElementById('produce-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  items.forEach(function(p){
+    var needed = Math.max(0, p.par - p.onHand);
+    var low = p.onHand < p.par * 0.3;
+    if(!p.orderQty) p.orderQty = needed;
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td><div style="font-weight:500">'+p.name+'</div>'
+      +(p.notes?'<div style="font-size:11px;color:var(--txt3)">'+p.notes+'</div>':'')+'</td>'
+      +'<td><span class="pill pill-navy" style="font-size:10px">'+p.cat+'</span></td>'
+      +'<td style="color:var(--txt3)">'+p.unit+'</td>'
+      +'<td style="font-weight:500;text-align:center">'+p.par+'</td>'
+      +'<td style="text-align:center"><span style="font-weight:700;color:'+(low?'var(--red)':'var(--green)')+'">'+p.onHand+'</span>'+(low?'<span style="font-size:10px;color:var(--red)"> LOW</span>':'')+'</td>'
+      +'<td style="text-align:center"></td>'
+      +'<td style="font-size:12px;color:var(--txt2)">'+p.supplier+'</td>'
+      +'<td class="td-right"></td>';
+    // qty input — DOM-based to avoid quote conflicts
+    var qtyTd = tr.querySelectorAll('td')[5];
+    var inp = document.createElement('input');
+    inp.className='inp inp-sm'; inp.type='number'; inp.min='0'; inp.value=p.orderQty;
+    inp.style.cssText='width:60px;text-align:center';
+    (function(prod){inp.onchange=function(){prod.orderQty=parseInt(this.value)||0;};})(p);
+    qtyTd.appendChild(inp);
+    // edit button
+    var editTd = tr.querySelectorAll('td')[7];
+    var editBtn = document.createElement('button');
+    editBtn.className='btn btn-xs btn-outline'; editBtn.textContent='Edit';
+    (function(prod){editBtn.onclick=function(){editProduce(prod.id);};})(p);
+    editTd.appendChild(editBtn);
+    tbody.appendChild(tr);
+  });
+  if(!items.length) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--txt3)">No items found</td></tr>';
+}
+
+function updateProduceOrder(id,val){
+  var p = DB_PRODUCE.find(function(i){return i.id===id;});
+  if(p) p.orderQty = parseInt(val)||0;
+}
+
+function openProduceModal(){
+  showToast('Use Edit on any item to update par levels and on-hand counts','success');
+}
+
+function editProduce(id){
+  var p = DB_PRODUCE.find(function(i){return i.id===id;});
+  if(!p) return;
+  var newOnHand = prompt('Update on-hand for "'+p.name+'" (currently '+p.onHand+' '+p.unit+'):');
+  if(newOnHand !== null && !isNaN(parseInt(newOnHand))){
+    p.onHand = parseInt(newOnHand);
+    renderProduceTable();
+    showToast(p.name+' updated','success');
+  }
+}
+
+function printProduceSheet(){
+  var items = DB_PRODUCE.filter(function(p){return p.orderQty>0 || p.onHand<p.par;});
+  var date = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  var rows = items.map(function(p){
+    var needed = Math.max(0,p.par-p.onHand);
+    return '<tr><td>'+p.name+'</td><td>'+p.cat+'</td><td style="text-align:center">'+p.par+'</td>'
+      +'<td style="text-align:center">'+p.onHand+'</td>'
+      +'<td style="text-align:center;font-weight:700">'+(p.orderQty||needed)+'</td>'
+      +'<td>'+p.unit+'</td><td>'+p.supplier+'</td><td style="font-size:11px">'+p.notes+'</td></tr>';
+  }).join('');
+  var html = '<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Kitchen Order Sheet '+date+'</title>'
+    +'<style>body{font-family:sans-serif;padding:24px;font-size:13px}h1{font-size:18px}h2{font-size:13px;font-weight:400;color:#666;margin-bottom:16px}'
+    +'table{width:100%;border-collapse:collapse}th{background:#0F1B2D;color:#fff;padding:7px 10px;text-align:left;font-size:11px}'
+    +'td{padding:7px 10px;border-bottom:1px solid #e2e8f0}tr:nth-child(even){background:#f8f9fa}'
+    +'@media print{body{padding:10px}}</style></head><body>'
+    +'<h1>The Epicurean House — Kitchen Order Sheet</h1>'
+    +'<h2>'+date+' &mdash; Items to order (low stock or order qty set)</h2>'
+    +'<table><thead><tr><th>Item</th><th>Category</th><th>Par</th><th>On hand</th><th>ORDER QTY</th><th>Unit</th><th>Supplier</th><th>Notes</th></tr></thead>'
+    +'<tbody>'+rows+'</tbody></table>'
+    +'<p style="margin-top:20px;font-size:11px;color:#999">Generated: '+new Date().toLocaleString()+'</p>'
+    +'</body></html>';
+  var w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(function(){w.print();},500);
+}
+
+// ══════════════════════════════════════════════════════════
+// CAKE 911
+// ══════════════════════════════════════════════════════════
+var CAKE_STATUSES = ['Pending','Confirmed','In production','Ready for pickup','Delivered','Cancelled'];
+
+function renderCake911Page(){
+  // Metrics
+  var metrics = [
+    {label:'Active orders',val:DB_CAKE_ORDERS.filter(function(o){return o.status!=='Delivered'&&o.status!=='Cancelled';}).length,color:'var(--blue)'},
+    {label:'Revenue this month',val:'$'+DB_CAKE_ORDERS.reduce(function(s,o){return s+o.price;},0).toLocaleString(),color:'var(--gold)'},
+    {label:'Next pickup',val:DB_CAKE_ORDERS.filter(function(o){return o.status!=='Delivered';}).sort(function(a,b){return a.pickup.localeCompare(b.pickup);})[0]?DB_CAKE_ORDERS[0].pickup.split(' ')[0]:'None',color:'var(--green)'}
+  ];
+  var mGrid = document.getElementById('cake-metrics');
+  if(mGrid) mGrid.innerHTML = metrics.map(function(m){
+    return '<div class="metric-card"><div class="metric-label">'+m.label+'</div><div class="metric-val" style="color:'+m.color+'">'+m.val+'</div></div>';
+  }).join('');
+
+  var STATUS_COLORS = {'Pending':'pill-amber','Confirmed':'pill-blue','In production':'pill-teal','Ready for pickup':'pill-green','Delivered':'pill-gray','Cancelled':'pill-red'};
+  var tbody = document.getElementById('cake-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  DB_CAKE_ORDERS.forEach(function(o){
+    var tr=document.createElement('tr');
+    tr.innerHTML='<td><strong style="font-family:monospace;font-size:12px">'+o.id+'</strong></td>'
+      +'<td><div style="font-weight:500">'+o.customer+'</div><div style="font-size:11px;color:var(--txt3)">'+o.phone+'</div></td>'
+      +'<td><div style="font-weight:500">'+o.cake+'</div><div style="font-size:11px;color:var(--txt3)">'+o.flavor+'</div>'+(o.notes?'<div style="font-size:11px;color:var(--amber)">'+o.notes+'</div>':'')+'</td>'
+      +'<td><strong>'+o.pickup.split(' ')[0]+'</strong><div style="font-size:11px;color:var(--txt3)">'+o.pickup.split(' ').slice(1).join(' ')+'</div></td>'
+      +'<td style="font-size:12px">'+o.size+'</td>'
+      +'<td><div style="font-weight:700;color:var(--gold)">$'+o.price+'</div><div style="font-size:11px;color:var(--txt3)">$'+o.deposit+' dep</div></td>'
+      +'<td></td><td class="td-right"></td>';
+    var selTd=tr.querySelectorAll('td')[6];
+    var sel=document.createElement('select'); sel.className='inp inp-sm';
+    CAKE_STATUSES.forEach(function(s){var opt=document.createElement('option');opt.value=s;opt.textContent=s;if(s===o.status)opt.selected=true;sel.appendChild(opt);});
+    (function(ord){sel.onchange=function(){updateCakeStatus(ord.id,this.value);};})(o);
+    selTd.appendChild(sel);
+    var btnTd=tr.querySelectorAll('td')[7];
+    var btn=document.createElement('button'); btn.className='btn btn-xs btn-outline'; btn.textContent='Ticket';
+    (function(ord){btn.onclick=function(){printCakeOrder(ord.id);};})(o);
+    btnTd.appendChild(btn);
+    tbody.appendChild(tr);
+  });
+  if(!DB_CAKE_ORDERS.length) tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--txt3)">No cake orders yet</td></tr>';
+}
+
+function updateCakeStatus(id,status){
+  var o = DB_CAKE_ORDERS.find(function(i){return i.id===id;});
+  if(o){ o.status=status; showToast('Order '+id+' — '+status,'success'); }
+}
+
+function openCakeOrderModal(){
+  var name=prompt('Customer name:'); if(!name) return;
+  var phone=prompt('Customer phone:'); if(!phone) return;
+  var cake=prompt('Cake name/description:'); if(!cake) return;
+  var pickup=prompt('Pickup date and time (e.g. 2025-06-20 3:00 PM):'); if(!pickup) return;
+  var price=parseFloat(prompt('Price ($):'));
+  var notes=prompt('Special instructions (or press Enter to skip):') || '';
+  var id='C911-'+Date.now().toString().slice(-5);
+  DB_CAKE_ORDERS.push({id:id,customer:name,phone:phone,cake:cake,flavor:'',size:'TBD',pickup:pickup,price:price||185,deposit:Math.round((price||185)/2),status:'Pending',notes:notes,allergens:[]});
+  renderCake911Page();
+  showToast('Cake order '+id+' created','success');
+}
+
+function printCakeOrder(id){
+  var o = DB_CAKE_ORDERS.find(function(i){return i.id===id;});
+  if(!o) return;
+  var html='<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Cake Order '+o.id+'</title>'
+    +'<style>body{font-family:sans-serif;padding:30px;max-width:500px}h1{font-size:16px;color:#0F1B2D}table{width:100%;border-collapse:collapse;margin-top:16px}td{padding:8px 12px;border:1px solid #e2e8f0;font-size:13px}td:first-child{font-weight:600;background:#f8f9fa;width:35%}</style></head><body>'
+    +'<h1>&#127874; Cake 911 — Production Ticket</h1>'
+    +'<table><tr><td>Order #</td><td>'+o.id+'</td></tr>'
+    +'<tr><td>Customer</td><td>'+o.customer+' &mdash; '+o.phone+'</td></tr>'
+    +'<tr><td>Cake</td><td>'+o.cake+'</td></tr>'
+    +'<tr><td>Flavor</td><td>'+o.flavor+'</td></tr>'
+    +'<tr><td>Size</td><td>'+o.size+'</td></tr>'
+    +'<tr><td>Pickup</td><td><strong>'+o.pickup+'</strong></td></tr>'
+    +'<tr><td>Price</td><td>$'+o.price+' (deposit $'+o.deposit+')</td></tr>'
+    +'<tr><td>Status</td><td>'+o.status+'</td></tr>'
+    +'<tr><td>Notes</td><td style="color:#B8943F"><strong>'+o.notes+'</strong></td></tr></table>'
+    +'<p style="margin-top:20px;font-size:11px;color:#999">Printed: '+new Date().toLocaleString()+'</p>'
+    +'</body></html>';
+  var w=window.open('','_blank'); w.document.write(html); w.document.close(); setTimeout(function(){w.print();},500);
+}
+
+function closeTopModal(btn){
+  var el=btn;
+  while(el && !(el.style && el.style.position==='fixed' && el.style.zIndex>='100')){el=el.parentElement;}
+  if(el) el.remove();
+}
+// ══════════════════════════════════════════════════════════
+// PAYROLL — NYC 2026 RATES
+// ══════════════════════════════════════════════════════════
+var NYC_RATES = {
+  full_min: 17.00,
+  food_service_tipped: { cash: 11.35, credit: 5.65 },
+  service_tipped:      { cash: 14.15, credit: 2.85 },
+  non_tipped:           { cash: 17.00, credit: 0 }
+};
+var OT_MULTIPLIER = 1.5;
+var OT_THRESHOLD_HRS = 40;
+
+// Wage classification per DB.staff member — keyed by staff.id
+var DB_WAGES = JSON.parse(localStorage.getItem('eh_wages') || JSON.stringify({
+  's1': { classification: 'food_service_tipped', cashOverride: null }, // Andre Mendoza - Food Master
+  's2': { classification: 'service_tipped', cashOverride: null },      // Paco Arias - Sommelier
+  's3': { classification: 'food_service_tipped', cashOverride: null }, // Max Rodriguez - Food Master
+  's4': { classification: 'service_tipped', cashOverride: null },      // Edwin Perez - Bartender
+  'tc1': { classification: 'food_service_tipped', cashOverride: null },// Maria Lopez - Waiter
+  'tc2': { classification: 'service_tipped', cashOverride: null },     // Carlos Reyes - Bartender
+  'tc3': { classification: 'food_service_tipped', cashOverride: null },// Andre Mendoza - Food Master (timeclock)
+  'tc4': { classification: 'non_tipped', cashOverride: null }          // Diego Fernandez - Cook (BOH, no tips)
+}));
+function saveWages(){ localStorage.setItem('eh_wages', JSON.stringify(DB_WAGES)); }
+
+// Reported tips per staff per week (manual entry — pulled from POS/Square in production)
+var DB_TIPS = JSON.parse(localStorage.getItem('eh_tips') || '{}');
+
+// Seed demo time clock data if none exists yet (for demonstration purposes)
+(function seedDemoTimeClockData(){
+  var existing = localStorage.getItem('eh_timeclock_logs');
+  if(existing) return;
+  var demoStaff = [
+    {id:'tc1', name:'Maria Lopez', role:'Waiter'},
+    {id:'tc2', name:'Carlos Reyes', role:'Bartender'},
+    {id:'tc3', name:'Andre Mendoza', role:'Food Master'},
+    {id:'tc4', name:'Diego Fernandez', role:'Cook'}
+  ];
+  localStorage.setItem('eh_timeclock_staff', JSON.stringify(demoStaff.map(function(s){
+    return {id:s.id, name:s.name, role:s.role, pin:'0000', faceDescriptor:null, status:'out'};
+  })));
+  var logs = [];
+  var now = new Date();
+  var monday = new Date(now);
+  var day = monday.getDay();
+  monday.setDate(monday.getDate() + (day===0?-6:1-day));
+  monday.setHours(0,0,0,0);
+  // Generate 5 days of realistic shifts for each demo employee
+  demoStaff.forEach(function(s,idx){
+    for(var d=0; d<5; d++){
+      var shiftDay = new Date(monday); shiftDay.setDate(monday.getDate()+d);
+      var inH = 16 + (idx%2); // stagger start times
+      var inT = new Date(shiftDay); inT.setHours(inH,55,0,0);
+      var breakStart = new Date(inT); breakStart.setHours(breakStart.getHours()+3,30,0,0);
+      var breakEnd = new Date(breakStart); breakEnd.setMinutes(breakEnd.getMinutes()+30);
+      var outT = new Date(breakEnd); outT.setHours(outT.getHours()+3,(d===4?37:7),0,0); // longer Friday shift = OT
+      logs.push({staffId:s.id, staffName:s.name, type:'in', time:inT.toISOString(), station: idx<2?'FRONT OF HOUSE':'KITCHEN'});
+      logs.push({staffId:s.id, staffName:s.name, type:'break_start', time:breakStart.toISOString(), station: idx<2?'FRONT OF HOUSE':'KITCHEN'});
+      logs.push({staffId:s.id, staffName:s.name, type:'break_end', time:breakEnd.toISOString(), station: idx<2?'FRONT OF HOUSE':'KITCHEN'});
+      logs.push({staffId:s.id, staffName:s.name, type:'out', time:outT.toISOString(), station: idx<2?'FRONT OF HOUSE':'KITCHEN'});
+    }
+  });
+  localStorage.setItem('eh_timeclock_logs', JSON.stringify(logs));
+  // Seed reported tips for the tipped roles (waiter + bartender)
+  var weekKey = monday.toISOString().slice(0,10);
+  var tips = {};
+  tips['tc1_'+weekKey] = 580.00; // Maria - waiter
+  tips['tc2_'+weekKey] = 310.00; // Carlos - bartender
+  localStorage.setItem('eh_tips', JSON.stringify(tips));
+})();
+function saveTips(){ localStorage.setItem('eh_tips', JSON.stringify(DB_TIPS)); }
+
+function getWageInfo(staffId){
+  return DB_WAGES[staffId] || { classification: 'non_tipped', cashOverride: null };
+}
+
+function getRateForClassification(cls){
+  return NYC_RATES[cls] || NYC_RATES.non_tipped;
+}
+
+// ── Get current week range (Mon-Sun) ──
+function getWeekRange(weekOffset){
+  weekOffset = weekOffset || 0;
+  var now = new Date();
+  var day = now.getDay();
+  var diffToMonday = day === 0 ? -6 : 1 - day;
+  var monday = new Date(now);
+  monday.setDate(now.getDate() + diffToMonday + (weekOffset*7));
+  monday.setHours(0,0,0,0);
+  var sunday = new Date(monday);
+  sunday.setDate(monday.getDate()+6);
+  sunday.setHours(23,59,59,999);
+  return { start: monday, end: sunday };
+}
+
+function formatWeekLabel(range){
+  var opts = {month:'short',day:'numeric'};
+  return range.start.toLocaleDateString('en-US',opts) + ' – ' + range.end.toLocaleDateString('en-US',opts);
+}
+
+function populateWeekSelector(){
+  var sel = document.getElementById('payroll-week-select');
+  if(!sel) return;
+  sel.innerHTML = '';
+  for(var i=0;i<=4;i++){
+    var range = getWeekRange(-i);
+    var opt = document.createElement('option');
+    opt.value = i;
+    opt.textContent = (i===0?'This week — ':i===1?'Last week — ':'') + formatWeekLabel(range);
+    sel.appendChild(opt);
+  }
+}
+
+// ── Pull time clock logs (shared localStorage key with timeclock app if same domain) ──
+function getTimeClockLogs(){
+  return JSON.parse(localStorage.getItem('eh_timeclock_logs') || '[]');
+}
+function getTimeClockStaff(){
+  return JSON.parse(localStorage.getItem('eh_timeclock_staff') || '[]');
+}
+
+// ── Calculate hours worked for one staff member within a date range, subtracting breaks ──
+function calculateHoursForStaff(staffId, range){
+  var logs = getTimeClockLogs().filter(function(l){
+    var t = new Date(l.time);
+    return l.staffId === staffId && t >= range.start && t <= range.end;
+  }).sort(function(a,b){ return new Date(a.time)-new Date(b.time); });
+
+  var totalMs = 0;
+  var clockInTime = null;
+  var breakStartTime = null;
+
+  logs.forEach(function(l){
+    var t = new Date(l.time);
+    if(l.type === 'in'){ clockInTime = t; }
+    else if(l.type === 'break_start' && clockInTime){
+      totalMs += (t - clockInTime);
+      breakStartTime = t;
+      clockInTime = null;
+    }
+    else if(l.type === 'break_end' && breakStartTime){
+      clockInTime = t; // resume counting from break end
+      breakStartTime = null;
+    }
+    else if(l.type === 'out' && clockInTime){
+      totalMs += (t - clockInTime);
+      clockInTime = null;
+    }
+  });
+
+  return totalMs / (1000*60*60); // hours
+}
+
+// ── Build complete payroll for one staff member ──
+function buildPayrollRow(staffId, staffName, role, range){
+  var wageInfo = getWageInfo(staffId);
+  var rates = getRateForClassification(wageInfo.classification);
+  var cashWage = wageInfo.cashOverride != null ? wageInfo.cashOverride : rates.cash;
+  var isTipped = wageInfo.classification !== 'non_tipped';
+
+  var totalHrs = calculateHoursForStaff(staffId, range);
+  var regHrs = Math.min(totalHrs, OT_THRESHOLD_HRS);
+  var otHrs = Math.max(0, totalHrs - OT_THRESHOLD_HRS);
+
+  // Regular pay: cash wage * reg hours
+  var regPay = regHrs * cashWage;
+  // OT pay: NYC law requires OT calculated on FULL minimum wage for tipped roles, not the lower cash wage
+  var otBaseRate = isTipped ? NYC_RATES.full_min : cashWage;
+  var otPay = otHrs * otBaseRate * OT_MULTIPLIER;
+  // But employer still only pays the tip-credit-adjusted cash portion of OT; tip credit still applies up to the credit amount
+  var otCashPay = isTipped ? (otHrs * (otBaseRate*OT_MULTIPLIER - rates.credit)) : otPay;
+
+  var grossCashPay = regPay + (isTipped ? otCashPay : otPay);
+
+  var weekKey = range.start.toISOString().slice(0,10);
+  var tipsKey = staffId + '_' + weekKey;
+  var reportedTips = DB_TIPS[tipsKey] || 0;
+
+  // Minimum wage compliance check: cash wage + tips/hour must be >= full min wage
+  var effectiveHourlyWithTips = totalHrs > 0 ? (grossCashPay + reportedTips) / totalHrs : cashWage;
+  var meetsMinWage = !isTipped || effectiveHourlyWithTips >= NYC_RATES.full_min - 0.01;
+  var shortfall = meetsMinWage ? 0 : (NYC_RATES.full_min * totalHrs) - (grossCashPay + reportedTips);
+
+  return {
+    staffId: staffId, name: staffName, role: role,
+    classification: wageInfo.classification,
+    cashWage: cashWage, tipCredit: isTipped ? rates.credit : 0,
+    regHrs: regHrs, otHrs: otHrs, totalHrs: totalHrs,
+    regPay: regPay, otPay: isTipped ? otCashPay : otPay,
+    grossPay: grossCashPay, reportedTips: reportedTips,
+    effectiveHourly: effectiveHourlyWithTips,
+    meetsMinWage: meetsMinWage, shortfall: shortfall,
+    employerMustMakeUp: shortfall > 0 ? shortfall : 0
+  };
+}
+
+// ── Render the full payroll page ──
+function renderPayrollPage(){
+  populateWeekSelector();
+  var weekOffsetEl = document.getElementById('payroll-week-select');
+  var weekOffset = weekOffsetEl ? parseInt(weekOffsetEl.value || 0) : 0;
+  var range = getWeekRange(-weekOffset);
+
+  // Combine BOH staff + time clock staff into one payroll-eligible list
+  var allStaff = [];
+  DB.staff.forEach(function(s){ allStaff.push({ id:s.id, name:s.name, role:s.role }); });
+  getTimeClockStaff().forEach(function(s){
+    if(!allStaff.find(function(a){ return a.name === s.name; })){
+      allStaff.push({ id:s.id, name:s.name, role:s.role });
+    }
+  });
+
+  var rows = allStaff.map(function(s){ return buildPayrollRow(s.id, s.name, s.role, range); });
+
+  // Metrics
+  var totalGross = rows.reduce(function(sum,r){ return sum+r.grossPay; },0);
+  var totalHrs = rows.reduce(function(sum,r){ return sum+r.totalHrs; },0);
+  var totalOT = rows.reduce(function(sum,r){ return sum+r.otHrs; },0);
+  var shortfallCount = rows.filter(function(r){ return !r.meetsMinWage; }).length;
+
+  var metricsEl = document.getElementById('payroll-metrics');
+  if(metricsEl){
+    var metrics = [
+      {label:'Total gross pay', val:'$'+totalGross.toFixed(2), sub:formatWeekLabel(range)},
+      {label:'Total hours', val:totalHrs.toFixed(1)+' hrs', sub:rows.length+' employees'},
+      {label:'Overtime hours', val:totalOT.toFixed(1)+' hrs', sub:totalOT>0?'1.5× rate applied':'None this week'},
+      {label:'Min-wage shortfalls', val:shortfallCount, sub:shortfallCount>0?'Requires employer top-up':'All compliant'}
+    ];
+    metricsEl.innerHTML = metrics.map(function(m){
+      return '<div class="metric-card"><div class="metric-label">'+m.label+'</div><div class="metric-val" style="'+(m.label.indexOf('shortfall')>-1&&shortfallCount>0?'color:var(--red)':'')+'">'+m.val+'</div><div class="metric-sub">'+m.sub+'</div></div>';
+    }).join('');
+  }
+
+  // Table
+  var tbody = document.getElementById('payroll-tbody');
+  if(tbody){
+    tbody.innerHTML = '';
+    var CLASS_LABELS = { food_service_tipped:'Food service (tipped)', service_tipped:'Service (tipped)', non_tipped:'Non-tipped / Mgmt' };
+    var CLASS_COLORS = { food_service_tipped:'pill-amber', service_tipped:'pill-blue', non_tipped:'pill-navy' };
+    rows.forEach(function(r){
+      var tr = document.createElement('tr');
+      tr.innerHTML = '<td><div style="font-weight:500">'+r.name+'</div></td>'
+        +'<td style="font-size:12px;color:var(--txt3)">'+r.role+'</td>'
+        +'<td><span class="pill '+(CLASS_COLORS[r.classification]||'pill-gray')+'">'+CLASS_LABELS[r.classification]+'</span></td>'
+        +'<td style="text-align:center">'+r.regHrs.toFixed(1)+'</td>'
+        +'<td style="text-align:center;'+(r.otHrs>0?'color:var(--amber);font-weight:600':'')+'">'+(r.otHrs>0?r.otHrs.toFixed(1):'—')+'</td>'
+        +'<td style="text-align:right">$'+r.cashWage.toFixed(2)+'/hr</td>'
+        +'<td style="text-align:right">'+(r.classification!=='non_tipped'?'$'+r.reportedTips.toFixed(2):'—')+'</td>'
+        +'<td style="text-align:right;color:var(--txt3)">'+(r.tipCredit>0?'$'+r.tipCredit.toFixed(2)+'/hr':'—')+'</td>'
+        +'<td style="text-align:right;font-weight:700;color:var(--gold)">$'+r.grossPay.toFixed(2)+'</td>'
+        +'<td style="text-align:right">'+(r.meetsMinWage?'<span class="pill pill-green">&#10003; OK</span>':'<span class="pill pill-red">&#9888; Short $'+r.shortfall.toFixed(2)+'</span>')+'</td>';
+      tbody.appendChild(tr);
+    });
+    if(!rows.length) tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:32px;color:var(--txt3)">No staff with hours this week</td></tr>';
+  }
+
+  // Shortfall alerts
+  var shortfallEl = document.getElementById('payroll-shortfall-list');
+  if(shortfallEl){
+    var shortRows = rows.filter(function(r){ return !r.meetsMinWage; });
+    if(!shortRows.length){
+      shortfallEl.innerHTML = '<div style="padding:14px 16px;font-size:13px;color:var(--green)">&#10003; All tipped employees met the $17.00/hr NYC minimum this week (cash wage + reported tips). No employer top-up required.</div>';
+    } else {
+      shortfallEl.innerHTML = shortRows.map(function(r){
+        return '<div style="padding:12px 16px;border-bottom:1px solid var(--border);font-size:13px">'
+          +'<strong>'+r.name+'</strong> earned $'+r.effectiveHourly.toFixed(2)+'/hr with tips (cash + tips), below the $17.00 NYC minimum. '
+          +'<span style="color:var(--red);font-weight:600">Employer must add $'+r.shortfall.toFixed(2)+'</span> to comply with NYC tip-credit law.</div>';
+      }).join('');
+    }
+  }
+
+  renderWageSettingsTable(allStaff);
+}
+
+function renderWageSettingsTable(allStaff){
+  var tbody = document.getElementById('wage-settings-tbody');
+  if(!tbody) return;
+  tbody.innerHTML = '';
+  var CLASS_LABELS = { food_service_tipped:'Food service (tipped)', service_tipped:'Service (tipped)', non_tipped:'Non-tipped / Mgmt' };
+  allStaff.forEach(function(s){
+    var wageInfo = getWageInfo(s.id);
+    var rates = getRateForClassification(wageInfo.classification);
+    var cashWage = wageInfo.cashOverride != null ? wageInfo.cashOverride : rates.cash;
+    var tr = document.createElement('tr');
+    tr.innerHTML = '<td style="font-weight:500">'+s.name+'</td>'
+      +'<td style="font-size:12px;color:var(--txt3)">'+s.role+'</td>'
+      +'<td>'+CLASS_LABELS[wageInfo.classification]+'</td>'
+      +'<td style="text-align:right">$'+cashWage.toFixed(2)+'/hr</td>'
+      +'<td style="text-align:right"></td>';
+    var actionTd = tr.querySelectorAll('td')[4];
+    var btn = document.createElement('button');
+    btn.className = 'btn btn-xs btn-outline'; btn.textContent = 'Edit wage';
+    (function(staff){ btn.onclick = function(){ openWageModal(staff); }; })(s);
+    actionTd.appendChild(btn);
+    tbody.appendChild(tr);
+  });
+}
+
+var wageModalTarget = null;
+function openWageModal(staff){
+  wageModalTarget = staff;
+  document.getElementById('wage-modal-title').textContent = 'Wage classification — ' + staff.name;
+  var wageInfo = getWageInfo(staff.id);
+  document.getElementById('wage-classification').value = wageInfo.classification;
+  document.getElementById('wage-cash-override').value = wageInfo.cashOverride != null ? wageInfo.cashOverride : '';
+  document.getElementById('wage-effective-date').value = new Date().toISOString().slice(0,10);
+  updateWagePreview();
+  openModal('modal-wage');
+}
+
+function updateWagePreview(){
+  var cls = document.getElementById('wage-classification').value;
+  var rates = getRateForClassification(cls);
+  var preview = document.getElementById('wage-preview');
+  if(cls === 'non_tipped'){
+    preview.innerHTML = '<strong>Full NYC minimum wage applies.</strong><br>Cash wage: $'+rates.cash.toFixed(2)+'/hr &mdash; no tip credit, no tip pooling eligibility.<br>Use this for managers, owners, and salaried sales staff.';
+  } else {
+    preview.innerHTML = '<strong>NYC tip-credit wage applies.</strong><br>Cash wage: $'+rates.cash.toFixed(2)+'/hr + tip credit: $'+rates.credit.toFixed(2)+'/hr = $17.00/hr total minimum.<br>If reported tips don\'t bring total to $17.00/hr, employer must make up the difference (shown automatically in Payroll page).<br>Overtime is calculated on the full $17.00/hr base, not the lower cash wage, per NYC law.';
+  }
+}
+
+function saveWageClassification(){
+  if(!wageModalTarget) return;
+  var cls = document.getElementById('wage-classification').value;
+  var override = document.getElementById('wage-cash-override').value;
+  DB_WAGES[wageModalTarget.id] = {
+    classification: cls,
+    cashOverride: override ? parseFloat(override) : null
+  };
+  saveWages();
+  closeModal('modal-wage');
+  renderPayrollPage();
+  showToast('Wage classification updated for ' + wageModalTarget.name, 'success');
+}
+
+function exportPayrollCSV(){
+  var weekOffsetEl = document.getElementById('payroll-week-select');
+  var weekOffset = weekOffsetEl ? parseInt(weekOffsetEl.value || 0) : 0;
+  var range = getWeekRange(-weekOffset);
+  var allStaff = [];
+  DB.staff.forEach(function(s){ allStaff.push({ id:s.id, name:s.name, role:s.role }); });
+  getTimeClockStaff().forEach(function(s){
+    if(!allStaff.find(function(a){ return a.name === s.name; })){ allStaff.push({ id:s.id, name:s.name, role:s.role }); }
+  });
+  var rows = allStaff.map(function(s){ return buildPayrollRow(s.id, s.name, s.role, range); });
+
+  var csv = 'Employee,Role,Classification,Regular Hours,OT Hours,Cash Wage,Reported Tips,Gross Pay,Effective Hourly w/Tips,NYC Min Wage Compliant,Employer Top-Up Required\n';
+  rows.forEach(function(r){
+    csv += '"'+r.name+'","'+r.role+'","'+r.classification+'",'+r.regHrs.toFixed(2)+','+r.otHrs.toFixed(2)+','+r.cashWage.toFixed(2)+','+r.reportedTips.toFixed(2)+','+r.grossPay.toFixed(2)+','+r.effectiveHourly.toFixed(2)+','+(r.meetsMinWage?'Yes':'No')+','+r.employerMustMakeUp.toFixed(2)+'\n';
+  });
+  var blob = new Blob([csv], {type:'text/csv'});
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'epicurean_payroll_'+formatWeekLabel(range).replace(/\s/g,'_')+'.csv';
+  a.click();
+  showToast('Payroll exported — ready for Gusto, ADP, or your accountant', 'success');
+}
 
 // ── AVATAR DROPDOWN MENU ──
 function toggleAvatarMenu(){
