@@ -627,6 +627,9 @@ window.QRErrorCorrectLevel=QRErrorCorrectLevel;
 
 </script>
 <!-- QR code generator embedded above — no external dependency, cannot 404 or fail to load -->
+<!-- Firebase — shared cloud database so codes, faces, and data persist across every file update -->
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
 </head>
 <body>
 
@@ -1543,6 +1546,51 @@ window.QRErrorCorrectLevel=QRErrorCorrectLevel;
 </div>
 
 <script>
+// ══════════════════════════════════════════════════════════
+// FIREBASE — shared cloud database
+// Codes, faces, and the QR phone-verification handoff all live
+// here now instead of localStorage, so they persist across every
+// file update and actually work across two different devices.
+// ══════════════════════════════════════════════════════════
+var firebaseConfig = {
+  apiKey: "AIzaSyAvg9x8kmKmZjcu62D2Jb4jpO57ArC657Y",
+  authDomain: "epicurean-house-at-the-choc-st.firebaseapp.com",
+  projectId: "epicurean-house-at-the-choc-st",
+  storageBucket: "epicurean-house-at-the-choc-st.firebasestorage.app",
+  messagingSenderId: "320703681087",
+  appId: "1:320703681087:web:04f7c9a17637388a039e8a"
+};
+var fbApp = null, fbDb = null, fbReady = false;
+try {
+  fbApp = firebase.initializeApp(firebaseConfig);
+  fbDb = firebase.firestore();
+  fbReady = true;
+} catch(fbErr) {
+  console.error('Firebase init failed, falling back to local-only mode:', fbErr);
+  fbReady = false;
+}
+
+// ── Thin helper layer: read/write a single document, with localStorage fallback ──
+function fbGetDoc(collection, docId){
+  if(!fbReady) return Promise.resolve(null);
+  return fbDb.collection(collection).doc(docId).get()
+    .then(function(snap){ return snap.exists ? snap.data() : null; })
+    .catch(function(err){ console.error('Firestore read failed:', err); return null; });
+}
+function fbSetDoc(collection, docId, data){
+  if(!fbReady) return Promise.resolve(false);
+  return fbDb.collection(collection).doc(docId).set(data)
+    .then(function(){ return true; })
+    .catch(function(err){ console.error('Firestore write failed:', err); return false; });
+}
+// Live listener — calls callback every time the document changes, from ANY device
+function fbListenDoc(collection, docId, callback){
+  if(!fbReady) return function(){};
+  return fbDb.collection(collection).doc(docId).onSnapshot(function(snap){
+    callback(snap.exists ? snap.data() : null);
+  }, function(err){ console.error('Firestore listener failed:', err); });
+}
+
 // ══════════════════════════════════════════════════════════
 // DATA STORE
 // ══════════════════════════════════════════════════════════
@@ -2473,6 +2521,8 @@ function downloadCSV(csv,filename){
 
 var AUTH = {
   // Default manager — change code after first login via Setup
+  // Loaded from localStorage instantly for fast first paint, then
+  // refreshed from Firebase (the real shared source of truth) below.
   managers: JSON.parse(localStorage.getItem('eh_managers') || JSON.stringify([
     {name:'General Manager', code:'EPICUREAN2024', faceDescriptor:null}
   ])),
@@ -2488,6 +2538,22 @@ var AUTH = {
 
 function saveManagers(){
   localStorage.setItem('eh_managers', JSON.stringify(AUTH.managers));
+  fbSetDoc('boh_shared', 'managers', {list: AUTH.managers, updatedAt: Date.now()});
+}
+
+// On load, pull the real shared copy from Firebase and adopt it if present.
+// This is what makes a code registered on one device/upload show up on the next.
+function syncManagersFromFirebase(){
+  if(!fbReady) return;
+  fbGetDoc('boh_shared', 'managers').then(function(doc){
+    if(doc && doc.list && doc.list.length){
+      AUTH.managers = doc.list;
+      localStorage.setItem('eh_managers', JSON.stringify(AUTH.managers));
+    } else if(AUTH.managers.length){
+      // Firebase is empty (first ever run) — seed it from whatever we have locally
+      fbSetDoc('boh_shared', 'managers', {list: AUTH.managers, updatedAt: Date.now()});
+    }
+  });
 }
 
 // Check if already logged in this session
@@ -2567,6 +2633,11 @@ function generateQR(){
     return;
   }
 
+  if(!fbReady){
+    qrContainer.innerHTML = '<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;color:#742A2A;background:#fff;border-radius:8px;padding:10px;line-height:1.5">Phone verification needs the shared database connection, which is not available right now. Use "this device camera" below instead.</div>';
+    return;
+  }
+
   try {
     var svg = window.buildQRCodeSVG(verifyUrl, 5, 16);
     qrContainer.innerHTML = svg;
@@ -2575,19 +2646,66 @@ function generateQR(){
     document.getElementById('face-poll-status').textContent = 'Scan QR with your phone camera to verify your face \u2192';
   } catch(err){
     qrContainer.innerHTML = '<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;color:#742A2A;background:#fff;border-radius:8px;padding:10px">QR code could not be generated. Use "this device camera" below instead.</div>';
+    return;
   }
 
-  AUTH.facePollTimer = setInterval(checkFacePoll, 2000);
+  // Clear any stale verification doc for this token, then listen live.
+  // The phone will write its captured face descriptor into this exact
+  // document once it scans the code and takes the photo; we react the
+  // instant that happens, on this computer, in real time.
+  fbSetDoc('face_verify_requests', token, {status: 'waiting', createdAt: Date.now(), managerName: AUTH.currentManager ? AUTH.currentManager.name : null});
+
+  if(AUTH.faceVerifyUnsub) AUTH.faceVerifyUnsub();
+  AUTH.faceVerifyUnsub = fbListenDoc('face_verify_requests', token, function(doc){
+    if(!doc) return;
+    if(doc.status === 'captured' && doc.descriptor){
+      handleRemoteFaceCaptured(doc.descriptor);
+    } else if(doc.status === 'no_face'){
+      document.getElementById('face-poll-status').textContent = 'Phone could not detect a face. Ask them to try scanning again.';
+    }
+  });
 }
 
-function checkFacePoll(){
-  // Check if face was verified via phone
-  var verified = sessionStorage.getItem('eh_face_verified');
-  if(verified === AUTH.sessionToken){
-    clearInterval(AUTH.facePollTimer);
+// Called when the phone has captured a face and written it to Firestore —
+// this computer now does the REAL comparison against the registered face.
+function handleRemoteFaceCaptured(descriptorArray){
+  if(AUTH.faceVerifyUnsub){ AUTH.faceVerifyUnsub(); AUTH.faceVerifyUnsub = null; }
+  var manager = AUTH.currentManager;
+  var status = document.getElementById('face-poll-status');
+
+  if(!manager){
+    status.textContent = 'No manager selected — please restart login.';
+    return;
+  }
+
+  if(!manager.faceDescriptor){
+    // First-time registration — accept whatever the phone captured
+    manager.faceDescriptor = descriptorArray;
+    saveManagers();
+    logAttempt('FACE_REGISTERED_VIA_PHONE', manager.name);
     completeFaceVerification();
+    return;
+  }
+
+  if(typeof faceapi === 'undefined' || !faceapi.euclideanDistance){
+    // face-api not available — cannot do a real comparison, fail safe (deny)
+    status.textContent = 'Face comparison unavailable on this device. Use "this device camera" instead.';
+    logAttempt('FACE_COMPARE_UNAVAILABLE', manager.name);
+    return;
+  }
+
+  var stored = new Float32Array(manager.faceDescriptor);
+  var captured = new Float32Array(descriptorArray);
+  var distance = faceapi.euclideanDistance(captured, stored);
+  logAttempt('FACE_ATTEMPT_VIA_PHONE', manager.name + ' distance:' + distance.toFixed(3));
+
+  if(distance < AUTH.faceMatchThreshold){
+    completeFaceVerification();
+  } else {
+    status.textContent = 'Face from phone did not match registered profile. Scan again or use "this device camera".';
   }
 }
+
 
 // ── STEP 3: LOCAL FACE SCAN ──
 function startLocalFaceScan(){
@@ -2695,6 +2813,7 @@ function completeFaceVerification(){
   stopCamera();
   clearInterval(AUTH.detectLoop);
   clearInterval(AUTH.facePollTimer);
+  if(AUTH.faceVerifyUnsub){ AUTH.faceVerifyUnsub(); AUTH.faceVerifyUnsub = null; }
 
   // Set session
   var token = 'SESSION_' + Date.now();
@@ -2943,13 +3062,87 @@ function checkFaceVerifyParam(){
   var params=new URLSearchParams(window.location.search);
   var face=params.get('face');
   if(face){
-    // Phone scanned QR — mark face as verified for this session
-    sessionStorage.setItem('eh_face_verified',face);
-    // Clean URL
     window.history.replaceState({},'',window.location.pathname);
-    // Show completion message
-    document.body.innerHTML='<div style="background:#0F1B2D;color:#9AE6B4;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:18px;font-weight:600;text-align:center;padding:32px">✓ Face verified on phone.<br><br>Return to your computer<br>to complete login.</div>';
+    runPhoneFaceCapture(face);
   }
+}
+
+// This runs ONLY on the phone, after scanning the QR code.
+// It opens the phone's own camera, takes a real photo, computes the
+// face descriptor, and writes it to the shared Firestore document so
+// the computer (listening live) can do the real comparison.
+function runPhoneFaceCapture(token){
+  document.body.innerHTML =
+    '<div style="background:#0F1B2D;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;font-family:-apple-system,sans-serif;color:#fff">'
+    +'<div style="font-size:17px;font-weight:700;margin-bottom:16px;text-align:center">Verify your identity</div>'
+    +'<div style="width:240px;height:240px;border-radius:50%;overflow:hidden;border:4px solid rgba(184,148,63,.5);background:#000;position:relative">'
+    +'<video id="phone-face-video" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>'
+    +'</div>'
+    +'<div id="phone-face-status" style="margin-top:18px;font-size:14px;color:rgba(255,255,255,.6);text-align:center">Starting camera\u2026</div>'
+    +'</div>';
+
+  var statusEl = document.getElementById('phone-face-status');
+
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:320, height:320}})
+    .then(function(stream){
+      var video = document.getElementById('phone-face-video');
+      video.srcObject = stream;
+      video.onloadedmetadata = function(){
+        video.play();
+        statusEl.textContent = 'Hold still\u2026';
+        setTimeout(function(){ capturePhoneFace(video, stream, token, statusEl); }, 1800);
+      };
+    })
+    .catch(function(){
+      statusEl.textContent = 'Camera access denied. Please allow camera access and try scanning again.';
+    });
+}
+
+function capturePhoneFace(video, stream, token, statusEl){
+  function finish(status, descriptor){
+    stream.getTracks().forEach(function(t){ t.stop(); });
+    fbSetDoc('face_verify_requests', token, {
+      status: status,
+      descriptor: descriptor || null,
+      capturedAt: Date.now()
+    }).then(function(ok){
+      if(status === 'captured' && ok){
+        document.body.innerHTML = '<div style="background:#0F1B2D;color:#9AE6B4;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:18px;font-weight:600;text-align:center;padding:32px">\u2713 Face captured.<br><br>Return to your computer<br>to complete login.</div>';
+      } else if(status === 'no_face'){
+        document.body.innerHTML = '<div style="background:#0F1B2D;color:#FC8181;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:16px;font-weight:600;text-align:center;padding:32px">No face detected.<br><br>Please go back to your computer and scan the QR code again.</div>';
+      } else {
+        document.body.innerHTML = '<div style="background:#0F1B2D;color:#FC8181;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:16px;font-weight:600;text-align:center;padding:32px">Something went wrong.<br><br>Please go back to your computer and scan the QR code again.</div>';
+      }
+    });
+  }
+
+  if(typeof faceapi === 'undefined'){
+    statusEl.textContent = 'Face recognition is still loading\u2026 please wait.';
+    setTimeout(function(){ capturePhoneFace(video, stream, token, statusEl); }, 1500);
+    return;
+  }
+
+  if(!AUTH || !AUTH.faceModelsLoaded){
+    statusEl.textContent = 'Loading face recognition\u2026';
+    loadFaceModels();
+    setTimeout(function(){ capturePhoneFace(video, stream, token, statusEl); }, 1500);
+    return;
+  }
+
+  statusEl.textContent = 'Verifying\u2026';
+  faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
+    .withFaceLandmarks()
+    .withFaceDescriptor()
+    .then(function(result){
+      if(!result){
+        finish('no_face', null);
+        return;
+      }
+      finish('captured', Array.from(result.descriptor));
+    })
+    .catch(function(){
+      finish('error', null);
+    });
 }
 
 function showLoginErr(id,msg){var el=document.getElementById(id);if(el){el.textContent=msg;el.style.display='block';}}
@@ -2958,6 +3151,7 @@ function showFaceErr(msg){showLoginErr('face-err',msg);}
 
 // ── Handle Enter key on code input ──
 document.addEventListener('DOMContentLoaded',function(){
+  syncManagersFromFirebase();
   checkFaceVerifyParam();
   if(!checkSession()){
     showLoginScreen();
