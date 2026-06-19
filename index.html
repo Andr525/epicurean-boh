@@ -2757,15 +2757,17 @@ function captureFace(){
   var video = document.getElementById('face-video');
   var status = document.getElementById('face-status');
   var captureBtn = document.getElementById('capture-btn');
-  captureBtn.textContent = 'Analyzing…';
+  captureBtn.textContent = 'Analyzing\u2026';
   captureBtn.disabled = true;
-  status.textContent = 'Verifying your face…';
+  status.textContent = 'Verifying your face\u2026';
 
   var manager = AUTH.currentManager;
 
   if(!AUTH.faceModelsLoaded){
-    // Models not loaded — use demo bypass for now
-    setTimeout(simulateFaceSuccess, 1500);
+    showFaceErr('Face recognition has not finished loading yet. Please wait a moment and try again \u2014 do not retry repeatedly if this persists, as it likely means a network issue.');
+    captureBtn.textContent = 'Capture & Verify';
+    captureBtn.disabled = false;
+    if(!AUTH.faceModelsLoadStarted){ AUTH.faceModelsLoadStarted = true; loadFaceModels(); }
     return;
   }
 
@@ -2804,8 +2806,9 @@ function captureFace(){
     })
     .catch(function(err){
       console.error('Face detection error:', err);
-      // Graceful fallback — allow entry if models failed
-      simulateFaceSuccess();
+      showFaceErr('Face detection failed. Please try again.');
+      captureBtn.textContent = 'Capture & Verify';
+      captureBtn.disabled = false;
     });
 }
 
@@ -2852,7 +2855,8 @@ function stopCamera(){
 // ── FACE MODELS LOADER ──
 function loadFaceModels(){
   if(AUTH.faceModelsLoaded) return;
-  var MODEL_URL = 'https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/weights';
+  AUTH.faceModelsLoadFailed = false;
+  var MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights';
   Promise.all([
     faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
     faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
@@ -2862,7 +2866,8 @@ function loadFaceModels(){
     console.log('Face API models loaded');
   }).catch(function(err){
     console.warn('Face models could not load:', err);
-    // App works in demo mode without models
+    AUTH.faceModelsLoadFailed = true;
+    AUTH.faceModelsLoadStarted = false; // allow a retry attempt
   });
 }
 
@@ -3078,10 +3083,19 @@ function runPhoneFaceCapture(token){
     +'<div style="width:240px;height:240px;border-radius:50%;overflow:hidden;border:4px solid rgba(184,148,63,.5);background:#000;position:relative">'
     +'<video id="phone-face-video" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>'
     +'</div>'
-    +'<div id="phone-face-status" style="margin-top:18px;font-size:14px;color:rgba(255,255,255,.6);text-align:center">Starting camera\u2026</div>'
+    +'<div id="phone-face-status" style="margin-top:18px;font-size:14px;color:rgba(255,255,255,.6);text-align:center;min-height:40px">Starting camera\u2026</div>'
+    +'<div id="phone-face-retry" style="display:none;margin-top:12px"><button onclick="location.reload()" style="background:#B8943F;color:#0F1B2D;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700">Try again</button></div>'
     +'</div>';
 
   var statusEl = document.getElementById('phone-face-status');
+
+  // Start loading face recognition models immediately, in parallel with the
+  // camera starting — don't wait until the first capture attempt to begin this.
+  AUTH.faceModelsLoadStarted = AUTH.faceModelsLoadStarted || false;
+  if(typeof faceapi !== 'undefined' && !AUTH.faceModelsLoadStarted){
+    AUTH.faceModelsLoadStarted = true;
+    loadFaceModels();
+  }
 
   navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:320, height:320}})
     .then(function(stream){
@@ -3090,7 +3104,7 @@ function runPhoneFaceCapture(token){
       video.onloadedmetadata = function(){
         video.play();
         statusEl.textContent = 'Hold still\u2026';
-        setTimeout(function(){ capturePhoneFace(video, stream, token, statusEl); }, 1800);
+        setTimeout(function(){ capturePhoneFace(video, stream, token, statusEl, 0); }, 1800);
       };
     })
     .catch(function(){
@@ -3098,7 +3112,9 @@ function runPhoneFaceCapture(token){
     });
 }
 
-function capturePhoneFace(video, stream, token, statusEl){
+function capturePhoneFace(video, stream, token, statusEl, attemptCount){
+  attemptCount = attemptCount || 0;
+
   function finish(status, descriptor){
     stream.getTracks().forEach(function(t){ t.stop(); });
     fbSetDoc('face_verify_requests', token, {
@@ -3116,24 +3132,46 @@ function capturePhoneFace(video, stream, token, statusEl){
     });
   }
 
+  function showStuckError(reason){
+    stream.getTracks().forEach(function(t){ t.stop(); });
+    statusEl.innerHTML = reason + '<br><br><span style="font-size:12px;color:rgba(255,255,255,.4)">This usually means a slow internet connection. Try connecting to WiFi, or ask a manager to use "this device camera" on the computer instead.</span>';
+    var retryBtn = document.getElementById('phone-face-retry');
+    if(retryBtn) retryBtn.style.display = 'block';
+  }
+
   if(typeof faceapi === 'undefined'){
-    statusEl.textContent = 'Face recognition is still loading\u2026 please wait.';
-    setTimeout(function(){ capturePhoneFace(video, stream, token, statusEl); }, 1500);
+    if(attemptCount >= 10){ showStuckError('Face recognition could not load.'); return; }
+    statusEl.textContent = 'Loading face recognition\u2026 (' + (attemptCount+1) + ')';
+    setTimeout(function(){ capturePhoneFace(video, stream, token, statusEl, attemptCount+1); }, 1000);
+    return;
+  }
+
+  if(AUTH && AUTH.faceModelsLoadFailed && attemptCount > 0){
+    showStuckError('Face recognition could not load from the network.');
     return;
   }
 
   if(!AUTH || !AUTH.faceModelsLoaded){
-    statusEl.textContent = 'Loading face recognition\u2026';
-    loadFaceModels();
-    setTimeout(function(){ capturePhoneFace(video, stream, token, statusEl); }, 1500);
+    if(attemptCount >= 15){ showStuckError('Face recognition is taking too long to load.'); return; }
+    statusEl.textContent = 'Loading face recognition\u2026 (' + (attemptCount+1) + ')';
+    if(!AUTH.faceModelsLoadStarted){ AUTH.faceModelsLoadStarted = true; loadFaceModels(); }
+    setTimeout(function(){ capturePhoneFace(video, stream, token, statusEl, attemptCount+1); }, 1000);
     return;
   }
 
   statusEl.textContent = 'Verifying\u2026';
+  var detectionTimedOut = false;
+  var detectionTimeout = setTimeout(function(){
+    detectionTimedOut = true;
+    showStuckError('Verification is taking too long.');
+  }, 8000);
+
   faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
     .withFaceLandmarks()
     .withFaceDescriptor()
     .then(function(result){
+      if(detectionTimedOut) return;
+      clearTimeout(detectionTimeout);
       if(!result){
         finish('no_face', null);
         return;
@@ -3141,6 +3179,8 @@ function capturePhoneFace(video, stream, token, statusEl){
       finish('captured', Array.from(result.descriptor));
     })
     .catch(function(){
+      if(detectionTimedOut) return;
+      clearTimeout(detectionTimeout);
       finish('error', null);
     });
 }
