@@ -3192,7 +3192,17 @@ function showFaceErr(msg){showLoginErr('face-err',msg);}
 // ── Handle Enter key on code input ──
 document.addEventListener('DOMContentLoaded',function(){
   syncManagersFromFirebase();
-  checkFaceVerifyParam();
+  var params = new URLSearchParams(window.location.search);
+  var isPhoneFaceCapture = !!params.get('face');
+
+  if(isPhoneFaceCapture){
+    // This is the phone, freshly opened from a scanned QR code.
+    // Run the capture flow and STOP — do not let the normal login
+    // screen render on top of it.
+    checkFaceVerifyParam();
+    return;
+  }
+
   if(!checkSession()){
     showLoginScreen();
   } else {
