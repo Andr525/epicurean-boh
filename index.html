@@ -2771,14 +2771,41 @@ function captureFace(){
     return;
   }
 
+  var settled = false;
+  function resetButton(){
+    captureBtn.textContent = 'Capture & Verify';
+    captureBtn.disabled = false;
+  }
+  function giveUp(){
+    if(settled) return;
+    settled = true;
+    showFaceErr('Verification timed out. This usually means the page lost focus or the camera stalled \u2014 please try again.');
+    resetButton();
+  }
+  // Hard timeout — if detection never resolves (can happen if the tab
+  // loses focus or the browser throttles background work), don't let
+  // the button sit on "Analyzing..." forever.
+  var captureTimeout = setTimeout(giveUp, 9000);
+  // Also re-check periodically in case setTimeout itself gets throttled
+  // by the browser (this happens on some devices when a tab is backgrounded).
+  var watchdogStart = Date.now();
+  var watchdog = setInterval(function(){
+    if(settled){ clearInterval(watchdog); return; }
+    if(Date.now() - watchdogStart > 9500){ clearInterval(watchdog); giveUp(); }
+  }, 1000);
+
   faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks()
+    .withFaceLandmarks(true)
     .withFaceDescriptor()
     .then(function(result){
+      if(settled) return;
+      settled = true;
+      clearTimeout(captureTimeout);
+      clearInterval(watchdog);
+
       if(!result){
         showFaceErr('No face detected. Please try again.');
-        captureBtn.textContent = 'Capture & Verify';
-        captureBtn.disabled = false;
+        resetButton();
         return;
       }
 
@@ -2800,15 +2827,17 @@ function captureFace(){
         completeFaceVerification();
       } else {
         showFaceErr('Face does not match registered profile. Try again or contact your administrator.');
-        captureBtn.textContent = 'Capture & Verify';
-        captureBtn.disabled = false;
+        resetButton();
       }
     })
     .catch(function(err){
+      if(settled) return;
+      settled = true;
+      clearTimeout(captureTimeout);
+      clearInterval(watchdog);
       console.error('Face detection error:', err);
       showFaceErr('Face detection failed. Please try again.');
-      captureBtn.textContent = 'Capture & Verify';
-      captureBtn.disabled = false;
+      resetButton();
     });
 }
 
@@ -2862,8 +2891,22 @@ function loadFaceModels(){
     faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
     faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
   ]).then(function(){
+    // Warm up the underlying TensorFlow.js backend with one real inference
+    // pass on a throwaway canvas. The very first inference call is much
+    // slower than every call after it (this is especially severe on phone
+    // GPUs), so we pay that cost now, quietly, instead of during the
+    // moment the person is actually trying to verify their face.
+    var warmupCanvas = document.createElement('canvas');
+    warmupCanvas.width = 160; warmupCanvas.height = 160;
+    var ctx = warmupCanvas.getContext('2d');
+    ctx.fillStyle = '#888'; ctx.fillRect(0,0,160,160);
+    return faceapi.detectSingleFace(warmupCanvas, new faceapi.TinyFaceDetectorOptions())
+      .withFaceLandmarks(true)
+      .withFaceDescriptor()
+      .catch(function(){ /* warmup is best-effort, ignore errors here */ });
+  }).then(function(){
     AUTH.faceModelsLoaded = true;
-    console.log('Face API models loaded');
+    console.log('Face API models loaded and warmed up');
   }).catch(function(err){
     console.warn('Face models could not load:', err);
     AUTH.faceModelsLoadFailed = true;
@@ -2957,7 +3000,7 @@ function recoveryCaptureFace(){
   }
 
   faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks()
+    .withFaceLandmarks(true)
     .withFaceDescriptor()
     .then(function(result){
       if(!result){
@@ -3164,14 +3207,28 @@ function capturePhoneFace(video, stream, token, statusEl, attemptCount){
   var detectionTimeout = setTimeout(function(){
     detectionTimedOut = true;
     showStuckError('Verification is taking too long.');
-  }, 8000);
+  }, 15000);
+  // Backup watchdog — setTimeout can be throttled or paused by mobile
+  // browsers when the tab loses focus (e.g. right after the camera
+  // permission prompt). This catches that case independently.
+  var watchdogStart = Date.now();
+  var watchdog = setInterval(function(){
+    if(detectionTimedOut){ clearInterval(watchdog); return; }
+    if(Date.now() - watchdogStart > 15500){
+      detectionTimedOut = true;
+      clearInterval(watchdog);
+      showStuckError('Verification is taking too long.');
+    }
+  }, 1000);
 
   faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-    .withFaceLandmarks()
+    .withFaceLandmarks(true)
     .withFaceDescriptor()
     .then(function(result){
       if(detectionTimedOut) return;
+      detectionTimedOut = true;
       clearTimeout(detectionTimeout);
+      clearInterval(watchdog);
       if(!result){
         finish('no_face', null);
         return;
@@ -3180,7 +3237,9 @@ function capturePhoneFace(video, stream, token, statusEl, attemptCount){
     })
     .catch(function(){
       if(detectionTimedOut) return;
+      detectionTimedOut = true;
       clearTimeout(detectionTimeout);
+      clearInterval(watchdog);
       finish('error', null);
     });
 }
