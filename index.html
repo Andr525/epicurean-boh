@@ -3,7 +3,10 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Epicurean House — Back of House</title>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<title>Epicurean House — Back of House v2.6.23</title>
 <style>
 :root{
   --navy:#0F1B2D;--navy2:#1A2B42;--navy3:#243550;
@@ -3176,86 +3179,102 @@ function checkFaceVerifyParam(){
 // face descriptor, and writes it to the shared Firestore document so
 // the computer (listening live) can do the real comparison.
 function runPhoneFaceCapture(token){
-  // ── iOS RESTRICTED BROWSER DETECTION ──
-  // When iOS scans a QR code, it opens the link in a lightweight in-app
-  // browser (SFSafariViewController) that completely blocks getUserMedia
-  // with no permission prompt at all. We detect this and redirect to real
-  // Safari first, which has proper camera access.
-  var ua = navigator.userAgent;
-  var isIOS = /iPhone|iPad|iPod/i.test(ua);
-  // Real Safari on iOS sets standalone or has no CriOS/FxiOS/EdgiOS marker
-  var isInAppBrowser = isIOS && (
-    /CriOS/.test(ua) ||   // Chrome on iOS
-    /FxiOS/.test(ua) ||   // Firefox on iOS
-    /EdgiOS/.test(ua) ||  // Edge on iOS
-    // SFSafariViewController: no "Safari" in UA string but IS iOS
-    (!/Safari/.test(ua)) ||
-    // Most reliable iOS QR scanner check: window.navigator.standalone is undefined
-    // in SFSafariViewController but defined (true/false) in real Safari
-    (window.navigator.standalone === undefined && !/safari/i.test(ua))
-  );
+  var currentUrl = window.location.href;
 
-  if(isInAppBrowser){
-    // Show a clear prompt to open in Safari — camera will work there
-    document.body.innerHTML =
-      '<div style="background:#0F1B2D;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:-apple-system,sans-serif;color:#fff;text-align:center">'
-      +'<div style="font-size:40px;margin-bottom:16px">&#128247;</div>'
-      +'<div style="font-size:18px;font-weight:700;margin-bottom:10px">Open in Safari to use your camera</div>'
-      +'<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:28px;line-height:1.6">The QR scanner opens a restricted browser that blocks camera access. Tap the button below to open this page in Safari, where your camera will work.</div>'
-      +'<a href="' + window.location.href + '" target="_blank" rel="noopener" style="background:#B8943F;color:#0F1B2D;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:700;text-decoration:none;display:inline-block;margin-bottom:16px">Open in Safari &#8594;</a>'
-      +'<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:8px">On the next screen, tap the share icon &#9651; then choose &ldquo;Open in Safari&rdquo;</div>'
-      +'</div>';
-    return;
-  }
-
-  // ── NORMAL CAMERA FLOW (real Safari, Chrome, etc.) ──
+  // Show the phone screen immediately so something is visible while we check
   document.body.innerHTML =
-    '<div style="background:#0F1B2D;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;font-family:-apple-system,sans-serif;color:#fff">'
-    +'<div style="font-size:17px;font-weight:700;margin-bottom:16px;text-align:center">Verify your identity</div>'
-    +'<div style="width:240px;height:240px;border-radius:50%;overflow:hidden;border:4px solid rgba(184,148,63,.5);background:#000;position:relative">'
-    +'<video id="phone-face-video" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>'
-    +'</div>'
-    +'<div id="phone-face-status" style="margin-top:18px;font-size:14px;color:rgba(255,255,255,.6);text-align:center;min-height:40px">Starting camera\u2026</div>'
-    +'<div id="phone-face-retry" style="display:none;margin-top:12px"><button onclick="location.reload()" style="background:#B8943F;color:#0F1B2D;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700">Try again</button></div>'
+    '<div id="phone-wrap" style="background:#0F1B2D;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:-apple-system,sans-serif;color:#fff;text-align:center">'
+    +'<div style="font-size:17px;font-weight:700;margin-bottom:16px">Verify your identity</div>'
+    +'<div id="phone-circle" style="width:240px;height:240px;border-radius:50%;overflow:hidden;border:4px solid rgba(184,148,63,.5);background:#111;display:flex;align-items:center;justify-content:center;font-size:48px;margin:0 auto">&#128247;</div>'
+    +'<div id="phone-status" style="margin-top:20px;font-size:14px;color:rgba(255,255,255,.6);line-height:1.7">Checking camera access\u2026</div>'
+    +'<div id="phone-action" style="margin-top:20px"></div>'
+    +'<div id="phone-diag" style="margin-top:16px;font-size:10px;font-family:monospace;color:rgba(255,255,255,.25);max-width:300px;word-break:break-all"></div>'
     +'</div>';
 
-  var statusEl = document.getElementById('phone-face-status');
+  var statusEl = document.getElementById('phone-status');
+  var actionEl = document.getElementById('phone-action');
+  var diagEl = document.getElementById('phone-diag');
 
-  // Start loading face recognition models immediately in parallel
-  AUTH.faceModelsLoadStarted = AUTH.faceModelsLoadStarted || false;
-  if(typeof faceapi !== 'undefined' && !AUTH.faceModelsLoadStarted){
-    AUTH.faceModelsLoadStarted = true;
-    loadFaceModels();
+  function diag(msg){ diagEl.textContent += msg + ' | '; }
+
+  diag('UA:' + navigator.userAgent.slice(0,60));
+
+  function showSafariRedirect(reason){
+    diag('REDIRECT:' + reason);
+    statusEl.innerHTML = 'Tap the button below to open this page in <strong>Safari</strong> where your camera will work.';
+    actionEl.innerHTML =
+      '<a href="' + currentUrl + '" style="background:#B8943F;color:#0F1B2D;border-radius:10px;padding:16px 32px;font-size:16px;font-weight:700;text-decoration:none;display:inline-block">Open in Safari &#8594;</a>'
+      +'<div style="margin-top:12px;font-size:12px;color:rgba(255,255,255,.4)">Or tap &#9651; Share &rarr; &ldquo;Open in Safari&rdquo;</div>';
   }
 
-  // Check if getUserMedia is available at all before attempting it
+  function showCameraError(err){
+    var name = err && err.name ? err.name : String(err);
+    diag('CAM_ERR:' + name);
+    if(name === 'NotAllowedError' || name === 'PermissionDeniedError'){
+      statusEl.innerHTML = 'Camera permission was denied.<br><br>Go to <strong>Settings &rarr; Safari &rarr; Camera</strong> and allow it, then scan the QR code again.';
+    } else {
+      showSafariRedirect(name);
+    }
+  }
+
+  // Step 1: Check if getUserMedia API exists at all
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    statusEl.innerHTML = 'Camera access is not available in this browser.<br><br>'
-      +'<a href="' + window.location.href + '" style="color:#B8943F">Tap here to open in Safari</a>';
+    diag('NO_API');
+    showSafariRedirect('no-api');
     return;
   }
 
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:320, height:320}})
-    .then(function(stream){
-      var video = document.getElementById('phone-face-video');
-      video.srcObject = stream;
-      video.onloadedmetadata = function(){
-        video.play();
-        statusEl.textContent = 'Hold still\u2026';
-        setTimeout(function(){ capturePhoneFace(video, stream, token, statusEl, 0); }, 1800);
-      };
-    })
-    .catch(function(err){
-      var msg = err && err.name ? err.name : 'Unknown error';
-      if(msg === 'NotAllowedError' || msg === 'PermissionDeniedError'){
-        statusEl.innerHTML = 'Camera permission was denied.<br><br>Go to <strong>Settings &rarr; Safari &rarr; Camera</strong> and set it to Allow, then scan the QR code again.';
-      } else if(msg === 'NotFoundError'){
-        statusEl.textContent = 'No camera found on this device.';
-      } else {
-        statusEl.innerHTML = 'Camera could not start (' + msg + ').<br><br>'
-          +'<a href="' + window.location.href + '" style="color:#B8943F">Try opening in Safari instead</a>';
+  diag('API_OK');
+
+  // Step 2: Try to actually open the camera — the only reliable test
+  // for whether this browser context allows it. If it fails for any
+  // reason, show the Safari redirect instead of staying silent.
+  statusEl.textContent = 'Requesting camera access\u2026';
+
+  var cameraTimedOut = false;
+  var cameraTimeout = setTimeout(function(){
+    cameraTimedOut = true;
+    diag('TIMEOUT_before_stream');
+    showSafariRedirect('camera-timeout');
+  }, 6000);
+
+  navigator.mediaDevices.getUserMedia({
+    video: { facingMode: 'user', width: { ideal: 320 }, height: { ideal: 320 } }
+  })
+  .then(function(stream){
+    if(cameraTimedOut){ stream.getTracks().forEach(function(t){ t.stop(); }); return; }
+    clearTimeout(cameraTimeout);
+    diag('STREAM_OK');
+
+    // Camera opened successfully — build the proper video UI
+    document.getElementById('phone-circle').innerHTML =
+      '<video id="phone-face-video" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>';
+    actionEl.innerHTML =
+      '<div id="phone-face-retry" style="display:none;margin-top:12px">'
+      +'<button onclick="location.reload()" style="background:#B8943F;color:#0F1B2D;border:none;border-radius:8px;padding:10px 20px;font-size:13px;font-weight:700">Try again</button>'
+      +'</div>';
+
+    var video = document.getElementById('phone-face-video');
+    video.srcObject = stream;
+    video.onloadedmetadata = function(){
+      video.play();
+      statusEl.textContent = 'Hold still\u2026';
+      diag('VIDEO_PLAYING');
+      // Start loading models in parallel now that camera is open
+      if(typeof faceapi !== 'undefined' && !AUTH.faceModelsLoadStarted){
+        AUTH.faceModelsLoadStarted = true;
+        loadFaceModels();
       }
-    });
+      setTimeout(function(){
+        capturePhoneFace(video, stream, token, statusEl, 0);
+      }, 1800);
+    };
+  })
+  .catch(function(err){
+    if(cameraTimedOut) return;
+    clearTimeout(cameraTimeout);
+    showCameraError(err);
+  });
 }
 
 function capturePhoneFace(video, stream, token, statusEl, attemptCount){
