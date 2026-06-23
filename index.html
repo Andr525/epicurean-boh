@@ -3176,6 +3176,39 @@ function checkFaceVerifyParam(){
 // face descriptor, and writes it to the shared Firestore document so
 // the computer (listening live) can do the real comparison.
 function runPhoneFaceCapture(token){
+  // ── iOS RESTRICTED BROWSER DETECTION ──
+  // When iOS scans a QR code, it opens the link in a lightweight in-app
+  // browser (SFSafariViewController) that completely blocks getUserMedia
+  // with no permission prompt at all. We detect this and redirect to real
+  // Safari first, which has proper camera access.
+  var ua = navigator.userAgent;
+  var isIOS = /iPhone|iPad|iPod/i.test(ua);
+  // Real Safari on iOS sets standalone or has no CriOS/FxiOS/EdgiOS marker
+  var isInAppBrowser = isIOS && (
+    /CriOS/.test(ua) ||   // Chrome on iOS
+    /FxiOS/.test(ua) ||   // Firefox on iOS
+    /EdgiOS/.test(ua) ||  // Edge on iOS
+    // SFSafariViewController: no "Safari" in UA string but IS iOS
+    (!/Safari/.test(ua)) ||
+    // Most reliable iOS QR scanner check: window.navigator.standalone is undefined
+    // in SFSafariViewController but defined (true/false) in real Safari
+    (window.navigator.standalone === undefined && !/safari/i.test(ua))
+  );
+
+  if(isInAppBrowser){
+    // Show a clear prompt to open in Safari — camera will work there
+    document.body.innerHTML =
+      '<div style="background:#0F1B2D;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:-apple-system,sans-serif;color:#fff;text-align:center">'
+      +'<div style="font-size:40px;margin-bottom:16px">&#128247;</div>'
+      +'<div style="font-size:18px;font-weight:700;margin-bottom:10px">Open in Safari to use your camera</div>'
+      +'<div style="font-size:13px;color:rgba(255,255,255,.5);margin-bottom:28px;line-height:1.6">The QR scanner opens a restricted browser that blocks camera access. Tap the button below to open this page in Safari, where your camera will work.</div>'
+      +'<a href="' + window.location.href + '" target="_blank" rel="noopener" style="background:#B8943F;color:#0F1B2D;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:700;text-decoration:none;display:inline-block;margin-bottom:16px">Open in Safari &#8594;</a>'
+      +'<div style="font-size:11px;color:rgba(255,255,255,.3);margin-top:8px">On the next screen, tap the share icon &#9651; then choose &ldquo;Open in Safari&rdquo;</div>'
+      +'</div>';
+    return;
+  }
+
+  // ── NORMAL CAMERA FLOW (real Safari, Chrome, etc.) ──
   document.body.innerHTML =
     '<div style="background:#0F1B2D;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px;font-family:-apple-system,sans-serif;color:#fff">'
     +'<div style="font-size:17px;font-weight:700;margin-bottom:16px;text-align:center">Verify your identity</div>'
@@ -3188,12 +3221,18 @@ function runPhoneFaceCapture(token){
 
   var statusEl = document.getElementById('phone-face-status');
 
-  // Start loading face recognition models immediately, in parallel with the
-  // camera starting — don't wait until the first capture attempt to begin this.
+  // Start loading face recognition models immediately in parallel
   AUTH.faceModelsLoadStarted = AUTH.faceModelsLoadStarted || false;
   if(typeof faceapi !== 'undefined' && !AUTH.faceModelsLoadStarted){
     AUTH.faceModelsLoadStarted = true;
     loadFaceModels();
+  }
+
+  // Check if getUserMedia is available at all before attempting it
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    statusEl.innerHTML = 'Camera access is not available in this browser.<br><br>'
+      +'<a href="' + window.location.href + '" style="color:#B8943F">Tap here to open in Safari</a>';
+    return;
   }
 
   navigator.mediaDevices.getUserMedia({video:{facingMode:'user', width:320, height:320}})
@@ -3206,8 +3245,16 @@ function runPhoneFaceCapture(token){
         setTimeout(function(){ capturePhoneFace(video, stream, token, statusEl, 0); }, 1800);
       };
     })
-    .catch(function(){
-      statusEl.textContent = 'Camera access denied. Please allow camera access and try scanning again.';
+    .catch(function(err){
+      var msg = err && err.name ? err.name : 'Unknown error';
+      if(msg === 'NotAllowedError' || msg === 'PermissionDeniedError'){
+        statusEl.innerHTML = 'Camera permission was denied.<br><br>Go to <strong>Settings &rarr; Safari &rarr; Camera</strong> and set it to Allow, then scan the QR code again.';
+      } else if(msg === 'NotFoundError'){
+        statusEl.textContent = 'No camera found on this device.';
+      } else {
+        statusEl.innerHTML = 'Camera could not start (' + msg + ').<br><br>'
+          +'<a href="' + window.location.href + '" style="color:#B8943F">Try opening in Safari instead</a>';
+      }
     });
 }
 
