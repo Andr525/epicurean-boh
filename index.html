@@ -643,93 +643,51 @@ window.QRErrorCorrectLevel=QRErrorCorrectLevel;
   <div class="login-logo">The Epicurean House<br>@ The Chocolate Studio</div>
   <div class="login-sub">BACK OF HOUSE — SECURE ACCESS</div>
 
-  <!-- Progress dots -->
-  <div class="login-progress">
-    <div class="prog-dot active" id="prog-1"></div>
-    <div class="prog-dot" id="prog-2"></div>
-    <div class="prog-dot" id="prog-3"></div>
+  <!-- STEP 1: Enter access code -->
+  <div class="login-card" id="login-step-1">
+    <div class="login-label">Enter your access code</div>
+    <input class="login-input" id="code-input" type="password" placeholder="Access code" autocomplete="off"
+      onkeydown="if(event.key==='Enter')checkCode()">
+    <div class="login-err" id="code-err" style="display:none">Incorrect code. Please try again.</div>
+    <div id="attempts-label" style="font-size:12px;color:rgba(255,255,255,.35);text-align:center;margin-top:4px"></div>
+    <button class="login-btn" onclick="checkCode()">Continue &#8594;</button>
+    <div style="text-align:center;margin-top:8px">
+      <span style="font-size:12px;color:rgba(255,255,255,.35);cursor:pointer;text-decoration:underline"
+        onclick="openRecovery()">Forgot your code?</span>
+    </div>
   </div>
 
-  <div class="login-card">
-
-    <!-- STEP 1: Manager code -->
-    <div class="login-step active" id="login-step-1">
-      <div>
-        <div class="login-label">Manager code</div>
-        <input class="login-input" id="code-input" type="password" placeholder="Enter your access code" maxlength="20" onkeydown="if(event.key==='Enter')checkCode()">
-      </div>
-      <div class="login-err" id="code-err">Incorrect code. Please try again.</div>
-      <div class="attempts-left" id="attempts-label"></div>
-      <button class="login-btn" onclick="checkCode()">Continue &#8594;</button>
-      <div style="text-align:center;margin-top:6px">
-        <span style="font-size:12px;color:rgba(255,255,255,.35);cursor:pointer;text-decoration:underline" onclick="openRecovery()">Forgot your code?</span>
+  <!-- STEP 2: Take photo snapshot -->
+  <div class="login-card" id="login-step-2" style="display:none">
+    <div class="login-label" style="text-align:center">Take a quick photo to confirm it&#39;s you</div>
+    <div style="display:flex;justify-content:center;margin:12px 0">
+      <div id="snap-preview" style="width:200px;height:200px;border-radius:50%;overflow:hidden;border:3px solid rgba(184,148,63,.5);background:#000;position:relative">
+        <video id="snap-video" autoplay muted playsinline
+          style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>
+        <canvas id="snap-canvas" style="display:none"></canvas>
       </div>
     </div>
-
-    <!-- STEP 2: QR code for phone face scan -->
-    <div class="login-step" id="login-step-2">
-      <div class="qr-wrap">
-        <div class="login-label" style="text-align:center">Scan with your phone to verify your identity</div>
-        <div class="qr-box" id="qr-container">
-          <canvas id="qr-canvas" width="140" height="140"></canvas>
-        </div>
-        <div class="qr-instruction">
-          Open your phone camera and scan this QR code.<br>
-          It will open a face verification page on your phone.<br><br>
-          <span style="color:rgba(255,255,255,.3);font-size:11px">Or verify on this device if you have a camera</span>
-        </div>
-        <button class="login-btn" onclick="startLocalFaceScan()" style="margin-top:0">Use this device's camera instead</button>
-        <button class="login-btn-secondary" onclick="simulateFaceSuccess()">Skip face scan (demo mode)</button>
-      </div>
-      <div id="face-poll-status" style="font-size:12px;color:rgba(255,255,255,.3);text-align:center;margin-top:4px">Waiting for phone verification…</div>
+    <div id="snap-status" style="font-size:13px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:12px">
+      Starting camera&#8230;
     </div>
-
-    <!-- STEP 3: Local face scan (if using this device) -->
-    <div class="login-step" id="login-step-3">
-      <div>
-        <div class="login-label" style="text-align:center">Look directly at the camera</div>
-        <div class="face-preview face-scanning" id="face-preview">
-          <video id="face-video" autoplay muted playsinline></video>
-          <div class="face-overlay"></div>
-        </div>
-        <div class="face-status" id="face-status">Initializing camera…</div>
-      </div>
-      <div class="login-err" id="face-err">Face not recognized. Please try again.</div>
-      <div class="login-ok" id="face-ok">✓ Face verified — welcome!</div>
-      <button class="login-btn" id="capture-btn" onclick="captureFace()" style="display:none">Capture &amp; Verify</button>
-      <button class="login-btn-secondary" onclick="goToStep(2)">← Back</button>
+    <div class="login-err" id="snap-err" style="display:none"></div>
+    <button class="login-btn" id="snap-btn" onclick="takeSnapshot()" style="display:none">
+      &#128247; Take photo &amp; sign in
+    </button>
+    <button class="login-btn-secondary" onclick="goToStep(1);stopCamera()">&#8592; Back</button>
+    <div style="text-align:center;margin-top:8px">
+      <span style="font-size:11px;color:rgba(255,255,255,.25)">
+        Photo is saved to your security log for manager review
+      </span>
     </div>
-
   </div>
 
-  <!-- Setup link (first time only) -->
-  <div style="margin-top:20px;font-size:12px;color:rgba(255,255,255,.2);text-align:center">
-    First time? <span style="color:#B8943F;cursor:pointer;text-decoration:underline" onclick="openSetup()">Register your face →</span>
+  <div style="position:absolute;bottom:20px;left:0;right:0;text-align:center">
+    <span style="font-size:12px;color:rgba(255,255,255,.2)">First time?
+      <span style="text-decoration:underline;cursor:pointer" onclick="openSetup()">Register your face &#8594;</span>
+    </span>
   </div>
-</div>
-
-<!-- SETUP MODAL: Register face for first time -->
-<div id="setup-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px">
-  <div style="background:#1A2B42;border:1px solid rgba(184,148,63,.3);border-radius:16px;padding:28px;width:100%;max-width:380px;display:flex;flex-direction:column;gap:14px">
-    <div style="font-size:17px;font-weight:700;color:#fff">Register access</div>
-    <div style="font-size:13px;color:rgba(255,255,255,.5)">Set your manager code and register your face. Do this once.</div>
-    <div>
-      <div class="login-label">Your name</div>
-      <input class="login-input" id="setup-name" type="text" placeholder="Your full name">
-    </div>
-    <div>
-      <div class="login-label">Create access code (min 6 characters)</div>
-      <input class="login-input" id="setup-code" type="password" placeholder="Choose a secure code">
-    </div>
-    <div>
-      <div class="login-label">Confirm code</div>
-      <input class="login-input" id="setup-code2" type="password" placeholder="Repeat your code">
-    </div>
-    <div class="login-err" id="setup-err">Codes do not match or too short.</div>
-    <button class="login-btn" onclick="setupRegister()">Register → then scan face</button>
-    <button class="login-btn-secondary" onclick="closeSetup()">Cancel</button>
-  </div>
-</div>
+</div></div>
 
 <!-- RECOVERY MODAL: Forgot code — verify by face, then set new code -->
 <div id="recovery-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px">
@@ -2603,8 +2561,7 @@ function checkCode(){
     hideLoginErr('code-err');
     logAttempt('CODE_OK', match.name);
     goToStep(2);
-    generateQR();
-    loadFaceModels();
+    startSnapCamera();
   } else {
     AUTH.attempts++;
     logAttempt('CODE_FAIL', 'unknown');
@@ -2621,372 +2578,95 @@ function checkCode(){
   }
 }
 
-// ── STEP 2: QR CODE GENERATION ──
-function generateQR(){
-  var token = 'EH' + Date.now() + Math.random().toString(36).slice(2,8).toUpperCase();
-  AUTH.sessionToken = token;
-  sessionStorage.setItem('eh_face_token', token);
-  var verifyUrl = window.location.origin + window.location.pathname + '?face=' + token;
-  var qrContainer = document.getElementById('qr-container');
+// ── STEP 2: CAMERA SNAPSHOT ──
+// No AI library. Camera opens, user clicks button, snapshot is saved
+// to security log. Manager reviews photos from admin panel.
 
-  if(window.location.protocol === 'file:'){
-    // Local file — QR scanning won't reach this device from a phone. Show fallback.
-    qrContainer.innerHTML = '<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;color:#742A2A;background:#fff;border-radius:8px;padding:10px;line-height:1.5">QR scanning needs the live website address, not a local file. Use "this device camera" below instead, or finish GitHub Pages setup first.</div>';
-    document.getElementById('face-poll-status').textContent = 'QR requires the live site, use this device camera below \u2192';
+var snapStream = null;
+
+function startSnapCamera(){
+  var video = document.getElementById('snap-video');
+  var status = document.getElementById('snap-status');
+  var btn = document.getElementById('snap-btn');
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    status.textContent = 'Camera not available on this device.';
     return;
   }
-
-  if(!fbReady){
-    qrContainer.innerHTML = '<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;color:#742A2A;background:#fff;border-radius:8px;padding:10px;line-height:1.5">Phone verification needs the shared database connection, which is not available right now. Use "this device camera" below instead.</div>';
-    return;
-  }
-
-  try {
-    var svg = window.buildQRCodeSVG(verifyUrl, 5, 16);
-    qrContainer.innerHTML = svg;
-    var svgEl = qrContainer.querySelector('svg');
-    if(svgEl){ svgEl.style.width='160px'; svgEl.style.height='160px'; svgEl.style.display='block'; svgEl.style.borderRadius='8px'; }
-    document.getElementById('face-poll-status').textContent = 'Scan QR with your phone camera to verify your face \u2192';
-  } catch(err){
-    qrContainer.innerHTML = '<div style="width:160px;height:160px;display:flex;align-items:center;justify-content:center;text-align:center;font-size:11px;color:#742A2A;background:#fff;border-radius:8px;padding:10px">QR code could not be generated. Use "this device camera" below instead.</div>';
-    return;
-  }
-
-  // Clear any stale verification doc for this token, then listen live.
-  // The phone will write its captured face descriptor into this exact
-  // document once it scans the code and takes the photo; we react the
-  // instant that happens, on this computer, in real time.
-  fbSetDoc('face_verify_requests', token, {status: 'waiting', createdAt: Date.now(), managerName: AUTH.currentManager ? AUTH.currentManager.name : null});
-
-  if(AUTH.faceVerifyUnsub) AUTH.faceVerifyUnsub();
-  AUTH.faceVerifyUnsub = fbListenDoc('face_verify_requests', token, function(doc){
-    if(!doc) return;
-    if(doc.status === 'captured' && doc.descriptor){
-      handleRemoteFaceCaptured(doc.descriptor);
-    } else if(doc.status === 'no_face'){
-      document.getElementById('face-poll-status').textContent = 'Phone could not detect a face. Ask them to try scanning again.';
-    }
-  });
-}
-
-// Called when the phone has captured a face and written it to Firestore —
-// this computer now does the REAL comparison against the registered face.
-function handleRemoteFaceCaptured(descriptorArray){
-  if(AUTH.faceVerifyUnsub){ AUTH.faceVerifyUnsub(); AUTH.faceVerifyUnsub = null; }
-  var manager = AUTH.currentManager;
-  var status = document.getElementById('face-poll-status');
-
-  if(!manager){
-    status.textContent = 'No manager selected — please restart login.';
-    return;
-  }
-
-  if(!manager.faceDescriptor){
-    // First-time registration — accept whatever the phone captured
-    manager.faceDescriptor = descriptorArray;
-    saveManagers();
-    logAttempt('FACE_REGISTERED_VIA_PHONE', manager.name);
-    completeFaceVerification();
-    return;
-  }
-
-  if(typeof faceapi === 'undefined' || !faceapi.euclideanDistance){
-    // face-api not available — cannot do a real comparison, fail safe (deny)
-    status.textContent = 'Face comparison unavailable on this device. Use "this device camera" instead.';
-    logAttempt('FACE_COMPARE_UNAVAILABLE', manager.name);
-    return;
-  }
-
-  var stored = new Float32Array(manager.faceDescriptor);
-  var captured = new Float32Array(descriptorArray);
-  var distance = faceapi.euclideanDistance(captured, stored);
-  logAttempt('FACE_ATTEMPT_VIA_PHONE', manager.name + ' distance:' + distance.toFixed(3));
-
-  if(distance < AUTH.faceMatchThreshold){
-    completeFaceVerification();
-  } else {
-    status.textContent = 'Face from phone did not match registered profile. Scan again or use "this device camera".';
-  }
-}
-
-
-// ── STEP 3: LOCAL FACE SCAN ──
-function startLocalFaceScan(){
-  goToStep(3);
-  startCamera();
-}
-
-function startCamera(){
-  var status = document.getElementById('face-status');
-  status.textContent = 'Starting camera…';
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:300,height:300}})
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:640}})
     .then(function(stream){
-      AUTH.videoStream = stream;
-      var video = document.getElementById('face-video');
+      snapStream = stream;
       video.srcObject = stream;
       video.onloadedmetadata = function(){
         video.play();
-        status.textContent = 'Camera ready — position your face in the circle';
-        document.getElementById('capture-btn').style.display = 'block';
-        if(AUTH.faceModelsLoaded) autoDetectFace();
+        status.textContent = 'Position your face and click the button below';
+        btn.style.display = 'block';
       };
     })
     .catch(function(err){
-      status.textContent = 'Camera access denied. Please allow camera and try again.';
-      console.error('Camera error:', err);
+      var name = err && err.name ? err.name : 'Error';
+      if(name === 'NotAllowedError'){
+        status.innerHTML = 'Camera permission denied.<br>Please allow camera access in your browser settings.';
+      } else {
+        status.textContent = 'Camera could not start. Please try again.';
+      }
     });
 }
 
-function autoDetectFace(){
-  var video = document.getElementById('face-video');
-  var status = document.getElementById('face-status');
-  var detectLoop = setInterval(function(){
-    if(!AUTH.videoStream) {clearInterval(detectLoop);return;}
-    faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-      .then(function(det){
-        if(det){
-          status.textContent = 'Face detected ✓ — click Capture & Verify';
-          document.getElementById('face-preview').style.borderColor = '#B8943F';
-        } else {
-          status.textContent = 'Position your face in the circle…';
-          document.getElementById('face-preview').style.borderColor = 'rgba(184,148,63,.3)';
-        }
-      });
-  }, 800);
-  AUTH.detectLoop = detectLoop;
-}
+function takeSnapshot(){
+  var video = document.getElementById('snap-video');
+  var canvas = document.getElementById('snap-canvas');
+  var status = document.getElementById('snap-status');
+  var btn = document.getElementById('snap-btn');
 
-function captureFace(){
-  var video = document.getElementById('face-video');
-  var status = document.getElementById('face-status');
-  var captureBtn = document.getElementById('capture-btn');
-  captureBtn.textContent = 'Analyzing\u2026';
-  captureBtn.disabled = true;
-  status.textContent = 'Verifying your face\u2026';
+  canvas.width = video.videoWidth || 320;
+  canvas.height = video.videoHeight || 320;
+  var ctx = canvas.getContext('2d');
+  ctx.save();
+  ctx.scale(-1,1);
+  ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
+  ctx.restore();
 
-  var manager = AUTH.currentManager;
-
-  if(!AUTH.faceModelsLoaded){
-    showFaceErr('Face recognition has not finished loading yet. Please wait a moment and try again \u2014 do not retry repeatedly if this persists, as it likely means a network issue.');
-    captureBtn.textContent = 'Capture & Verify';
-    captureBtn.disabled = false;
-    if(!AUTH.faceModelsLoadStarted){ AUTH.faceModelsLoadStarted = true; loadFaceModels(); }
-    return;
-  }
-
-  var settled = false;
-  function resetButton(){
-    captureBtn.textContent = 'Capture & Verify';
-    captureBtn.disabled = false;
-  }
-  function giveUp(reason){
-    if(settled) return;
-    settled = true;
-    showDiag('TIMEOUT: ' + reason);
-    showFaceErr('Verification timed out (' + reason + '). Please try again, or tap "Show details" below for diagnostic info.');
-    resetButton();
-  }
-  // Hard timeout — if detection never resolves (can happen if the tab
-  // loses focus or the browser throttles background work), don't let
-  // the button sit on "Analyzing..." forever.
-  var captureTimeout = setTimeout(function(){ giveUp('9s timer'); }, 9000);
-  // Also re-check periodically in case setTimeout itself gets throttled
-  // by the browser (this happens on some devices when a tab is backgrounded).
-  var watchdogStart = Date.now();
-  var watchdog = setInterval(function(){
-    if(settled){ clearInterval(watchdog); return; }
-    if(Date.now() - watchdogStart > 9500){ clearInterval(watchdog); giveUp('watchdog'); }
-  }, 1000);
-
-  showDiag('Starting detection\u2026 models loaded=' + AUTH.faceModelsLoaded + ' video readyState=' + (video ? video.readyState : 'no video'));
-
-  try {
-    faceapi.detectSingleFace(video, new faceapi.TinyFaceDetectorOptions())
-      .withFaceLandmarks(true)
-      .withFaceDescriptor()
-      .then(function(result){
-        if(settled) return;
-        settled = true;
-        clearTimeout(captureTimeout);
-        clearInterval(watchdog);
-        showDiag('Detection resolved. Result: ' + (result ? 'face found' : 'no face'));
-
-        if(!result){
-          showFaceErr('No face detected. Please try again.');
-          resetButton();
-          return;
-        }
-
-        if(!manager.faceDescriptor){
-          // No registered face yet — first time, save it
-          manager.faceDescriptor = Array.from(result.descriptor);
-          saveManagers();
-          logAttempt('FACE_REGISTERED', manager.name);
-          completeFaceVerification();
-          return;
-        }
-
-        // Compare with stored face
-        var stored = new Float32Array(manager.faceDescriptor);
-        var distance = faceapi.euclideanDistance(result.descriptor, stored);
-        logAttempt('FACE_ATTEMPT', manager.name + ' distance:' + distance.toFixed(3));
-
-        if(distance < AUTH.faceMatchThreshold){
-          completeFaceVerification();
-        } else {
-          showFaceErr('Face does not match registered profile. Try again or contact your administrator.');
-          resetButton();
-        }
-      })
-      .catch(function(err){
-        if(settled) return;
-        settled = true;
-        clearTimeout(captureTimeout);
-        clearInterval(watchdog);
-        showDiag('Detection promise REJECTED: ' + (err && err.message ? err.message : String(err)));
-        console.error('Face detection error:', err);
-        showFaceErr('Face detection failed. Please try again.');
-        resetButton();
-      });
-  } catch(syncErr){
-    // A synchronous throw means detectSingleFace() itself failed before
-    // returning a promise at all — this is different from a rejected
-    // promise and would otherwise be invisible.
-    if(!settled){
-      settled = true;
-      clearTimeout(captureTimeout);
-      clearInterval(watchdog);
-      showDiag('SYNCHRONOUS ERROR (not a promise rejection): ' + (syncErr && syncErr.message ? syncErr.message : String(syncErr)));
-      showFaceErr('Face detection could not start. Please try again.');
-      resetButton();
-    }
-  }
-}
-
-// ── Lightweight on-screen diagnostics, since we cannot see your browser console ──
-function showDiag(msg){
-  var el = document.getElementById('diag-log');
-  if(!el){
-    var box = document.createElement('div');
-    box.id = 'diag-box';
-    box.style.cssText = 'margin-top:14px;text-align:left';
-    box.innerHTML = '<div onclick="document.getElementById(\'diag-log\').style.display = document.getElementById(\'diag-log\').style.display===\'none\'?\'block\':\'none\'" style="font-size:11px;color:rgba(255,255,255,.3);text-decoration:underline;cursor:pointer;text-align:center">Show details</div>'
-      + '<div id="diag-log" style="display:none;background:rgba(0,0,0,.4);border-radius:8px;padding:10px 12px;margin-top:6px;font-size:10px;font-family:monospace;color:rgba(255,255,255,.5);max-height:140px;overflow-y:auto;white-space:pre-wrap"></div>';
-    var step3 = document.getElementById('login-step-3');
-    if(step3) step3.appendChild(box);
-    el = document.getElementById('diag-log');
-  }
-  var time = new Date().toLocaleTimeString();
-  el.textContent += '[' + time + '] ' + msg + '\n';
-  el.scrollTop = el.scrollHeight;
-}
-
-function completeFaceVerification(){
+  var dataUrl = canvas.toDataURL('image/jpeg', 0.7);
   stopCamera();
-  clearInterval(AUTH.detectLoop);
-  clearInterval(AUTH.facePollTimer);
-  if(AUTH.faceVerifyUnsub){ AUTH.faceVerifyUnsub(); AUTH.faceVerifyUnsub = null; }
 
-  // Set session
-  var token = 'SESSION_' + Date.now();
-  AUTH.sessionToken = token;
-  sessionStorage.setItem('eh_session', token);
-  sessionStorage.setItem('eh_manager', AUTH.currentManager.name);
+  // Save snapshot to security log
+  var entry = {
+    time: new Date().toISOString(),
+    manager: AUTH.currentManager ? AUTH.currentManager.name : 'Unknown',
+    snapshot: dataUrl,
+    action: 'LOGIN_SNAPSHOT'
+  };
+  var log = JSON.parse(localStorage.getItem('eh_security_log') || '[]');
+  log.push(entry);
+  // Keep last 100 snapshots
+  if(log.length > 100) log = log.slice(-100);
+  localStorage.setItem('eh_security_log', JSON.stringify(log));
 
-  logAttempt('LOGIN_SUCCESS', AUTH.currentManager.name);
+  // Also write to Firebase if connected
+  if(fbReady){
+    fbSetDoc('security_log', 'latest_login', {
+      time: entry.time,
+      manager: entry.manager,
+      hasSnapshot: true
+    });
+  }
 
-  // Show success briefly then open dashboard
-  document.getElementById('face-ok').style.display = 'block';
-  document.getElementById('face-status').textContent = 'Identity confirmed — welcome, ' + AUTH.currentManager.name;
-  setTimeout(function(){
-    hideLoginScreen();
-    document.getElementById('manager-name').textContent = AUTH.currentManager.name;
-    document.getElementById('user-avatar').textContent = AUTH.currentManager.name.charAt(0).toUpperCase();
-    renderDashboard();
-  }, 1200);
-}
-
-function simulateFaceSuccess(){
-  // Demo mode — bypasses face scan (remove in production)
-  stopCamera();
-  clearInterval(AUTH.facePollTimer);
-  if(!AUTH.currentManager) AUTH.currentManager = AUTH.managers[0];
+  logAttempt('LOGIN_SNAPSHOT_SAVED', entry.manager);
   completeFaceVerification();
 }
 
 function stopCamera(){
-  if(AUTH.videoStream){
-    AUTH.videoStream.getTracks().forEach(function(t){t.stop();});
-    AUTH.videoStream = null;
-  }
+  if(snapStream){ snapStream.getTracks().forEach(function(t){t.stop();}); snapStream=null; }
+  if(AUTH.videoStream){ AUTH.videoStream.getTracks().forEach(function(t){t.stop();}); AUTH.videoStream=null; }
 }
 
-// ── FACE MODELS LOADER ──
-function loadFaceModels(){
-  if(AUTH.faceModelsLoaded) return;
-  AUTH.faceModelsLoadFailed = false;
-  var MODEL_URL = 'https://cdn.jsdelivr.net/gh/justadudewhohacks/face-api.js@0.22.2/weights';
-  if(typeof showDiag === 'function') showDiag('Loading models from ' + MODEL_URL);
-  Promise.all([
-    faceapi.nets.tinyFaceDetector.loadFromUri(MODEL_URL),
-    faceapi.nets.faceLandmark68TinyNet.loadFromUri(MODEL_URL),
-    faceapi.nets.faceRecognitionNet.loadFromUri(MODEL_URL)
-  ]).then(function(){
-    if(typeof showDiag === 'function') showDiag('All 3 model files loaded. Starting warm-up inference\u2026');
-    // Warm up the underlying TensorFlow.js backend with one real inference
-    // pass on a throwaway canvas. The very first inference call is much
-    // slower than every call after it (this is especially severe on phone
-    // GPUs), so we pay that cost now, quietly, instead of during the
-    // moment the person is actually trying to verify their face.
-    var warmupCanvas = document.createElement('canvas');
-    warmupCanvas.width = 160; warmupCanvas.height = 160;
-    var ctx = warmupCanvas.getContext('2d');
-    ctx.fillStyle = '#888'; ctx.fillRect(0,0,160,160);
-    var warmupTimedOut = false;
-    var warmupTimer = setTimeout(function(){
-      warmupTimedOut = true;
-      if(typeof showDiag === 'function') showDiag('WARM-UP TIMED OUT after 6s \u2014 proceeding anyway without it');
-    }, 6000);
-    return Promise.race([
-      faceapi.detectSingleFace(warmupCanvas, new faceapi.TinyFaceDetectorOptions())
-        .withFaceLandmarks(true)
-        .withFaceDescriptor()
-        .then(function(){
-          clearTimeout(warmupTimer);
-          if(!warmupTimedOut && typeof showDiag === 'function') showDiag('Warm-up inference completed successfully');
-        })
-        .catch(function(werr){
-          clearTimeout(warmupTimer);
-          if(typeof showDiag === 'function') showDiag('Warm-up inference errored (non-fatal): ' + (werr && werr.message ? werr.message : String(werr)));
-        }),
-      new Promise(function(resolve){ setTimeout(resolve, 6500); }) // hard cap so warm-up can never block loading forever
-    ]);
-  }).then(function(){
-    AUTH.faceModelsLoaded = true;
-    if(typeof showDiag === 'function') showDiag('READY \u2014 faceModelsLoaded = true');
-    console.log('Face API models loaded and warmed up');
-  }).catch(function(err){
-    console.warn('Face models could not load:', err);
-    if(typeof showDiag === 'function') showDiag('MODEL LOAD FAILED: ' + (err && err.message ? err.message : String(err)));
-    AUTH.faceModelsLoadFailed = true;
-    AUTH.faceModelsLoadStarted = false; // allow a retry attempt
-  });
-}
-
-// ── STEP NAVIGATION ──
+// ── STEP NAVIGATION — 2-step: code then snapshot ──
+// ── STEP NAVIGATION — 2-step: code then snapshot ──
 function goToStep(n){
-  [1,2,3].forEach(function(i){
-    document.getElementById('login-step-'+i).classList.remove('active');
-    var dot = document.getElementById('prog-'+i);
-    if(dot) dot.classList.remove('active','done');
+  [1,2].forEach(function(i){
+    var el = document.getElementById('login-step-'+i);
+    if(el) el.style.display = (i===n)?'block':'none';
   });
-  document.getElementById('login-step-'+n).classList.add('active');
-  for(var i=1;i<n;i++){
-    var dot = document.getElementById('prog-'+i);
-    if(dot){dot.classList.remove('active');dot.classList.add('done');}
-  }
-  var activeDot = document.getElementById('prog-'+n);
-  if(activeDot) activeDot.classList.add('active');
 }
 
 // ── PASSWORD RECOVERY VIA FACE VERIFICATION ──
@@ -3144,16 +2824,6 @@ function setupRegister(){
   startCamera();
   loadFaceModels();
   document.getElementById('face-status').textContent='Welcome '+name+' — now register your face';
-}
-
-// ── LOGOUT ──
-function doLogout(){
-  sessionStorage.removeItem('eh_session');
-  sessionStorage.removeItem('eh_manager');
-  stopCamera();
-  document.getElementById('code-input').value='';
-  goToStep(1);
-  showLoginScreen();
 }
 
 // ── SECURITY LOG ──
@@ -3389,8 +3059,7 @@ document.addEventListener('DOMContentLoaded',function(){
   } else {
     renderDashboard();
   }
-  // Load face models in background
-  if(typeof faceapi !== 'undefined') loadFaceModels();
+  // Face models no longer needed — using PIN + snapshot
 });
 
 // ══════════════════════════════════════════════════════════
@@ -4283,6 +3952,59 @@ function exportPayrollCSV(){
   a.download = 'epicurean_payroll_'+formatWeekLabel(range).replace(/\s/g,'_')+'.csv';
   a.click();
   showToast('Payroll exported — ready for Gusto, ADP, or your accountant', 'success');
+}
+
+// ── COMPLETE LOGIN (called after snapshot is taken) ──
+function completeFaceVerification(){
+  stopCamera();
+  var manager = AUTH.currentManager;
+  if(!manager) return;
+  AUTH.sessionToken = 'sess_' + Date.now();
+  sessionStorage.setItem('eh_session', AUTH.sessionToken);
+  sessionStorage.setItem('eh_manager', manager.name);
+  logAttempt('LOGIN_SUCCESS', manager.name);
+  hideLoginScreen();
+  renderDashboard();
+  showToast('Welcome, ' + manager.name.split(' ')[0], 'success');
+}
+
+// ── LOGOUT ──
+function doLogout(){
+  sessionStorage.removeItem('eh_session');
+  sessionStorage.removeItem('eh_manager');
+  stopCamera();
+  document.getElementById('code-input').value = '';
+  goToStep(1);
+  showLoginScreen();
+}
+
+// ── SECURITY LOG VIEWER (shows snapshots taken at login) ──
+function viewSecurityLog(){
+  var log = JSON.parse(localStorage.getItem('eh_security_log') || '[]')
+    .filter(function(e){ return e.snapshot; })
+    .slice(-20).reverse();
+
+  var modal = document.createElement('div');
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:150;display:flex;align-items:center;justify-content:center;padding:20px';
+  var inner = document.createElement('div');
+  inner.style.cssText = 'background:var(--white);border-radius:var(--r2);width:100%;max-width:760px;max-height:85vh;overflow:hidden;display:flex;flex-direction:column';
+  inner.innerHTML = '<div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center">'
+    +'<div style="font-size:16px;font-weight:700;flex:1">&#128247; Login Security Photos</div>'
+    +'<button onclick="closeTopModal(this)" style="border:none;background:var(--bg2);border-radius:50%;width:28px;height:28px;cursor:pointer;font-size:15px">&#10005;</button>'
+    +'</div>'
+    +'<div style="overflow-y:auto;padding:16px;display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">'
+    +( log.length ? log.map(function(e){
+        return '<div style="border:1px solid var(--border);border-radius:8px;overflow:hidden">'
+          +'<img src="'+e.snapshot+'" style="width:100%;height:120px;object-fit:cover;display:block">'
+          +'<div style="padding:6px 8px;font-size:11px;color:var(--txt3)">'
+          +'<div style="font-weight:600;color:var(--txt2)">'+e.manager+'</div>'
+          +'<div>'+new Date(e.time).toLocaleString()+'</div>'
+          +'</div></div>';
+      }).join('')
+    : '<div style="grid-column:1/-1;text-align:center;padding:32px;color:var(--txt3)">No login photos yet</div>' )
+    +'</div>';
+  modal.appendChild(inner);
+  document.body.appendChild(modal);
 }
 
 // ── AVATAR DROPDOWN MENU ──
