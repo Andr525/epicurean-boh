@@ -2519,6 +2519,12 @@ function downloadCSV(csv,filename){
 // AUTHENTICATION SYSTEM — Code + Face Recognition
 // ══════════════════════════════════════════════════════════
 
+// ── MASTER UNLOCK CODE ──
+// This is a permanent backstop that never gets stored in Firebase or
+// localStorage. It always works for first-time setup and code recovery,
+// regardless of what the database contains.
+var MASTER_CODE = 'EPICUREAN2024';
+
 var AUTH = {
   // Default manager — change code after first login via Setup
   // Loaded from localStorage instantly for fast first paint, then
@@ -2574,6 +2580,9 @@ function showLoginScreen(){
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app-body').style.display = 'none';
   document.getElementById('topbar').style.display = 'none';
+  goToStep(1);
+  document.getElementById('code-input').value = '';
+  document.getElementById('code-err').style.display = 'none';
 }
 
 function hideLoginScreen(){
@@ -2710,7 +2719,7 @@ function stopCamera(){
 function goToStep(n){
   [1,2].forEach(function(i){
     var el = document.getElementById('login-step-'+i);
-    if(el) el.style.display = (i===n)?'block':'none';
+    if(el) el.style.display = (i===n)?'flex':'none';
   });
 }
 
@@ -2733,9 +2742,8 @@ function saveSetup(){
   var code2 = document.getElementById('setup-code2').value;
   var err = document.getElementById('setup-err');
   // Validate master code — must match an existing manager code or the default
-  var masterMatch = AUTH.managers.find(function(m){ return m.code === master; });
   if(!name){ err.textContent='Please enter your name.'; err.style.display='block'; return; }
-  if(!masterMatch){ err.textContent='Master code is incorrect. Use EPICUREAN2024 or ask your administrator.'; err.style.display='block'; return; }
+  if(master !== MASTER_CODE && !AUTH.managers.find(function(m){ return m.code === master; })){ err.textContent='Master code is incorrect. Use EPICUREAN2024 or ask your administrator.'; err.style.display='block'; return; }
   if(code1.length < 6){ err.textContent='Your code must be at least 6 characters.'; err.style.display='block'; return; }
   if(code1 !== code2){ err.textContent='Codes do not match.'; err.style.display='block'; return; }
   // Check for duplicate code
@@ -2780,8 +2788,7 @@ function recoverySetNewCode(){
   var code2 = document.getElementById('recovery-new-code2').value;
   var err = document.getElementById('recovery-code-err');
   // Validate master code
-  var masterMatch = AUTH.managers.find(function(m){ return m.code === master; });
-  if(!masterMatch){ err.textContent='Master code is incorrect.'; err.style.display='block'; return; }
+  if(master !== MASTER_CODE && !AUTH.managers.find(function(m){ return m.code === master; })){ err.textContent='Master code is incorrect. Use EPICUREAN2024 or ask your administrator.'; err.style.display='block'; return; }
   if(code1.length < 6){ err.textContent='New code must be at least 6 characters.'; err.style.display='block'; return; }
   if(code1 !== code2){ err.textContent='Codes do not match.'; err.style.display='block'; return; }
   if(AUTH.managers.find(function(m){ return m.code === code1; })){
