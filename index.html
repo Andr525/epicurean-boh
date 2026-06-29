@@ -2602,7 +2602,21 @@ function checkCode(){
   var entered = (document.getElementById('code-input').value || '').trim();
   if(!entered){ showLoginErr('code-err','Please enter your access code.'); return; }
 
-  var match = AUTH.managers.find(function(m){return m.code === entered;});
+  // MASTER CODE always works — this is the guaranteed backstop
+  // regardless of what Firebase has stored, so you are never locked out.
+  var match = null;
+  if(entered === MASTER_CODE){
+    match = {name:'General Manager', code:MASTER_CODE, faceDescriptor:null};
+    // Make sure it's in the managers list for this session
+    if(!AUTH.managers.find(function(m){ return m.code === MASTER_CODE; })){
+      AUTH.managers.push(match);
+    } else {
+      match = AUTH.managers.find(function(m){ return m.code === MASTER_CODE; });
+    }
+  } else {
+    match = AUTH.managers.find(function(m){ return m.code === entered; });
+  }
+
   if(match){
     AUTH.currentManager = match;
     AUTH.attempts = 0;
@@ -2614,12 +2628,11 @@ function checkCode(){
     AUTH.attempts++;
     logAttempt('CODE_FAIL', 'unknown');
     if(AUTH.attempts >= AUTH.maxAttempts){
-      AUTH.lockUntil = Date.now() + 120000; // 2 min lockout
-      showLoginErr('code-err','Account locked for 2 minutes after too many attempts.');
+      AUTH.lockUntil = Date.now() + 120000;
+      showLoginErr('code-err','Too many incorrect attempts. Please wait 2 minutes.');
     } else {
       var left = AUTH.maxAttempts - AUTH.attempts;
       showLoginErr('code-err','Incorrect code. ' + left + ' attempt' + (left===1?'':'s') + ' remaining.');
-      document.getElementById('attempts-label').textContent = '';
     }
     document.getElementById('code-input').value = '';
     document.getElementById('code-input').focus();
@@ -2959,6 +2972,11 @@ function showSecurityLog(){
       done=true; clearTimeout(fallback);
       if(doc && doc.list && doc.list.length){
         AUTH.managers = doc.list;
+        // Always ensure the master code entry exists — never let Firebase
+        // overwrite it away, so the user is never completely locked out.
+        if(!AUTH.managers.find(function(m){ return m.code === MASTER_CODE; })){
+          AUTH.managers.push({name:'General Manager', code:MASTER_CODE, faceDescriptor:null});
+        }
         localStorage.setItem('eh_managers', JSON.stringify(AUTH.managers));
       } else {
         // Firebase empty — seed it from local default
