@@ -249,6 +249,13 @@ a{text-decoration:none;color:inherit}
 .avatar-menu-item{display:flex;align-items:center;gap:10px;padding:9px 16px;font-size:13px;color:#0F1B2D;cursor:pointer;transition:background .12s}
 .avatar-menu-item:hover{background:#F4F6F9}
 .ami-icon{font-size:15px;width:20px;text-align:center;flex-shrink:0}
+/* Suppress browser video controls — iOS Safari, Chrome, all */
+video::-webkit-media-controls,
+video::-webkit-media-controls-enclosure,
+video::-webkit-media-controls-panel,
+video::-webkit-media-controls-play-button,
+video::-webkit-media-controls-start-playback-button { display:none !important; }
+video { -webkit-appearance:none; }
 </style>
 <script src="https://cdn.jsdelivr.net/npm/face-api.js@0.22.2/dist/face-api.min.js"></script>
 <script>
@@ -677,7 +684,7 @@ window.QRErrorCorrectLevel=QRErrorCorrectLevel;
     <div class="login-label" style="text-align:center">Take a quick photo</div>
     <div style="display:flex;justify-content:center;margin:12px 0">
       <div style="width:200px;height:200px;border-radius:50%;overflow:hidden;border:3px solid rgba(184,148,63,.5);background:#111">
-        <video id="snap-video" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>
+        <video id="snap-video" autoplay muted playsinline controls="false" style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);pointer-events:none;-webkit-media-controls:none"></video>
         <canvas id="snap-canvas" style="display:none"></canvas>
       </div>
     </div>
@@ -2549,7 +2556,7 @@ function runPhoneFaceCapture(token){
     '<div style="background:#0F1B2D;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:-apple-system,sans-serif;color:#fff;text-align:center;gap:16px">'
     +'<div style="font-size:17px;font-weight:700">Verify your identity</div>'
     +'<div style="width:220px;height:220px;border-radius:50%;overflow:hidden;border:4px solid rgba(184,148,63,.5);background:#000">'
-    +'<video id="phone-face-video" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>'
+    +'<video id="phone-face-video" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);pointer-events:none" webkit-playsinline="true"></video>'
     +'</div>'
     +'<div id="phone-status" style="font-size:14px;color:rgba(255,255,255,.6)">Starting camera\u2026</div>'
     +'<div id="phone-action"></div>'
@@ -2763,6 +2770,9 @@ var qrUnsubscribe = null;
 
 // ── Show the method-choice screen ──
 function showStep2(){
+  // Hide step 1 (code entry) and all step 2 variants
+  var s1 = document.getElementById('login-step-1');
+  if(s1) s1.style.display = 'none';
   hideAllStep2();
   document.getElementById('login-step-2').style.display = 'flex';
 }
@@ -3140,7 +3150,7 @@ function startPhoneCapture(token){
   document.body.innerHTML='<div style="background:#0F1B2D;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:-apple-system,sans-serif;color:#fff;text-align:center;gap:16px">'
     +'<div style="font-size:17px;font-weight:700">Verify your identity</div>'
     +'<div style="width:220px;height:220px;border-radius:50%;overflow:hidden;border:4px solid rgba(184,148,63,.5);background:#111">'
-    +'<video id="pv" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>'
+    +'<video id="pv" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1);pointer-events:none" webkit-playsinline="true"></video>'
     +'</div>'
     +'<div id="ps" style="font-size:14px;color:rgba(255,255,255,.6)">Starting camera…</div>'
     +'</div>';
