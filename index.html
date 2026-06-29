@@ -2480,46 +2480,14 @@ document.querySelectorAll('.modal-bg').forEach(function(bg){
 });
 
 var toastTimer;
-function showLoginErr(id, msg){
-  var el = document.getElementById(id);
-  if(!el) return;
-  el.textContent = msg;
-  el.style.display = 'block';
-}
-function hideLoginErr(id){
-  var el = document.getElementById(id);
-  if(!el) return;
-  el.style.display = 'none';
-}
+
+
 
 // Security log — records every login attempt with timestamp
-function logAttempt(type, detail){
-  try {
-    var log = JSON.parse(localStorage.getItem('eh_security_log') || '[]');
-    log.push({ time: new Date().toISOString(), type: type, detail: detail });
-    if(log.length > 200) log = log.slice(-200);
-    localStorage.setItem('eh_security_log', JSON.stringify(log));
-  } catch(e){ /* non-critical, ignore */ }
-}
 
-// Logout
-function doLogout(){
-  sessionStorage.removeItem('eh_session');
-  sessionStorage.removeItem('eh_manager');
-  stopCamera();
-  showLoginScreen();
-}
 
 // Edit staff member (opens modal pre-filled)
-function editStaff(id){
-  var s = DB.staff.find(function(m){ return m.id === id; });
-  if(!s) return;
-  document.getElementById('staff-name').value = s.name;
-  document.getElementById('staff-role').value = s.role;
-  document.getElementById('staff-pin').value = s.pin || '';
-  document.getElementById('staff-phone').value = s.phone || '';
-  openModal('modal-staff');
-}
+
 
 // Phone QR face capture — stub (used when phone scans QR code)
 function runPhoneFaceCapture(token){
@@ -2820,6 +2788,11 @@ function showLoginScreen(){
 
 function doLogout(){
   showLoginScreen();
+}
+function confirmLogout(){
+  if(confirm("Sign out of Back of House?")){
+    doLogout();
+  }
 }
 
 // ── SETUP: FIRST TIME / NEW USER ──
