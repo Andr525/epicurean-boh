@@ -2982,6 +2982,34 @@ function startPhoneCapture(token){
 }
 
 // ── PAGE INIT ──
+// ── AVATAR MENU ──
+function toggleAvatarMenu(){
+  var menu = document.getElementById('avatar-menu');
+  if(!menu) return;
+  var open = menu.style.display === 'block';
+  if(open){
+    menu.style.display = 'none';
+  } else {
+    var name = CURRENT_MANAGER ? CURRENT_MANAGER.name : (sessionStorage.getItem('eh_manager') || 'Manager');
+    var nameEl = document.getElementById('avatar-menu-name');
+    if(nameEl) nameEl.textContent = name;
+    menu.style.display = 'block';
+    setTimeout(function(){
+      document.addEventListener('click', function closeOnOutside(e){
+        var wrap = document.getElementById('avatar-wrap');
+        if(wrap && !wrap.contains(e.target)){
+          menu.style.display = 'none';
+          document.removeEventListener('click', closeOnOutside);
+        }
+      });
+    }, 10);
+  }
+}
+function closeAvatarMenu(){
+  var menu = document.getElementById('avatar-menu');
+  if(menu) menu.style.display = 'none';
+}
+
 // ── PAGE INIT — runs on every page load ──
 initLogin();
 </script>
