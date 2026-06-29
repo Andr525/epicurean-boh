@@ -2934,19 +2934,7 @@ function confirmLogout(){
   }
 }
 
-function changeCodePrompt(){
-  var current = prompt('Enter your CURRENT access code:');
-  if(!current) return;
-  var manager = AUTH.managers.find(function(m){ return m.code === current; });
-  if(!manager){ showToast('Incorrect current code','error'); return; }
-  var newCode = prompt('Enter your NEW access code (min 6 characters):');
-  if(!newCode || newCode.length < 6){ showToast('Code must be at least 6 characters','error'); return; }
-  var confirm2 = prompt('Confirm your new code:');
-  if(newCode !== confirm2){ showToast('Codes do not match','error'); return; }
-  manager.code = newCode;
-  saveManagers();
-  showToast('Access code updated successfully','success');
-}
+// changeCodePrompt handled above
 
 function showSecurityLog(){
   var log = JSON.parse(localStorage.getItem('eh_security_log') || '[]');
