@@ -2746,10 +2746,13 @@ function saveSetup(){
   if(master !== MASTER_CODE && !AUTH.managers.find(function(m){ return m.code === master; })){ err.textContent='Master code is incorrect. Use EPICUREAN2024 or ask your administrator.'; err.style.display='block'; return; }
   if(code1.length < 6){ err.textContent='Your code must be at least 6 characters.'; err.style.display='block'; return; }
   if(code1 !== code2){ err.textContent='Codes do not match.'; err.style.display='block'; return; }
-  // Check for duplicate code
-  if(AUTH.managers.find(function(m){ return m.code === code1; })){
-    err.textContent='That code is already in use. Please choose a different code.'; err.style.display='block'; return;
+  // Check for duplicate code — but only among real named managers, not the default
+  var realManagers = AUTH.managers.filter(function(m){ return m.name !== 'General Manager'; });
+  if(realManagers.find(function(m){ return m.code === code1; })){
+    err.textContent='That code is already in use by another manager. Please choose a different code.'; err.style.display='block'; return;
   }
+  // Remove the default General Manager entry if we are creating a real account
+  AUTH.managers = AUTH.managers.filter(function(m){ return m.name !== 'General Manager' || AUTH.managers.length === 1; });
   // Add new manager
   var newManager = { name: name, code: code1, faceDescriptor: null };
   AUTH.managers.push(newManager);
@@ -2791,8 +2794,10 @@ function recoverySetNewCode(){
   if(master !== MASTER_CODE && !AUTH.managers.find(function(m){ return m.code === master; })){ err.textContent='Master code is incorrect. Use EPICUREAN2024 or ask your administrator.'; err.style.display='block'; return; }
   if(code1.length < 6){ err.textContent='New code must be at least 6 characters.'; err.style.display='block'; return; }
   if(code1 !== code2){ err.textContent='Codes do not match.'; err.style.display='block'; return; }
-  if(AUTH.managers.find(function(m){ return m.code === code1; })){
-    err.textContent='That code is already in use. Please choose a different one.'; err.style.display='block'; return;
+  // Allow reusing the master code or any code not already taken by a different person
+  var otherManagers = AUTH.managers.filter(function(m){ return m.name !== selectedName; });
+  if(otherManagers.find(function(m){ return m.code === code1; })){
+    err.textContent='That code is already used by someone else. Please choose a different one.'; err.style.display='block'; return;
   }
   // Update the selected manager's code
   var target = AUTH.managers.find(function(m){ return m.name === selectedName; });
@@ -2893,6 +2898,81 @@ function showSecurityLog(){
 }
 
 // Dashboard renders after successful auth
+
+// ── PAGE INIT — runs on every page load ──
+(function init(){
+  var params = new URLSearchParams(window.location.search);
+  var faceToken = params.get('face');
+
+  if(faceToken){
+    // Phone opened this from a scanned QR code — run capture, stop here
+    window.history.replaceState({},'',window.location.pathname);
+    runPhoneFaceCapture(faceToken);
+    return;
+  }
+
+  // Show a brief "Loading..." screen while Firebase syncs
+  // so the freshest manager codes are always used at login.
+  // Without this, stale localStorage codes cause "incorrect code" errors.
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-body').style.display = 'none';
+  document.getElementById('topbar').style.display = 'none';
+  goToStep(1);
+
+  var loadingEl = document.createElement('div');
+  loadingEl.id = 'init-loading';
+  loadingEl.style.cssText = 'position:fixed;inset:0;background:#0F1B2D;z-index:20000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px';
+  loadingEl.innerHTML = '<div style="font-size:20px;font-weight:700;color:#B8943F">The Epicurean House</div>'
+    +'<div style="font-size:12px;color:rgba(255,255,255,.35);letter-spacing:.1em">BACK OF HOUSE</div>'
+    +'<div style="font-size:13px;color:rgba(255,255,255,.3);margin-top:8px">Loading\u2026</div>';
+  document.body.appendChild(loadingEl);
+
+  function proceed(){
+    var el = document.getElementById('init-loading');
+    if(el) el.remove();
+    // Check if already signed in this session
+    var token = sessionStorage.getItem('eh_session');
+    var managerName = sessionStorage.getItem('eh_manager');
+    if(token && token.length > 10){
+      if(managerName){
+        AUTH.currentManager = AUTH.managers.find(function(m){ return m.name === managerName; }) || {name:managerName, code:'', faceDescriptor:null};
+        document.getElementById('user-avatar').textContent = managerName.charAt(0).toUpperCase();
+        var mn = document.getElementById('manager-name');
+        if(mn) mn.textContent = managerName;
+      }
+      hideLoginScreen();
+      renderDashboard();
+    } else {
+      showLoginScreen();
+    }
+  }
+
+  // Sync with Firebase, max 4 second wait
+  var done = false;
+  var fallback = setTimeout(function(){
+    if(!done){ done=true; proceed(); }
+  }, 4000);
+
+  if(fbReady){
+    fbGetDoc('boh_shared','managers').then(function(doc){
+      if(done) return;
+      done=true; clearTimeout(fallback);
+      if(doc && doc.list && doc.list.length){
+        AUTH.managers = doc.list;
+        localStorage.setItem('eh_managers', JSON.stringify(AUTH.managers));
+      } else {
+        // Firebase empty — seed it from local default
+        fbSetDoc('boh_shared','managers',{list:AUTH.managers, updatedAt:Date.now()});
+      }
+      proceed();
+    }).catch(function(){
+      if(!done){ done=true; clearTimeout(fallback); proceed(); }
+    });
+  } else {
+    clearTimeout(fallback);
+    proceed();
+  }
+})();
 </script>
 </body>
 </html>
