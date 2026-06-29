@@ -657,7 +657,23 @@ window.QRErrorCorrectLevel=QRErrorCorrectLevel;
     </div>
   </div>
 
+  <!-- STEP 2A: Choose method -->
   <div class="login-card" id="login-step-2" style="display:none">
+    <div class="login-label" style="text-align:center">Verify your identity</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.4);text-align:center;margin-bottom:16px">
+      Choose how to take your verification photo
+    </div>
+    <button class="login-btn" onclick="showSnapLocal()" style="margin-bottom:10px">
+      &#128249; Use this device&#39;s camera
+    </button>
+    <button class="login-btn" onclick="showSnapQR()" style="background:#1A2B42;border:1px solid rgba(184,148,63,.4)">
+      &#128247; Scan QR with my phone
+    </button>
+    <button class="login-btn-secondary" onclick="backToStep1()" style="margin-top:6px">&#8592; Back</button>
+  </div>
+
+  <!-- STEP 2B: Local camera -->
+  <div class="login-card" id="login-step-2b" style="display:none">
     <div class="login-label" style="text-align:center">Take a quick photo</div>
     <div style="display:flex;justify-content:center;margin:12px 0">
       <div style="width:200px;height:200px;border-radius:50%;overflow:hidden;border:3px solid rgba(184,148,63,.5);background:#111">
@@ -667,9 +683,47 @@ window.QRErrorCorrectLevel=QRErrorCorrectLevel;
     </div>
     <div id="snap-status" style="font-size:13px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:10px">Starting camera&hellip;</div>
     <button class="login-btn" id="snap-btn" onclick="takeSnapshot()" style="display:none">&#128247; Take photo &amp; sign in</button>
-    <button class="login-btn-secondary" onclick="backToStep1()">&#8592; Back</button>
+    <button class="login-btn-secondary" onclick="backToStep2()">&#8592; Back</button>
   </div>
+
+  <!-- STEP 2C: QR phone scan -->
+  <div class="login-card" id="login-step-2c" style="display:none">
+    <div class="login-label" style="text-align:center">Scan with your phone</div>
+    <div style="display:flex;justify-content:center;margin:14px 0">
+      <div id="qr-box" style="width:180px;height:180px;background:#fff;border-radius:12px;display:flex;align-items:center;justify-content:center;padding:8px">
+        <div id="qr-svg-wrap" style="width:100%;height:100%"></div>
+      </div>
+    </div>
+    <div id="qr-status" style="font-size:13px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:8px">
+      Open your phone camera and scan this code
+    </div>
+    <!-- Approval popup — shown when phone sends photo -->
+    <div id="qr-approval" style="display:none;background:#1A3A1A;border:1px solid #276749;border-radius:12px;padding:14px;margin-bottom:10px">
+      <div style="font-size:13px;font-weight:600;color:#9AE6B4;margin-bottom:10px;text-align:center">&#128247; Photo received from phone</div>
+      <img id="qr-photo" src="" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;display:block;margin-bottom:10px">
+      <div style="display:flex;gap:8px">
+        <button onclick="approveQRLogin()" style="flex:1;background:#276749;color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:700;cursor:pointer">&#10003; Approve</button>
+        <button onclick="denyQRLogin()" style="flex:1;background:#C53030;color:#fff;border:none;border-radius:8px;padding:10px;font-size:14px;font-weight:700;cursor:pointer">&#10005; Deny</button>
+      </div>
+    </div>
+    <button class="login-btn-secondary" onclick="cancelQR()">&#8592; Back</button>
+  </div>
+
 </div></div>
+
+<!-- QR phone approval modal (full screen overlay when photo arrives) -->
+<div id="qr-approve-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:15000;align-items:center;justify-content:center;padding:24px">
+  <div style="background:#1A2B42;border:1px solid rgba(184,148,63,.3);border-radius:16px;padding:24px;width:100%;max-width:360px;text-align:center">
+    <div style="font-size:16px;font-weight:700;color:#fff;margin-bottom:6px">&#128247; Phone photo received</div>
+    <div style="font-size:13px;color:rgba(255,255,255,.4);margin-bottom:14px">Is this you? Approve to complete sign-in.</div>
+    <img id="approve-photo" src="" style="width:200px;height:200px;object-fit:cover;border-radius:50%;border:3px solid rgba(184,148,63,.5);display:block;margin:0 auto 16px">
+    <div style="font-size:14px;color:#B8943F;font-weight:600;margin-bottom:14px" id="approve-name"></div>
+    <div style="display:flex;gap:10px">
+      <button onclick="approveQRLogin()" style="flex:1;background:#276749;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer">&#10003; Approve &amp; sign in</button>
+      <button onclick="denyQRLogin()" style="flex:1;background:#C53030;color:#fff;border:none;border-radius:10px;padding:14px;font-size:15px;font-weight:700;cursor:pointer">&#10005; Deny</button>
+    </div>
+  </div>
+</div>
 
 <!-- ════ MODAL: FIRST-TIME SETUP / REGISTER ════ -->
 <div id="setup-modal" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:10000;display:none;align-items:center;justify-content:center;padding:20px">
@@ -2604,8 +2658,10 @@ function saveManagers(){
 // Load from Firebase if available, then show login
 function initLogin(){
   var params = new URLSearchParams(window.location.search);
-  var token = params.get('face');
-  if(token){ window.history.replaceState({},'',window.location.pathname); startPhoneCapture(token); return; }
+  var faceToken = params.get('face');
+  var qrToken = params.get('qrlogin');
+  if(faceToken){ window.history.replaceState({},'',window.location.pathname); startPhoneCapture(faceToken); return; }
+  if(qrToken){ window.history.replaceState({},'',window.location.pathname); startPhoneCapture(qrToken); return; }
 
   // Check existing session
   var sess = sessionStorage.getItem('eh_session');
@@ -2643,10 +2699,18 @@ var snapStream = null;
 
 // ── STEP CONTROL ──
 function showStep(n){
-  var s1 = document.getElementById('login-step-1');
-  var s2 = document.getElementById('login-step-2');
-  if(s1) s1.style.display = (n===1) ? 'flex' : 'none';
-  if(s2) s2.style.display = (n===2) ? 'flex' : 'none';
+  // Hide all login steps
+  ['login-step-1','login-step-2','login-step-2b','login-step-2c'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.style.display = 'none';
+  });
+  // Show the requested step
+  if(n === 1){
+    var s1 = document.getElementById('login-step-1');
+    if(s1) s1.style.display = 'flex';
+  } else if(n === 2){
+    showStep2();
+  }
 }
 
 function backToStep1(){
@@ -2680,8 +2744,7 @@ function checkCode(){
   if(match){
     CURRENT_MANAGER = match;
     input.value = '';
-    showStep(2);
-    startSnap();
+    showStep2();
   } else {
     errEl.textContent = 'Incorrect code. Please try again.';
     errEl.style.display = 'block';
@@ -2690,20 +2753,63 @@ function checkCode(){
   }
 }
 
-// ── CAMERA SNAPSHOT ──
+// ══════════════════════════════════════════════════════════
+// STEP 2 — VERIFICATION (3 sub-paths)
+// ══════════════════════════════════════════════════════════
+
+var snapStream = null;
+var qrToken = null;
+var qrUnsubscribe = null;
+
+// ── Show the method-choice screen ──
+function showStep2(){
+  hideAllStep2();
+  document.getElementById('login-step-2').style.display = 'flex';
+}
+
+// ── Path A: Use this device camera ──
+function showSnapLocal(){
+  hideAllStep2();
+  document.getElementById('login-step-2b').style.display = 'flex';
+  startSnap();
+}
+
+// ── Path B: QR phone scan ──
+function showSnapQR(){
+  if(!fbReady){
+    alert('Firebase is not connected. Please use "this device camera" instead, or check your internet connection.');
+    return;
+  }
+  hideAllStep2();
+  document.getElementById('login-step-2c').style.display = 'flex';
+  generateLoginQR();
+}
+
+function hideAllStep2(){
+  ['login-step-2','login-step-2b','login-step-2c'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.style.display = 'none';
+  });
+}
+
+function backToStep2(){
+  stopSnap();
+  cancelQR();
+  showStep2();
+}
+
+// ── LOCAL CAMERA ──
 function startSnap(){
   var statusEl = document.getElementById('snap-status');
   var btn = document.getElementById('snap-btn');
-  btn.style.display = 'none';
-  statusEl.textContent = 'Starting camera…';
+  if(btn) btn.style.display = 'none';
+  if(statusEl) statusEl.textContent = 'Starting camera…';
 
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    statusEl.textContent = 'No camera available. Sign in anyway.';
-    btn.textContent = 'Sign in without photo';
-    btn.style.display = 'block';
+    if(statusEl) statusEl.textContent = 'No camera available.';
+    if(btn){ btn.textContent = 'Sign in without photo'; btn.style.display = 'block'; }
     return;
   }
-
   navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}})
     .then(function(stream){
       snapStream = stream;
@@ -2711,14 +2817,16 @@ function startSnap(){
       video.srcObject = stream;
       video.onloadedmetadata = function(){
         video.play();
-        statusEl.textContent = 'Click the button below to sign in';
-        btn.style.display = 'block';
+        if(statusEl) statusEl.textContent = 'Position your face and click the button';
+        if(btn) btn.style.display = 'block';
       };
     })
-    .catch(function(){
-      statusEl.textContent = 'Camera unavailable. Sign in without photo.';
-      btn.textContent = 'Sign in without photo';
-      btn.style.display = 'block';
+    .catch(function(err){
+      var name = err && err.name ? err.name : '';
+      if(statusEl) statusEl.textContent = name === 'NotAllowedError'
+        ? 'Camera permission denied. Allow it in browser settings.'
+        : 'Camera unavailable.';
+      if(btn){ btn.textContent = 'Sign in without photo'; btn.style.display = 'block'; }
     });
 }
 
@@ -2729,7 +2837,7 @@ function stopSnap(){
 function takeSnapshot(){
   var video = document.getElementById('snap-video');
   var canvas = document.getElementById('snap-canvas');
-
+  var snap = null;
   if(video && video.readyState >= 2){
     canvas.width = video.videoWidth || 320;
     canvas.height = video.videoHeight || 320;
@@ -2737,18 +2845,105 @@ function takeSnapshot(){
     ctx.save(); ctx.scale(-1,1);
     ctx.drawImage(video,-canvas.width,0,canvas.width,canvas.height);
     ctx.restore();
-    var snap = canvas.toDataURL('image/jpeg',0.6);
-    // Save to local security log
-    try {
-      var log = JSON.parse(localStorage.getItem('eh_security_log')||'[]');
-      log.push({time:new Date().toISOString(),manager:CURRENT_MANAGER.name,snapshot:snap});
-      if(log.length>50) log=log.slice(-50);
-      localStorage.setItem('eh_security_log',JSON.stringify(log));
-    } catch(e){}
+    snap = canvas.toDataURL('image/jpeg',0.6);
+    saveSnapshot(snap);
   }
-
   stopSnap();
   completeLogin();
+}
+
+function saveSnapshot(dataUrl){
+  try{
+    var log = JSON.parse(localStorage.getItem('eh_security_log')||'[]');
+    log.push({time:new Date().toISOString(),manager:CURRENT_MANAGER?CURRENT_MANAGER.name:'Unknown',snapshot:dataUrl});
+    if(log.length>50) log=log.slice(-50);
+    localStorage.setItem('eh_security_log',JSON.stringify(log));
+  }catch(e){}
+}
+
+// ── QR PHONE PATH ──
+function generateLoginQR(){
+  qrToken = 'QR' + Date.now() + Math.random().toString(36).slice(2,6).toUpperCase();
+  var url = window.location.origin + window.location.pathname + '?qrlogin=' + qrToken;
+  var wrap = document.getElementById('qr-svg-wrap');
+  var statusEl = document.getElementById('qr-status');
+
+  if(typeof window.buildQRCodeSVG === 'function'){
+    try{
+      wrap.innerHTML = window.buildQRCodeSVG(url, 4, 12);
+      var svg = wrap.querySelector('svg');
+      if(svg){ svg.style.width='100%'; svg.style.height='100%'; }
+    }catch(e){
+      wrap.innerHTML = '<div style="font-size:11px;color:#C53030;text-align:center;padding:8px">QR error. Use camera instead.</div>';
+      return;
+    }
+  } else {
+    wrap.innerHTML = '<div style="font-size:11px;color:#C53030;text-align:center;padding:8px">QR not available. Use camera instead.</div>';
+    return;
+  }
+
+  if(statusEl) statusEl.textContent = 'Open your phone camera and scan this code';
+
+  // Write a pending request to Firebase
+  fbSetDoc('qr_logins', qrToken, {
+    status: 'waiting',
+    manager: CURRENT_MANAGER ? CURRENT_MANAGER.name : '',
+    createdAt: Date.now()
+  });
+
+  // Listen live for the phone to send a photo
+  if(qrUnsubscribe) qrUnsubscribe();
+  qrUnsubscribe = fbListenDoc('qr_logins', qrToken, function(doc){
+    if(!doc) return;
+    if(doc.status === 'captured' && doc.snapshot){
+      // Phone sent a photo — show approval UI
+      document.getElementById('qr-status').textContent = 'Photo received from phone — review below';
+      showApprovalUI(doc.snapshot);
+    }
+  });
+}
+
+function showApprovalUI(photoDataUrl){
+  var modal = document.getElementById('qr-approve-modal');
+  var img = document.getElementById('approve-photo');
+  var nameEl = document.getElementById('approve-name');
+  if(img) img.src = photoDataUrl;
+  if(nameEl) nameEl.textContent = CURRENT_MANAGER ? CURRENT_MANAGER.name : '';
+  if(modal) modal.style.display = 'flex';
+}
+
+function approveQRLogin(){
+  // Clean up
+  if(qrUnsubscribe){ qrUnsubscribe(); qrUnsubscribe = null; }
+  if(qrToken){
+    var photo = document.getElementById('approve-photo');
+    if(photo && photo.src) saveSnapshot(photo.src);
+    fbSetDoc('qr_logins', qrToken, {status:'approved', approvedAt: Date.now()});
+    qrToken = null;
+  }
+  document.getElementById('qr-approve-modal').style.display = 'none';
+  completeLogin();
+}
+
+function denyQRLogin(){
+  if(qrUnsubscribe){ qrUnsubscribe(); qrUnsubscribe = null; }
+  if(qrToken){
+    fbSetDoc('qr_logins', qrToken, {status:'denied', deniedAt: Date.now()});
+    qrToken = null;
+  }
+  document.getElementById('qr-approve-modal').style.display = 'none';
+  document.getElementById('qr-status').textContent = 'Login denied. Scan again or use camera.';
+  // Regenerate QR for another attempt
+  setTimeout(function(){ generateLoginQR(); }, 1500);
+}
+
+function cancelQR(){
+  if(qrUnsubscribe){ qrUnsubscribe(); qrUnsubscribe = null; }
+  if(qrToken){
+    fbSetDoc('qr_logins', qrToken, {status:'cancelled'});
+    qrToken = null;
+  }
+  document.getElementById('qr-approve-modal').style.display = 'none';
 }
 
 function completeLogin(){
@@ -2939,6 +3134,8 @@ function editStaff(id){
 }
 
 // ── PHONE QR CAPTURE ──
+// Called when a phone opens the URL with ?qrlogin=TOKEN
+// Takes a photo and sends it to Firebase for the computer to review
 function startPhoneCapture(token){
   document.body.innerHTML='<div style="background:#0F1B2D;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:-apple-system,sans-serif;color:#fff;text-align:center;gap:16px">'
     +'<div style="font-size:17px;font-weight:700">Verify your identity</div>'
@@ -2967,11 +3164,21 @@ function startPhoneCapture(token){
           var snap=cv.toDataURL('image/jpeg',0.6);
           stream.getTracks().forEach(function(t){t.stop();});
           if(fbReady){
-            fbSetDoc('face_verify_requests',token,{status:'captured',snapshot:snap,capturedAt:Date.now()}).then(function(){
-              document.body.innerHTML='<div style="background:#0F1B2D;color:#9AE6B4;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:18px;font-weight:600;text-align:center;padding:32px">✓ Photo taken.<br><br>Return to your computer.</div>';
+            fbSetDoc('qr_logins', token, {
+              status: 'captured',
+              snapshot: snap,
+              capturedAt: Date.now()
+            }).then(function(){
+              document.body.innerHTML = '<div style="background:#0F1B2D;font-family:-apple-system,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;text-align:center;padding:32px;gap:16px">'
+                + '<div style="font-size:48px">&#10003;</div>'
+                + '<div style="font-size:20px;font-weight:700;color:#9AE6B4">Photo sent!</div>'
+                + '<div style="font-size:14px;color:rgba(255,255,255,.5);max-width:280px;line-height:1.6">Return to the computer. The manager will review your photo and approve your sign-in.</div>'
+                + '</div>';
+            }).catch(function(){
+              document.body.innerHTML = '<div style="background:#0F1B2D;color:#FC8181;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:16px;text-align:center;padding:32px">Send failed.<br><br>Go back to the computer and use the camera there instead.</div>';
             });
           } else {
-            document.body.innerHTML='<div style="background:#0F1B2D;color:#FC8181;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:16px;text-align:center;padding:32px">Database unavailable.<br>Use camera on computer instead.</div>';
+            document.body.innerHTML = '<div style="background:#0F1B2D;color:#FC8181;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:16px;text-align:center;padding:32px">Database not connected.<br><br>Use the camera on the computer instead.</div>';
           }
         },2000);
       };
