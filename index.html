@@ -2770,10 +2770,17 @@ function saveSetup(){
   var newManager = { name: name, code: code1, faceDescriptor: null };
   AUTH.managers.push(newManager);
   AUTH.currentManager = newManager;
-  saveManagers();
+
+  // Save locally first — always works regardless of Firebase
+  localStorage.setItem('eh_managers', JSON.stringify(AUTH.managers));
+  // Try Firebase in background — failure does NOT block login
+  if(fbReady){
+    fbSetDoc('boh_shared','managers',{list:AUTH.managers,updatedAt:Date.now()})
+      .catch(function(e){ console.warn('Firebase save failed, local save succeeded:', e); });
+  }
+
   logAttempt('NEW_MANAGER_REGISTERED', name);
   closeSetup();
-  // Go straight to snapshot step
   goToStep(2);
   startSnapCamera();
 }
@@ -2803,23 +2810,65 @@ function recoverySetNewCode(){
   var code1 = document.getElementById('recovery-new-code').value;
   var code2 = document.getElementById('recovery-new-code2').value;
   var err = document.getElementById('recovery-code-err');
-  // Validate master code
-  if(master !== MASTER_CODE && !AUTH.managers.find(function(m){ return m.code === master; })){ err.textContent='Master code is incorrect. Use EPICUREAN2024 or ask your administrator.'; err.style.display='block'; return; }
-  if(code1.length < 6){ err.textContent='New code must be at least 6 characters.'; err.style.display='block'; return; }
-  if(code1 !== code2){ err.textContent='Codes do not match.'; err.style.display='block'; return; }
-  // Allow reusing the master code or any code not already taken by a different person
-  var otherManagers = AUTH.managers.filter(function(m){ return m.name !== selectedName; });
-  if(otherManagers.find(function(m){ return m.code === code1; })){
-    err.textContent='That code is already used by someone else. Please choose a different one.'; err.style.display='block'; return;
+
+  // Clear previous error
+  err.style.display = 'none';
+  err.textContent = '';
+
+  // Step 1: validate master code
+  if(master !== MASTER_CODE && !AUTH.managers.find(function(m){ return m.code === master; })){
+    err.textContent = 'Master code is incorrect. Please enter EPICUREAN2024.';
+    err.style.display = 'block';
+    return;
   }
-  // Update the selected manager's code
+
+  // Step 2: validate new code length
+  if(!code1 || code1.length < 6){
+    err.textContent = 'New code must be at least 6 characters long.';
+    err.style.display = 'block';
+    return;
+  }
+
+  // Step 3: codes must match
+  if(code1 !== code2){
+    err.textContent = 'The two codes do not match. Please type them again.';
+    err.style.display = 'block';
+    return;
+  }
+
+  // Step 4: find or create the manager entry
   var target = AUTH.managers.find(function(m){ return m.name === selectedName; });
-  if(!target){ err.textContent='Manager not found.'; err.style.display='block'; return; }
+  if(!target){
+    // Create new entry if not found
+    target = {name: selectedName, code: '', faceDescriptor: null};
+    AUTH.managers.push(target);
+  }
+
+  // Step 5: set the new code
   target.code = code1;
-  saveManagers();
-  logAttempt('CODE_RESET_VIA_RECOVERY', selectedName);
-  closeRecovery();
-  showToast('Code updated for ' + selectedName + '. You can now sign in with your new code.', 'success');
+
+  // Step 6: save locally first (always works, no Firebase needed)
+  localStorage.setItem('eh_managers', JSON.stringify(AUTH.managers));
+
+  // Step 7: try Firebase in background (failure here does NOT stop login)
+  if(fbReady){
+    fbSetDoc('boh_shared', 'managers', {list: AUTH.managers, updatedAt: Date.now()})
+      .catch(function(e){ console.warn('Firebase save failed, local save succeeded:', e); });
+  }
+
+  // Step 8: close modal and show success
+  document.getElementById('recovery-modal').style.display = 'none';
+
+  // Step 9: show a large, impossible-to-miss success message on the login screen
+  var successMsg = document.createElement('div');
+  successMsg.style.cssText = 'position:fixed;inset:0;background:#0F1B2D;z-index:15000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;gap:16px';
+  successMsg.innerHTML =
+    '<div style="font-size:48px">&#10003;</div>'
+    +'<div style="font-size:22px;font-weight:700;color:#9AE6B4">Code saved successfully</div>'
+    +'<div style="font-size:15px;color:rgba(255,255,255,.6);max-width:320px;line-height:1.6">Your new code for <strong style="color:#fff">' + selectedName + '</strong> is saved.<br>You can now use it to sign in.</div>'
+    +'<button onclick="document.body.removeChild(this.parentElement);showLoginScreen();" '
+    +'style="margin-top:12px;background:#B8943F;color:#0F1B2D;border:none;border-radius:10px;padding:14px 32px;font-size:16px;font-weight:700;cursor:pointer">Sign in now &#8594;</button>';
+  document.body.appendChild(successMsg);
 }
 
 // ── CHANGE CODE (when already logged in) ──
