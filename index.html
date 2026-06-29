@@ -643,49 +643,31 @@ window.QRErrorCorrectLevel=QRErrorCorrectLevel;
   <div class="login-logo">The Epicurean House<br>@ The Chocolate Studio</div>
   <div class="login-sub">BACK OF HOUSE — SECURE ACCESS</div>
 
-  <!-- STEP 1: Enter access code -->
   <div class="login-card" id="login-step-1">
-    <div class="login-label">Enter your access code</div>
-    <input class="login-input" id="code-input" type="password" placeholder="Access code" autocomplete="off"
+    <div class="login-label">Access code</div>
+    <input class="login-input" id="code-input" type="password"
+      placeholder="Enter your code"
       onkeydown="if(event.key==='Enter')checkCode()">
-    <div class="login-err" id="code-err" style="display:none">Incorrect code. Please try again.</div>
-    <div id="attempts-label" style="font-size:12px;color:rgba(255,255,255,.35);text-align:center;margin-top:4px"></div>
-    <button class="login-btn" onclick="checkCode()">Continue &#8594;</button>
-    <div style="text-align:center;margin-top:8px">
-      <span style="font-size:12px;color:rgba(255,255,255,.35);cursor:pointer;text-decoration:underline"
-        onclick="openRecovery()">Forgot your code?</span>
+    <div id="code-err" style="display:none;color:#FC8181;font-size:13px;margin-top:6px;text-align:center"></div>
+    <button class="login-btn" id="continue-btn" onclick="checkCode()" style="margin-top:14px">Continue &rarr;</button>
+    <div style="text-align:center;margin-top:10px">
+      <span style="font-size:12px;color:rgba(255,255,255,.35);cursor:pointer;text-decoration:underline" onclick="openRecovery()">Forgot your code?</span>
+      &nbsp;&middot;&nbsp;
+      <span style="font-size:12px;color:rgba(255,255,255,.35);cursor:pointer;text-decoration:underline" onclick="openSetup()">First time? Register</span>
     </div>
   </div>
 
-  <!-- STEP 2: Take photo snapshot -->
   <div class="login-card" id="login-step-2" style="display:none">
-    <div class="login-label" style="text-align:center">Take a quick photo to confirm it&#39;s you</div>
+    <div class="login-label" style="text-align:center">Take a quick photo</div>
     <div style="display:flex;justify-content:center;margin:12px 0">
-      <div id="snap-preview" style="width:200px;height:200px;border-radius:50%;overflow:hidden;border:3px solid rgba(184,148,63,.5);background:#000;position:relative">
-        <video id="snap-video" autoplay muted playsinline
-          style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>
+      <div style="width:200px;height:200px;border-radius:50%;overflow:hidden;border:3px solid rgba(184,148,63,.5);background:#111">
+        <video id="snap-video" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>
         <canvas id="snap-canvas" style="display:none"></canvas>
       </div>
     </div>
-    <div id="snap-status" style="font-size:13px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:12px">
-      Starting camera&#8230;
-    </div>
-    <div class="login-err" id="snap-err" style="display:none"></div>
-    <button class="login-btn" id="snap-btn" onclick="takeSnapshot()" style="display:none">
-      &#128247; Take photo &amp; sign in
-    </button>
-    <button class="login-btn-secondary" onclick="goToStep(1);stopCamera()">&#8592; Back</button>
-    <div style="text-align:center;margin-top:8px">
-      <span style="font-size:11px;color:rgba(255,255,255,.25)">
-        Photo is saved to your security log for manager review
-      </span>
-    </div>
-  </div>
-
-  <div style="position:absolute;bottom:20px;left:0;right:0;text-align:center">
-    <span style="font-size:12px;color:rgba(255,255,255,.2)">First time?
-      <span style="text-decoration:underline;cursor:pointer" onclick="openSetup()">Register your face &#8594;</span>
-    </span>
+    <div id="snap-status" style="font-size:13px;color:rgba(255,255,255,.5);text-align:center;margin-bottom:10px">Starting camera&hellip;</div>
+    <button class="login-btn" id="snap-btn" onclick="takeSnapshot()" style="display:none">&#128247; Take photo &amp; sign in</button>
+    <button class="login-btn-secondary" onclick="backToStep1()">&#8592; Back</button>
   </div>
 </div></div>
 
@@ -2510,6 +2492,103 @@ function hideLoginErr(id){
   el.style.display = 'none';
 }
 
+// Security log — records every login attempt with timestamp
+function logAttempt(type, detail){
+  try {
+    var log = JSON.parse(localStorage.getItem('eh_security_log') || '[]');
+    log.push({ time: new Date().toISOString(), type: type, detail: detail });
+    if(log.length > 200) log = log.slice(-200);
+    localStorage.setItem('eh_security_log', JSON.stringify(log));
+  } catch(e){ /* non-critical, ignore */ }
+}
+
+// Logout
+function doLogout(){
+  sessionStorage.removeItem('eh_session');
+  sessionStorage.removeItem('eh_manager');
+  stopCamera();
+  showLoginScreen();
+}
+
+// Edit staff member (opens modal pre-filled)
+function editStaff(id){
+  var s = DB.staff.find(function(m){ return m.id === id; });
+  if(!s) return;
+  document.getElementById('staff-name').value = s.name;
+  document.getElementById('staff-role').value = s.role;
+  document.getElementById('staff-pin').value = s.pin || '';
+  document.getElementById('staff-phone').value = s.phone || '';
+  openModal('modal-staff');
+}
+
+// Phone QR face capture — stub (used when phone scans QR code)
+function runPhoneFaceCapture(token){
+  document.body.innerHTML =
+    '<div style="background:#0F1B2D;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:-apple-system,sans-serif;color:#fff;text-align:center;gap:16px">'
+    +'<div style="font-size:17px;font-weight:700">Verify your identity</div>'
+    +'<div style="width:220px;height:220px;border-radius:50%;overflow:hidden;border:4px solid rgba(184,148,63,.5);background:#000">'
+    +'<video id="phone-face-video" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>'
+    +'</div>'
+    +'<div id="phone-status" style="font-size:14px;color:rgba(255,255,255,.6)">Starting camera\u2026</div>'
+    +'<div id="phone-action"></div>'
+    +'</div>';
+
+  var statusEl = document.getElementById('phone-status');
+  var actionEl = document.getElementById('phone-action');
+
+  if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
+    statusEl.innerHTML = 'Camera not available.<br><a href="' + window.location.href + '" style="color:#B8943F">Tap to open in Safari</a>';
+    return;
+  }
+
+  var cameraTimeout = setTimeout(function(){
+    statusEl.innerHTML = 'Camera timed out.<br><a href="' + window.location.href + '" style="color:#B8943F">Tap to try in Safari</a>';
+  }, 6000);
+
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}})
+    .then(function(stream){
+      clearTimeout(cameraTimeout);
+      var video = document.getElementById('phone-face-video');
+      video.srcObject = stream;
+      video.onloadedmetadata = function(){
+        video.play();
+        statusEl.textContent = 'Hold still\u2026';
+        // Take snapshot automatically after 2s
+        setTimeout(function(){
+          var canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth || 320;
+          canvas.height = video.videoHeight || 320;
+          var ctx = canvas.getContext('2d');
+          ctx.scale(-1,1); ctx.drawImage(video,-canvas.width,0,canvas.width,canvas.height);
+          var snapshot = canvas.toDataURL('image/jpeg', 0.7);
+          stream.getTracks().forEach(function(t){ t.stop(); });
+          // Write result to Firebase
+          if(fbReady){
+            fbSetDoc('face_verify_requests', token, {
+              status: 'captured',
+              descriptor: [],
+              snapshot: snapshot,
+              capturedAt: Date.now()
+            }).then(function(){
+              document.body.innerHTML = '<div style="background:#0F1B2D;color:#9AE6B4;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:18px;font-weight:600;text-align:center;padding:32px">\u2713 Photo taken.<br><br>Return to your computer to complete sign-in.</div>';
+            });
+          } else {
+            document.body.innerHTML = '<div style="background:#0F1B2D;color:#FC8181;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:16px;font-weight:600;text-align:center;padding:32px">Database not connected.<br><br>Use "this device camera" on the computer instead.</div>';
+          }
+        }, 2000);
+      };
+    })
+    .catch(function(err){
+      clearTimeout(cameraTimeout);
+      var name = err && err.name ? err.name : 'Error';
+      if(name === 'NotAllowedError'){
+        statusEl.innerHTML = 'Camera permission denied.<br>Go to Settings \u2192 Safari \u2192 Camera \u2192 Allow';
+      } else {
+        statusEl.innerHTML = 'Camera error: ' + name + '<br><a href="' + window.location.href + '" style="color:#B8943F">Try opening in Safari</a>';
+      }
+    });
+}
+
 function showToast(msg,type){
   var container=document.getElementById('toast');
   var item=document.createElement('div');
@@ -2531,224 +2610,219 @@ function downloadCSV(csv,filename){
 // AUTHENTICATION SYSTEM — Code + Face Recognition
 // ══════════════════════════════════════════════════════════
 
-// ── MASTER UNLOCK CODE ──
-// This is a permanent backstop that never gets stored in Firebase or
-// localStorage. It always works for first-time setup and code recovery,
-// regardless of what the database contains.
-var MASTER_CODE = 'EPICUREAN2024';
+// ══════════════════════════════════════════════════════════
+// LOGIN SYSTEM — clean rewrite
+// ══════════════════════════════════════════════════════════
 
-var AUTH = {
-  // Default manager — change code after first login via Setup
-  // Loaded from localStorage instantly for fast first paint, then
-  // refreshed from Firebase (the real shared source of truth) below.
-  managers: JSON.parse(localStorage.getItem('eh_managers') || JSON.stringify([
-    {name:'General Manager', code:'EPICUREAN2024', faceDescriptor:null}
-  ])),
-  maxAttempts: 5,
-  attempts: 0,
-  lockUntil: 0,
-  currentManager: null,
-  sessionToken: null,
-  faceModelsLoaded: false,
-  videoStream: null,
-  faceMatchThreshold: 0.5
-};
+var MASTER = 'EPICUREAN2024'; // always works, hardcoded, never changes
+
+// Managers list — loaded from localStorage, synced with Firebase
+var MANAGERS = (function(){
+  try { return JSON.parse(localStorage.getItem('eh_managers') || '[]'); } catch(e){ return []; }
+})();
+if(!MANAGERS.length){
+  MANAGERS = [{name:'General Manager', code:'EPICUREAN2024'}];
+  localStorage.setItem('eh_managers', JSON.stringify(MANAGERS));
+}
 
 function saveManagers(){
-  localStorage.setItem('eh_managers', JSON.stringify(AUTH.managers));
-  fbSetDoc('boh_shared', 'managers', {list: AUTH.managers, updatedAt: Date.now()});
-}
-
-// On load, pull the real shared copy from Firebase and adopt it if present.
-// This is what makes a code registered on one device/upload show up on the next.
-function syncManagersFromFirebase(){
-  if(!fbReady) return;
-  fbGetDoc('boh_shared', 'managers').then(function(doc){
-    if(doc && doc.list && doc.list.length){
-      AUTH.managers = doc.list;
-      localStorage.setItem('eh_managers', JSON.stringify(AUTH.managers));
-    } else if(AUTH.managers.length){
-      // Firebase is empty (first ever run) — seed it from whatever we have locally
-      fbSetDoc('boh_shared', 'managers', {list: AUTH.managers, updatedAt: Date.now()});
-    }
-  });
-}
-
-// Check if already logged in this session
-function checkSession(){
-  var token = sessionStorage.getItem('eh_session');
-  var name = sessionStorage.getItem('eh_manager');
-  if(token && token === AUTH.sessionToken || (token && token.length > 10)){
-    // Valid session — hide login
-    hideLoginScreen();
-    if(name) document.getElementById('manager-name').textContent = name;
-    document.getElementById('user-avatar').textContent = name ? name.charAt(0).toUpperCase() : 'M';
-    return true;
+  localStorage.setItem('eh_managers', JSON.stringify(MANAGERS));
+  if(fbReady){
+    fbSetDoc('boh_shared','managers',{list:MANAGERS,updatedAt:Date.now()})
+      .catch(function(){ /* firebase optional */ });
   }
-  return false;
 }
 
-function showLoginScreen(){
+// Load from Firebase if available, then show login
+function initLogin(){
+  var params = new URLSearchParams(window.location.search);
+  var token = params.get('face');
+  if(token){ window.history.replaceState({},'',window.location.pathname); startPhoneCapture(token); return; }
+
+  // Check existing session
+  var sess = sessionStorage.getItem('eh_session');
+  var name = sessionStorage.getItem('eh_manager');
+  if(sess && sess.length > 8){
+    if(name){ CURRENT_MANAGER = {name:name}; }
+    showApp();
+    return;
+  }
+
+  // Try to sync managers from Firebase (3s max), then show login
   document.getElementById('login-screen').style.display = 'flex';
   document.getElementById('app-body').style.display = 'none';
   document.getElementById('topbar').style.display = 'none';
-  goToStep(1);
-  document.getElementById('code-input').value = '';
-  document.getElementById('code-err').style.display = 'none';
+  showStep(1);
+
+  if(fbReady){
+    var timer = setTimeout(function(){ /* just show login if slow */ }, 3000);
+    fbGetDoc('boh_shared','managers').then(function(doc){
+      clearTimeout(timer);
+      if(doc && doc.list && doc.list.length){
+        MANAGERS = doc.list;
+        // Always keep master code available
+        if(!MANAGERS.find(function(m){ return m.code === MASTER; })){
+          MANAGERS.push({name:'General Manager', code:MASTER});
+        }
+        localStorage.setItem('eh_managers', JSON.stringify(MANAGERS));
+      }
+    }).catch(function(){});
+  }
 }
 
-function hideLoginScreen(){
-  document.getElementById('login-screen').style.display = 'none';
-  document.getElementById('app-body').style.display = 'flex';
-  document.getElementById('topbar').style.display = 'flex';
+var CURRENT_MANAGER = null;
+var snapStream = null;
+
+// ── STEP CONTROL ──
+function showStep(n){
+  var s1 = document.getElementById('login-step-1');
+  var s2 = document.getElementById('login-step-2');
+  if(s1) s1.style.display = (n===1) ? 'flex' : 'none';
+  if(s2) s2.style.display = (n===2) ? 'flex' : 'none';
 }
 
-// ── STEP 1: CHECK CODE ──
+function backToStep1(){
+  stopSnap();
+  showStep(1);
+}
+
+// ── CODE CHECK ──
 function checkCode(){
-  var now = Date.now();
-  if(AUTH.lockUntil > now){
-    var secs = Math.ceil((AUTH.lockUntil - now)/1000);
-    showLoginErr('code-err', 'Too many attempts. Wait ' + secs + ' seconds.');
+  var input = document.getElementById('code-input');
+  var errEl = document.getElementById('code-err');
+  var code = input ? input.value.trim() : '';
+
+  errEl.style.display = 'none';
+
+  if(!code){
+    errEl.textContent = 'Please enter your access code.';
+    errEl.style.display = 'block';
     return;
   }
-  var entered = (document.getElementById('code-input').value || '').trim();
-  if(!entered){ showLoginErr('code-err','Please enter your access code.'); return; }
 
-  // MASTER CODE always works — this is the guaranteed backstop
-  // regardless of what Firebase has stored, so you are never locked out.
+  // Check master code first — always works
   var match = null;
-  if(entered === MASTER_CODE){
-    match = {name:'General Manager', code:MASTER_CODE, faceDescriptor:null};
-    // Make sure it's in the managers list for this session
-    if(!AUTH.managers.find(function(m){ return m.code === MASTER_CODE; })){
-      AUTH.managers.push(match);
-    } else {
-      match = AUTH.managers.find(function(m){ return m.code === MASTER_CODE; });
-    }
+  if(code === MASTER){
+    match = MANAGERS.find(function(m){ return m.code === MASTER; });
+    if(!match){ match = {name:'General Manager', code:MASTER}; }
   } else {
-    match = AUTH.managers.find(function(m){ return m.code === entered; });
+    match = MANAGERS.find(function(m){ return m.code === code; });
   }
 
   if(match){
-    AUTH.currentManager = match;
-    AUTH.attempts = 0;
-    hideLoginErr('code-err');
-    logAttempt('CODE_OK', match.name);
-    goToStep(2);
-    startSnapCamera();
+    CURRENT_MANAGER = match;
+    input.value = '';
+    showStep(2);
+    startSnap();
   } else {
-    AUTH.attempts++;
-    logAttempt('CODE_FAIL', 'unknown');
-    if(AUTH.attempts >= AUTH.maxAttempts){
-      AUTH.lockUntil = Date.now() + 120000;
-      showLoginErr('code-err','Too many incorrect attempts. Please wait 2 minutes.');
-    } else {
-      var left = AUTH.maxAttempts - AUTH.attempts;
-      showLoginErr('code-err','Incorrect code. ' + left + ' attempt' + (left===1?'':'s') + ' remaining.');
-    }
-    document.getElementById('code-input').value = '';
-    document.getElementById('code-input').focus();
+    errEl.textContent = 'Incorrect code. Please try again.';
+    errEl.style.display = 'block';
+    input.value = '';
+    input.focus();
   }
 }
 
-// ── STEP 2: CAMERA SNAPSHOT ──
-// No AI library. Camera opens, user clicks button, snapshot is saved
-// to security log. Manager reviews photos from admin panel.
-
-var snapStream = null;
-
-function startSnapCamera(){
-  var video = document.getElementById('snap-video');
-  var status = document.getElementById('snap-status');
+// ── CAMERA SNAPSHOT ──
+function startSnap(){
+  var statusEl = document.getElementById('snap-status');
   var btn = document.getElementById('snap-btn');
+  btn.style.display = 'none';
+  statusEl.textContent = 'Starting camera…';
+
   if(!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia){
-    status.textContent = 'Camera not available on this device.';
+    statusEl.textContent = 'No camera available. Sign in anyway.';
+    btn.textContent = 'Sign in without photo';
+    btn.style.display = 'block';
     return;
   }
-  navigator.mediaDevices.getUserMedia({video:{facingMode:'user',width:640,height:640}})
+
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}})
     .then(function(stream){
       snapStream = stream;
+      var video = document.getElementById('snap-video');
       video.srcObject = stream;
       video.onloadedmetadata = function(){
         video.play();
-        status.textContent = 'Position your face and click the button below';
+        statusEl.textContent = 'Click the button below to sign in';
         btn.style.display = 'block';
       };
     })
-    .catch(function(err){
-      var name = err && err.name ? err.name : 'Error';
-      if(name === 'NotAllowedError'){
-        status.innerHTML = 'Camera permission denied.<br>Please allow camera access in your browser settings.';
-      } else {
-        status.textContent = 'Camera could not start. Please try again.';
-      }
+    .catch(function(){
+      statusEl.textContent = 'Camera unavailable. Sign in without photo.';
+      btn.textContent = 'Sign in without photo';
+      btn.style.display = 'block';
     });
+}
+
+function stopSnap(){
+  if(snapStream){ snapStream.getTracks().forEach(function(t){ t.stop(); }); snapStream = null; }
 }
 
 function takeSnapshot(){
   var video = document.getElementById('snap-video');
   var canvas = document.getElementById('snap-canvas');
-  var status = document.getElementById('snap-status');
-  var btn = document.getElementById('snap-btn');
 
-  canvas.width = video.videoWidth || 320;
-  canvas.height = video.videoHeight || 320;
-  var ctx = canvas.getContext('2d');
-  ctx.save();
-  ctx.scale(-1,1);
-  ctx.drawImage(video, -canvas.width, 0, canvas.width, canvas.height);
-  ctx.restore();
-
-  var dataUrl = canvas.toDataURL('image/jpeg', 0.7);
-  stopCamera();
-
-  // Save snapshot to security log
-  var entry = {
-    time: new Date().toISOString(),
-    manager: AUTH.currentManager ? AUTH.currentManager.name : 'Unknown',
-    snapshot: dataUrl,
-    action: 'LOGIN_SNAPSHOT'
-  };
-  var log = JSON.parse(localStorage.getItem('eh_security_log') || '[]');
-  log.push(entry);
-  // Keep last 100 snapshots
-  if(log.length > 100) log = log.slice(-100);
-  localStorage.setItem('eh_security_log', JSON.stringify(log));
-
-  // Also write to Firebase if connected
-  if(fbReady){
-    fbSetDoc('security_log', 'latest_login', {
-      time: entry.time,
-      manager: entry.manager,
-      hasSnapshot: true
-    });
+  if(video && video.readyState >= 2){
+    canvas.width = video.videoWidth || 320;
+    canvas.height = video.videoHeight || 320;
+    var ctx = canvas.getContext('2d');
+    ctx.save(); ctx.scale(-1,1);
+    ctx.drawImage(video,-canvas.width,0,canvas.width,canvas.height);
+    ctx.restore();
+    var snap = canvas.toDataURL('image/jpeg',0.6);
+    // Save to local security log
+    try {
+      var log = JSON.parse(localStorage.getItem('eh_security_log')||'[]');
+      log.push({time:new Date().toISOString(),manager:CURRENT_MANAGER.name,snapshot:snap});
+      if(log.length>50) log=log.slice(-50);
+      localStorage.setItem('eh_security_log',JSON.stringify(log));
+    } catch(e){}
   }
 
-  logAttempt('LOGIN_SNAPSHOT_SAVED', entry.manager);
-  // Complete login
-  AUTH.sessionToken = 'sess_' + Date.now();
-  sessionStorage.setItem('eh_session', AUTH.sessionToken);
-  sessionStorage.setItem('eh_manager', entry.manager);
-  hideLoginScreen();
+  stopSnap();
+  completeLogin();
+}
+
+function completeLogin(){
+  var token = 'sess_' + Date.now();
+  sessionStorage.setItem('eh_session', token);
+  sessionStorage.setItem('eh_manager', CURRENT_MANAGER.name);
+  showApp();
+}
+
+function showApp(){
+  var name = CURRENT_MANAGER ? CURRENT_MANAGER.name : (sessionStorage.getItem('eh_manager') || 'Manager');
+  document.getElementById('login-screen').style.display = 'none';
+  document.getElementById('app-body').style.display = 'flex';
+  document.getElementById('topbar').style.display = 'flex';
+  var av = document.getElementById('user-avatar');
+  if(av) av.textContent = name.charAt(0).toUpperCase();
+  var mn = document.getElementById('manager-name');
+  if(mn) mn.textContent = name;
   renderDashboard();
-  showToast('Welcome, ' + (AUTH.currentManager ? AUTH.currentManager.name.split(' ')[0] : ''), 'success');
+  showToast('Welcome, ' + name.split(' ')[0], 'success');
 }
 
-function stopCamera(){
-  if(snapStream){ snapStream.getTracks().forEach(function(t){t.stop();}); snapStream=null; }
-  if(AUTH.videoStream){ AUTH.videoStream.getTracks().forEach(function(t){t.stop();}); AUTH.videoStream=null; }
+function showLoginScreen(){
+  stopSnap();
+  CURRENT_MANAGER = null;
+  sessionStorage.removeItem('eh_session');
+  sessionStorage.removeItem('eh_manager');
+  var code = document.getElementById('code-input');
+  if(code) code.value = '';
+  var err = document.getElementById('code-err');
+  if(err) err.style.display = 'none';
+  document.getElementById('login-screen').style.display = 'flex';
+  document.getElementById('app-body').style.display = 'none';
+  document.getElementById('topbar').style.display = 'none';
+  showStep(1);
 }
 
-// ── STEP NAVIGATION — 2-step: code then snapshot ──
-// ── STEP NAVIGATION — 2-step: code then snapshot ──
-function goToStep(n){
-  [1,2].forEach(function(i){
-    var el = document.getElementById('login-step-'+i);
-    if(el) el.style.display = (i===n)?'flex':'none';
-  });
+function doLogout(){
+  showLoginScreen();
 }
 
-// ── SETUP: FIRST TIME REGISTRATION ──
+// ── SETUP: FIRST TIME / NEW USER ──
 function openSetup(){
   document.getElementById('setup-name').value = '';
   document.getElementById('setup-master').value = '';
@@ -2757,289 +2831,186 @@ function openSetup(){
   document.getElementById('setup-err').style.display = 'none';
   document.getElementById('setup-modal').style.display = 'flex';
 }
-function closeSetup(){
-  document.getElementById('setup-modal').style.display = 'none';
-}
+function closeSetup(){ document.getElementById('setup-modal').style.display = 'none'; }
 function saveSetup(){
-  var name = document.getElementById('setup-name').value.trim();
-  var master = document.getElementById('setup-master').value.trim();
-  var code1 = document.getElementById('setup-code1').value;
-  var code2 = document.getElementById('setup-code2').value;
-  var err = document.getElementById('setup-err');
-  // Validate master code — must match an existing manager code or the default
-  if(!name){ err.textContent='Please enter your name.'; err.style.display='block'; return; }
-  if(master !== MASTER_CODE && !AUTH.managers.find(function(m){ return m.code === master; })){ err.textContent='Master code is incorrect. Use EPICUREAN2024 or ask your administrator.'; err.style.display='block'; return; }
-  if(code1.length < 6){ err.textContent='Your code must be at least 6 characters.'; err.style.display='block'; return; }
-  if(code1 !== code2){ err.textContent='Codes do not match.'; err.style.display='block'; return; }
-  // Check for duplicate code — but only among real named managers, not the default
-  var realManagers = AUTH.managers.filter(function(m){ return m.name !== 'General Manager'; });
-  if(realManagers.find(function(m){ return m.code === code1; })){
-    err.textContent='That code is already in use by another manager. Please choose a different code.'; err.style.display='block'; return;
-  }
-  // Remove the default General Manager entry if we are creating a real account
-  AUTH.managers = AUTH.managers.filter(function(m){ return m.name !== 'General Manager' || AUTH.managers.length === 1; });
-  // Add new manager
-  var newManager = { name: name, code: code1, faceDescriptor: null };
-  AUTH.managers.push(newManager);
-  AUTH.currentManager = newManager;
-
-  // Save locally first — always works regardless of Firebase
-  localStorage.setItem('eh_managers', JSON.stringify(AUTH.managers));
-  // Try Firebase in background — failure does NOT block login
-  if(fbReady){
-    fbSetDoc('boh_shared','managers',{list:AUTH.managers,updatedAt:Date.now()})
-      .catch(function(e){ console.warn('Firebase save failed, local save succeeded:', e); });
-  }
-
-  logAttempt('NEW_MANAGER_REGISTERED', name);
+  var name  = document.getElementById('setup-name').value.trim();
+  var master= document.getElementById('setup-master').value.trim();
+  var c1    = document.getElementById('setup-code1').value;
+  var c2    = document.getElementById('setup-code2').value;
+  var err   = document.getElementById('setup-err');
+  err.style.display = 'none';
+  if(!name){ err.textContent='Enter your name.'; err.style.display='block'; return; }
+  if(master !== MASTER){ err.textContent='Master code incorrect. Use EPICUREAN2024.'; err.style.display='block'; return; }
+  if(c1.length < 4){ err.textContent='Code must be at least 4 characters.'; err.style.display='block'; return; }
+  if(c1 !== c2){ err.textContent='Codes do not match.'; err.style.display='block'; return; }
+  // Remove old entry for same name if exists
+  MANAGERS = MANAGERS.filter(function(m){ return m.name !== name; });
+  MANAGERS.push({name:name, code:c1});
+  saveManagers();
+  CURRENT_MANAGER = {name:name, code:c1};
   closeSetup();
-  goToStep(2);
-  startSnapCamera();
+  showStep(2);
+  startSnap();
 }
 
 // ── FORGOT CODE / RESET ──
 function openRecovery(){
-  // Populate name dropdown
   var sel = document.getElementById('recovery-name-select');
-  sel.innerHTML = '';
-  AUTH.managers.forEach(function(m){
-    var opt = document.createElement('option');
-    opt.value = m.name; opt.textContent = m.name;
-    sel.appendChild(opt);
+  if(sel){
+    sel.innerHTML = '';
+    MANAGERS.forEach(function(m){
+      var o = document.createElement('option');
+      o.value = m.name; o.textContent = m.name; sel.appendChild(o);
+    });
+  }
+  ['recovery-master','recovery-new-code','recovery-new-code2'].forEach(function(id){
+    var el = document.getElementById(id); if(el) el.value = '';
   });
-  document.getElementById('recovery-master').value = '';
-  document.getElementById('recovery-new-code').value = '';
-  document.getElementById('recovery-new-code2').value = '';
   document.getElementById('recovery-code-err').style.display = 'none';
   document.getElementById('recovery-modal').style.display = 'flex';
 }
-function closeRecovery(){
-  document.getElementById('recovery-modal').style.display = 'none';
-}
+function closeRecovery(){ document.getElementById('recovery-modal').style.display = 'none'; }
 function recoverySetNewCode(){
-  var selectedName = document.getElementById('recovery-name-select').value;
-  var master = document.getElementById('recovery-master').value.trim();
-  var code1 = document.getElementById('recovery-new-code').value;
-  var code2 = document.getElementById('recovery-new-code2').value;
-  var err = document.getElementById('recovery-code-err');
-
-  // Clear previous error
+  var name  = document.getElementById('recovery-name-select').value;
+  var master= document.getElementById('recovery-master').value.trim();
+  var c1    = document.getElementById('recovery-new-code').value;
+  var c2    = document.getElementById('recovery-new-code2').value;
+  var err   = document.getElementById('recovery-code-err');
   err.style.display = 'none';
-  err.textContent = '';
-
-  // Step 1: validate master code
-  if(master !== MASTER_CODE && !AUTH.managers.find(function(m){ return m.code === master; })){
-    err.textContent = 'Master code is incorrect. Please enter EPICUREAN2024.';
-    err.style.display = 'block';
-    return;
-  }
-
-  // Step 2: validate new code length
-  if(!code1 || code1.length < 6){
-    err.textContent = 'New code must be at least 6 characters long.';
-    err.style.display = 'block';
-    return;
-  }
-
-  // Step 3: codes must match
-  if(code1 !== code2){
-    err.textContent = 'The two codes do not match. Please type them again.';
-    err.style.display = 'block';
-    return;
-  }
-
-  // Step 4: find or create the manager entry
-  var target = AUTH.managers.find(function(m){ return m.name === selectedName; });
-  if(!target){
-    // Create new entry if not found
-    target = {name: selectedName, code: '', faceDescriptor: null};
-    AUTH.managers.push(target);
-  }
-
-  // Step 5: set the new code
-  target.code = code1;
-
-  // Step 6: save locally first (always works, no Firebase needed)
-  localStorage.setItem('eh_managers', JSON.stringify(AUTH.managers));
-
-  // Step 7: try Firebase in background (failure here does NOT stop login)
-  if(fbReady){
-    fbSetDoc('boh_shared', 'managers', {list: AUTH.managers, updatedAt: Date.now()})
-      .catch(function(e){ console.warn('Firebase save failed, local save succeeded:', e); });
-  }
-
-  // Step 8: close modal and show success
-  document.getElementById('recovery-modal').style.display = 'none';
-
-  // Step 9: show a large, impossible-to-miss success message on the login screen
-  var successMsg = document.createElement('div');
-  successMsg.style.cssText = 'position:fixed;inset:0;background:#0F1B2D;z-index:15000;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;padding:32px;gap:16px';
-  successMsg.innerHTML =
-    '<div style="font-size:48px">&#10003;</div>'
-    +'<div style="font-size:22px;font-weight:700;color:#9AE6B4">Code saved successfully</div>'
-    +'<div style="font-size:15px;color:rgba(255,255,255,.6);max-width:320px;line-height:1.6">Your new code for <strong style="color:#fff">' + selectedName + '</strong> is saved.<br>You can now use it to sign in.</div>'
-    +'<button onclick="document.body.removeChild(this.parentElement);showLoginScreen();" '
-    +'style="margin-top:12px;background:#B8943F;color:#0F1B2D;border:none;border-radius:10px;padding:14px 32px;font-size:16px;font-weight:700;cursor:pointer">Sign in now &#8594;</button>';
-  document.body.appendChild(successMsg);
+  if(master !== MASTER){ err.textContent='Master code incorrect. Use EPICUREAN2024.'; err.style.display='block'; return; }
+  if(c1.length < 4){ err.textContent='Code must be at least 4 characters.'; err.style.display='block'; return; }
+  if(c1 !== c2){ err.textContent='Codes do not match.'; err.style.display='block'; return; }
+  // Update or create manager entry
+  var target = MANAGERS.find(function(m){ return m.name === name; });
+  if(target){ target.code = c1; }
+  else { MANAGERS.push({name:name, code:c1}); }
+  saveManagers();
+  closeRecovery();
+  // Show success and go to login
+  var code = document.getElementById('code-input');
+  if(code){ code.value = c1; }
+  var msg = document.createElement('div');
+  msg.style.cssText='position:fixed;inset:0;background:#0F1B2D;z-index:20000;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:16px;text-align:center;padding:32px';
+  msg.innerHTML='<div style="font-size:48px">&#10003;</div>'
+    +'<div style="font-size:20px;font-weight:700;color:#9AE6B4">Code saved!</div>'
+    +'<div style="font-size:14px;color:rgba(255,255,255,.6)">Your code for <strong style="color:#fff">'+name+'</strong> is now set.<br>Use it to sign in.</div>'
+    +'<button onclick="document.body.removeChild(this.parentElement)" style="margin-top:8px;background:#B8943F;color:#0F1B2D;border:none;border-radius:10px;padding:14px 28px;font-size:15px;font-weight:700;cursor:pointer">Sign in &rarr;</button>';
+  document.body.appendChild(msg);
 }
 
-// ── CHANGE CODE (when already logged in) ──
+// ── CHANGE CODE (when logged in) ──
 function changeCodePrompt(){
-  var manager = AUTH.currentManager;
-  if(!manager){ showToast('Please sign in first', 'error'); return; }
-  document.getElementById('change-code-name').textContent = manager.name;
-  document.getElementById('change-current').value = '';
-  document.getElementById('change-new1').value = '';
-  document.getElementById('change-new2').value = '';
-  document.getElementById('change-code-err').style.display = 'none';
-  document.getElementById('change-code-modal').style.display = 'flex';
+  if(!CURRENT_MANAGER){ return; }
+  document.getElementById('change-code-name').textContent = CURRENT_MANAGER.name;
+  ['change-current','change-new1','change-new2'].forEach(function(id){
+    var el=document.getElementById(id); if(el) el.value='';
+  });
+  document.getElementById('change-code-err').style.display='none';
+  document.getElementById('change-code-modal').style.display='flex';
 }
 function saveCodeChange(){
-  var manager = AUTH.currentManager;
   var current = document.getElementById('change-current').value;
-  var new1 = document.getElementById('change-new1').value;
-  var new2 = document.getElementById('change-new2').value;
-  var err = document.getElementById('change-code-err');
-  if(current !== manager.code){ err.textContent='Current code is incorrect.'; err.style.display='block'; return; }
-  if(new1.length < 6){ err.textContent='New code must be at least 6 characters.'; err.style.display='block'; return; }
-  if(new1 !== new2){ err.textContent='New codes do not match.'; err.style.display='block'; return; }
-  if(AUTH.managers.find(function(m){ return m.code === new1 && m.name !== manager.name; })){
-    err.textContent='That code is already used by another manager.'; err.style.display='block'; return;
-  }
-  manager.code = new1;
+  var new1    = document.getElementById('change-new1').value;
+  var new2    = document.getElementById('change-new2').value;
+  var err     = document.getElementById('change-code-err');
+  err.style.display='none';
+  if(current !== CURRENT_MANAGER.code && current !== MASTER){ err.textContent='Current code incorrect.'; err.style.display='block'; return; }
+  if(new1.length < 4){ err.textContent='New code must be at least 4 characters.'; err.style.display='block'; return; }
+  if(new1 !== new2){ err.textContent='Codes do not match.'; err.style.display='block'; return; }
+  CURRENT_MANAGER.code = new1;
+  var target = MANAGERS.find(function(m){ return m.name === CURRENT_MANAGER.name; });
+  if(target) target.code = new1;
   saveManagers();
-  logAttempt('CODE_CHANGED', manager.name);
   closeModal('change-code-modal');
-  showToast('Access code updated successfully', 'success');
+  showToast('Code updated','success');
 }
 
-// ── AVATAR DROPDOWN MENU ──// ── AVATAR DROPDOWN MENU ──
-function toggleAvatarMenu(){
-  var menu = document.getElementById('avatar-menu');
-  var isOpen = menu.style.display === 'block';
-  if(isOpen){ closeAvatarMenu(); }
-  else {
-    // Update name in menu
-    var name = sessionStorage.getItem('eh_manager') || (AUTH.currentManager ? AUTH.currentManager.name : 'Manager');
-    document.getElementById('avatar-menu-name').textContent = name;
-    menu.style.display = 'block';
-    // Close on outside click
-    setTimeout(function(){
-      document.addEventListener('click', outsideAvatarClick);
-    }, 10);
-  }
+// ── SECURITY LOG ──
+function logAttempt(type, detail){
+  try{
+    var log=JSON.parse(localStorage.getItem('eh_security_log')||'[]');
+    log.push({time:new Date().toISOString(),type:type,detail:detail});
+    if(log.length>200) log=log.slice(-200);
+    localStorage.setItem('eh_security_log',JSON.stringify(log));
+  }catch(e){}
 }
-
-function closeAvatarMenu(){
-  document.getElementById('avatar-menu').style.display = 'none';
-  document.removeEventListener('click', outsideAvatarClick);
-}
-
-function outsideAvatarClick(e){
-  var wrap = document.getElementById('avatar-wrap');
-  if(wrap && !wrap.contains(e.target)) closeAvatarMenu();
-}
-
-function confirmLogout(){
-  if(confirm('Sign out of Back of House?\n\nYou will need your access code and face verification to sign back in.')){
-    doLogout();
-  }
-}
-
-// changeCodePrompt handled above
-
 function showSecurityLog(){
-  var log = JSON.parse(localStorage.getItem('eh_security_log') || '[]');
-  if(!log.length){ showToast('No security events recorded yet','success'); return; }
-  var msg = 'Recent security events:\n\n';
-  log.slice(-10).reverse().forEach(function(entry){
-    var time = new Date(entry.time).toLocaleString();
-    msg += time + '\n' + entry.type + ' — ' + entry.detail + '\n\n';
+  var log=JSON.parse(localStorage.getItem('eh_security_log')||'[]');
+  if(!log.length){ showToast('No events yet','success'); return; }
+  var msg='Recent logins:\n\n';
+  log.slice(-10).reverse().forEach(function(e){
+    msg+=new Date(e.time).toLocaleString()+' — '+e.type+'\n';
   });
   alert(msg);
 }
 
-// Dashboard renders after successful auth
+// ── SHOW / HIDE LOGIN ERRORS ──
+function showLoginErr(id, msg){
+  var el=document.getElementById(id);
+  if(el){ el.textContent=msg; el.style.display='block'; }
+}
+function hideLoginErr(id){
+  var el=document.getElementById(id);
+  if(el){ el.style.display='none'; }
+}
 
-// ── PAGE INIT — runs on every page load ──
-(function init(){
-  var params = new URLSearchParams(window.location.search);
-  var faceToken = params.get('face');
+// ── EDIT STAFF ──
+function editStaff(id){
+  var s=DB.staff.find(function(m){ return m.id===id; });
+  if(!s) return;
+  document.getElementById('staff-name').value=s.name;
+  document.getElementById('staff-role').value=s.role;
+  document.getElementById('staff-pin').value=s.pin||'';
+  document.getElementById('staff-phone').value=s.phone||'';
+  openModal('modal-staff');
+}
 
-  if(faceToken){
-    // Phone opened this from a scanned QR code — run capture, stop here
-    window.history.replaceState({},'',window.location.pathname);
-    runPhoneFaceCapture(faceToken);
+// ── PHONE QR CAPTURE ──
+function startPhoneCapture(token){
+  document.body.innerHTML='<div style="background:#0F1B2D;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;font-family:-apple-system,sans-serif;color:#fff;text-align:center;gap:16px">'
+    +'<div style="font-size:17px;font-weight:700">Verify your identity</div>'
+    +'<div style="width:220px;height:220px;border-radius:50%;overflow:hidden;border:4px solid rgba(184,148,63,.5);background:#111">'
+    +'<video id="pv" autoplay muted playsinline style="width:100%;height:100%;object-fit:cover;transform:scaleX(-1)"></video>'
+    +'</div>'
+    +'<div id="ps" style="font-size:14px;color:rgba(255,255,255,.6)">Starting camera…</div>'
+    +'</div>';
+
+  if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){
+    document.getElementById('ps').innerHTML='Camera not available.<br><a href="'+window.location.href+'" style="color:#B8943F">Open in Safari</a>';
     return;
   }
-
-  // Show a brief "Loading..." screen while Firebase syncs
-  // so the freshest manager codes are always used at login.
-  // Without this, stale localStorage codes cause "incorrect code" errors.
-  document.getElementById('login-screen').style.display = 'flex';
-  document.getElementById('app-body').style.display = 'none';
-  document.getElementById('topbar').style.display = 'none';
-  goToStep(1);
-
-  var loadingEl = document.createElement('div');
-  loadingEl.id = 'init-loading';
-  loadingEl.style.cssText = 'position:fixed;inset:0;background:#0F1B2D;z-index:20000;display:flex;align-items:center;justify-content:center;flex-direction:column;gap:12px';
-  loadingEl.innerHTML = '<div style="font-size:20px;font-weight:700;color:#B8943F">The Epicurean House</div>'
-    +'<div style="font-size:12px;color:rgba(255,255,255,.35);letter-spacing:.1em">BACK OF HOUSE</div>'
-    +'<div style="font-size:13px;color:rgba(255,255,255,.3);margin-top:8px">Loading\u2026</div>';
-  document.body.appendChild(loadingEl);
-
-  function proceed(){
-    var el = document.getElementById('init-loading');
-    if(el) el.remove();
-    // Check if already signed in this session
-    var token = sessionStorage.getItem('eh_session');
-    var managerName = sessionStorage.getItem('eh_manager');
-    if(token && token.length > 10){
-      if(managerName){
-        AUTH.currentManager = AUTH.managers.find(function(m){ return m.name === managerName; }) || {name:managerName, code:'', faceDescriptor:null};
-        document.getElementById('user-avatar').textContent = managerName.charAt(0).toUpperCase();
-        var mn = document.getElementById('manager-name');
-        if(mn) mn.textContent = managerName;
-      }
-      hideLoginScreen();
-      renderDashboard();
-    } else {
-      showLoginScreen();
-    }
-  }
-
-  // Sync with Firebase, max 4 second wait
-  var done = false;
-  var fallback = setTimeout(function(){
-    if(!done){ done=true; proceed(); }
-  }, 4000);
-
-  if(fbReady){
-    fbGetDoc('boh_shared','managers').then(function(doc){
-      if(done) return;
-      done=true; clearTimeout(fallback);
-      if(doc && doc.list && doc.list.length){
-        AUTH.managers = doc.list;
-        // Always ensure the master code entry exists — never let Firebase
-        // overwrite it away, so the user is never completely locked out.
-        if(!AUTH.managers.find(function(m){ return m.code === MASTER_CODE; })){
-          AUTH.managers.push({name:'General Manager', code:MASTER_CODE, faceDescriptor:null});
-        }
-        localStorage.setItem('eh_managers', JSON.stringify(AUTH.managers));
-      } else {
-        // Firebase empty — seed it from local default
-        fbSetDoc('boh_shared','managers',{list:AUTH.managers, updatedAt:Date.now()});
-      }
-      proceed();
-    }).catch(function(){
-      if(!done){ done=true; clearTimeout(fallback); proceed(); }
+  navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}})
+    .then(function(stream){
+      var v=document.getElementById('pv');
+      v.srcObject=stream;
+      v.onloadedmetadata=function(){
+        v.play();
+        document.getElementById('ps').textContent='Hold still…';
+        setTimeout(function(){
+          var cv=document.createElement('canvas');
+          cv.width=v.videoWidth||320; cv.height=v.videoHeight||320;
+          var ctx=cv.getContext('2d');
+          ctx.scale(-1,1); ctx.drawImage(v,-cv.width,0,cv.width,cv.height);
+          var snap=cv.toDataURL('image/jpeg',0.6);
+          stream.getTracks().forEach(function(t){t.stop();});
+          if(fbReady){
+            fbSetDoc('face_verify_requests',token,{status:'captured',snapshot:snap,capturedAt:Date.now()}).then(function(){
+              document.body.innerHTML='<div style="background:#0F1B2D;color:#9AE6B4;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:18px;font-weight:600;text-align:center;padding:32px">✓ Photo taken.<br><br>Return to your computer.</div>';
+            });
+          } else {
+            document.body.innerHTML='<div style="background:#0F1B2D;color:#FC8181;font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;font-size:16px;text-align:center;padding:32px">Database unavailable.<br>Use camera on computer instead.</div>';
+          }
+        },2000);
+      };
+    })
+    .catch(function(e){
+      document.getElementById('ps').innerHTML='Camera error: '+(e.name||e)+'<br><a href="'+window.location.href+'" style="color:#B8943F">Try in Safari</a>';
     });
-  } else {
-    clearTimeout(fallback);
-    proceed();
-  }
-})();
+}
+
+// ── PAGE INIT ──
+// ── PAGE INIT — runs on every page load ──
+initLogin();
 </script>
 </body>
 </html>
