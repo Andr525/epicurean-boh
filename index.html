@@ -1,210 +1,201 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>Epicurean House — Back of House &amp; Time Clock (Beta)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Epicurean House — Back of House</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
 :root{
-  --bg:#0B1420;
-  --bg-2:#0F1B2D;
-  --panel:#13233A;
-  --panel-2:#182B45;
-  --border:rgba(201,168,76,0.18);
-  --border-strong:rgba(201,168,76,0.4);
-  --gold:#C9A84C;
-  --gold-soft:#B8943F;
-  --text:#F3ECDC;
-  --text-dim:rgba(243,236,220,0.62);
-  --text-faint:rgba(243,236,220,0.38);
-  --green:#5FB48A;
-  --red:#E07A6B;
-  --shadow:0 20px 60px rgba(0,0,0,0.45);
+  --bg:#0B1420; --bg-2:#0F1B2D; --panel:#13233A; --panel-2:#182B45; --panel-3:#1D3250;
+  --border:rgba(201,168,76,0.16); --border-soft:rgba(243,236,220,0.08); --border-strong:rgba(201,168,76,0.4);
+  --gold:#C9A84C; --gold-soft:#B8943F;
+  --text:#F3ECDC; --text-dim:rgba(243,236,220,0.62); --text-faint:rgba(243,236,220,0.36);
+  --green:#5FB48A; --red:#E07A6B; --blue:#9BC4E2; --amber:#E0A36B;
+  --shadow:0 20px 60px rgba(0,0,0,0.45); --shadow-sm:0 6px 20px rgba(0,0,0,0.3);
   --ease-out:cubic-bezier(0.23,1,0.32,1);
+  --sidebar-w:248px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
 html,body{height:100%;}
-body{
-  font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
-  background:
-    radial-gradient(1200px 800px at 80% -10%, rgba(201,168,76,0.10), transparent 60%),
-    radial-gradient(900px 700px at -10% 110%, rgba(95,180,138,0.06), transparent 55%),
-    var(--bg);
-  color:var(--text);
-  min-height:100vh;
-  overflow-x:hidden;
-}
+body{font-family:'Inter',-apple-system,BlinkMacSystemFont,sans-serif;
+  background:radial-gradient(1200px 800px at 85% -10%,rgba(201,168,76,0.08),transparent 60%),var(--bg);
+  color:var(--text);min-height:100vh;}
 .serif{font-family:'Cormorant Garamond',Georgia,serif;}
 .hidden{display:none !important;}
 
-/* ---------- Brand bar ---------- */
-.brandbar{
-  display:flex;align-items:center;justify-content:space-between;
-  padding:18px 28px;border-bottom:1px solid var(--border);
-  background:linear-gradient(180deg, rgba(19,35,58,0.9), rgba(11,20,32,0.4));
-  backdrop-filter:blur(8px);position:sticky;top:0;z-index:50;
-}
-.brand{display:flex;align-items:center;gap:14px;}
-.brand-mark{
-  width:42px;height:42px;border-radius:50%;
-  border:1.5px solid var(--gold);display:flex;align-items:center;justify-content:center;
-  font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--gold);font-weight:700;
-  background:radial-gradient(circle at 30% 25%, rgba(201,168,76,0.2), transparent 70%);
-}
-.brand-name{font-family:'Cormorant Garamond',serif;font-size:22px;letter-spacing:.5px;line-height:1;}
-.brand-sub{font-size:11px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint);margin-top:3px;}
-.brand-right{display:flex;align-items:center;gap:18px;}
-.clock-display{text-align:right;}
-.clock-time{font-family:'Cormorant Garamond',serif;font-size:24px;color:var(--gold);line-height:1;font-variant-numeric:tabular-nums;}
-.clock-date{font-size:11px;color:var(--text-dim);margin-top:2px;}
-
-/* ---------- Layout ---------- */
-.screen{min-height:calc(100vh - 0px);display:flex;align-items:center;justify-content:center;padding:32px;}
-.center-card{
-  width:100%;max-width:520px;background:linear-gradient(180deg,var(--panel),var(--bg-2));
-  border:1px solid var(--border);border-radius:24px;box-shadow:var(--shadow);
-  padding:40px 36px;animation:rise .5s var(--ease-out);
-}
+/* ---------- Login ---------- */
+.login-screen{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:32px;}
+.login-card{width:100%;max-width:440px;background:linear-gradient(180deg,var(--panel),var(--bg-2));
+  border:1px solid var(--border);border-radius:24px;box-shadow:var(--shadow);padding:44px 40px;animation:rise .5s var(--ease-out);}
 @keyframes rise{from{opacity:0;transform:translateY(14px) scale(.985);}to{opacity:1;transform:none;}}
+.login-mark{width:60px;height:60px;border-radius:50%;border:1.5px solid var(--gold);margin:0 auto 18px;
+  display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:30px;color:var(--gold);font-weight:700;
+  background:radial-gradient(circle at 30% 25%,rgba(201,168,76,0.2),transparent 70%);}
 .eyebrow{font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--gold-soft);text-align:center;}
-.title{font-family:'Cormorant Garamond',serif;font-size:34px;text-align:center;margin:10px 0 6px;line-height:1.1;}
-.subtitle{text-align:center;color:var(--text-dim);font-size:14px;margin-bottom:28px;}
-.divider-orn{display:flex;align-items:center;justify-content:center;gap:10px;margin:14px 0 26px;color:var(--gold);}
-.divider-orn::before,.divider-orn::after{content:"";height:1px;width:60px;background:linear-gradient(90deg,transparent,var(--border-strong));}
+.login-title{font-family:'Cormorant Garamond',serif;font-size:32px;text-align:center;margin:8px 0 4px;}
+.login-sub{text-align:center;color:var(--text-dim);font-size:14px;margin-bottom:26px;}
+.divider-orn{display:flex;align-items:center;justify-content:center;gap:10px;margin:16px 0 24px;color:var(--gold);}
+.divider-orn::before,.divider-orn::after{content:"";height:1px;width:50px;background:linear-gradient(90deg,transparent,var(--border-strong));}
 .divider-orn::after{background:linear-gradient(90deg,var(--border-strong),transparent);}
-
-/* ---------- Mode chooser ---------- */
-.mode-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
-.mode-tile{
-  border:1px solid var(--border);border-radius:18px;padding:26px 20px;text-align:center;cursor:pointer;
-  background:rgba(24,43,69,0.5);transition:transform .18s var(--ease-out),border-color .18s var(--ease-out),background .18s var(--ease-out);
-}
-.mode-tile:hover{border-color:var(--border-strong);background:rgba(24,43,69,0.85);transform:translateY(-3px);}
-.mode-tile:active{transform:scale(.97);}
-.mode-ico{font-size:34px;margin-bottom:12px;}
-.mode-title{font-family:'Cormorant Garamond',serif;font-size:22px;margin-bottom:4px;}
-.mode-desc{font-size:12px;color:var(--text-dim);line-height:1.5;}
-
-/* ---------- Inputs / buttons ---------- */
-label.fld{display:block;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin:0 0 8px 2px;}
-.input{
-  width:100%;background:rgba(11,20,32,0.6);border:1px solid var(--border);border-radius:14px;
-  color:var(--text);font-size:18px;padding:16px 18px;outline:none;transition:border-color .18s var(--ease-out);
-  font-family:'Inter',sans-serif;
-}
-.input:focus{border-color:var(--gold);}
-.btn{
-  width:100%;border:none;border-radius:14px;padding:16px;font-size:15px;font-weight:600;letter-spacing:.4px;
-  cursor:pointer;transition:transform .16s var(--ease-out),filter .16s var(--ease-out);font-family:'Inter',sans-serif;
-}
+.fld{display:block;font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);margin-bottom:8px;}
+.input{width:100%;background:rgba(11,20,32,0.6);border:1px solid var(--border);border-radius:12px;
+  padding:14px 16px;color:var(--text);font-size:16px;font-family:'Inter';transition:border-color .16s var(--ease-out);}
+.input:focus{outline:none;border-color:var(--border-strong);}
+.input::placeholder{color:var(--text-faint);letter-spacing:3px;}
+.btn{border:none;border-radius:13px;padding:15px 20px;font-size:14px;font-weight:600;letter-spacing:.4px;cursor:pointer;
+  transition:transform .16s var(--ease-out),filter .16s var(--ease-out);font-family:'Inter';width:100%;}
 .btn:active{transform:scale(.97);}
 .btn-gold{background:linear-gradient(180deg,var(--gold),var(--gold-soft));color:#1a1306;}
-.btn-gold:hover{filter:brightness(1.06);}
+.btn-gold:hover{filter:brightness(1.07);}
 .btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-dim);}
 .btn-ghost:hover{border-color:var(--border-strong);color:var(--text);}
-.btn-row{display:flex;gap:12px;margin-top:18px;}
-.btn-row .btn{width:auto;flex:1;}
-.link{color:var(--gold);cursor:pointer;font-size:13px;text-align:center;display:block;margin-top:18px;}
+.btn-sm{padding:9px 16px;font-size:13px;width:auto;border-radius:10px;}
+.btn-danger{background:rgba(224,122,107,0.14);border:1px solid rgba(224,122,107,0.4);color:var(--red);}
+.btn-danger:hover{background:rgba(224,122,107,0.22);}
+.login-hint{font-size:12px;color:var(--text-faint);text-align:center;line-height:1.7;margin-top:20px;}
+
+/* ---------- App shell ---------- */
+.shell{display:flex;min-height:100vh;}
+.sidebar{width:var(--sidebar-w);flex-shrink:0;background:linear-gradient(180deg,var(--bg-2),var(--bg));
+  border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;bottom:0;left:0;z-index:40;}
+.side-brand{padding:22px 22px 18px;border-bottom:1px solid var(--border-soft);display:flex;align-items:center;gap:12px;}
+.side-mark{width:40px;height:40px;border-radius:50%;border:1.5px solid var(--gold);flex-shrink:0;
+  display:flex;align-items:center;justify-content:center;font-family:'Cormorant Garamond',serif;font-size:21px;color:var(--gold);font-weight:700;
+  background:radial-gradient(circle at 30% 25%,rgba(201,168,76,0.2),transparent 70%);}
+.side-name{font-family:'Cormorant Garamond',serif;font-size:18px;line-height:1.05;}
+.side-tag{font-size:9.5px;letter-spacing:2px;text-transform:uppercase;color:var(--text-faint);margin-top:3px;}
+.nav{flex:1;padding:14px 12px;overflow-y:auto;}
+.nav-group{font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--text-faint);padding:14px 12px 8px;}
+.nav-item{display:flex;align-items:center;gap:12px;padding:11px 13px;border-radius:11px;color:var(--text-dim);
+  cursor:pointer;font-size:14px;font-weight:500;transition:background .14s var(--ease-out),color .14s var(--ease-out);margin-bottom:2px;}
+.nav-item:hover{background:rgba(24,43,69,0.6);color:var(--text);}
+.nav-item.active{background:linear-gradient(90deg,rgba(201,168,76,0.16),rgba(201,168,76,0.03));color:var(--gold);}
+.nav-item.active .nav-ico{color:var(--gold);}
+.nav-ico{width:20px;text-align:center;font-size:16px;color:var(--text-faint);flex-shrink:0;}
+.nav-item.locked{opacity:.4;cursor:not-allowed;}
+.nav-item.locked:hover{background:transparent;color:var(--text-dim);}
+.side-foot{padding:14px 16px;border-top:1px solid var(--border-soft);}
+.side-user{display:flex;align-items:center;gap:11px;margin-bottom:10px;}
+.side-avatar{width:36px;height:36px;border-radius:50%;background:var(--panel-3);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;font-size:14px;color:var(--gold);font-weight:600;flex-shrink:0;}
+.side-uname{font-size:13px;font-weight:600;line-height:1.2;}
+.side-urole{font-size:11px;color:var(--text-faint);}
+
+/* ---------- Main ---------- */
+.main{flex:1;margin-left:var(--sidebar-w);min-width:0;}
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:20px 32px;
+  border-bottom:1px solid var(--border-soft);position:sticky;top:0;z-index:30;
+  background:linear-gradient(180deg,rgba(11,20,32,0.92),rgba(11,20,32,0.7));backdrop-filter:blur(10px);}
+.page-title{font-family:'Cormorant Garamond',serif;font-size:28px;line-height:1;}
+.page-sub{font-size:13px;color:var(--text-dim);margin-top:4px;}
+.top-clock{text-align:right;}
+.top-time{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--gold);font-variant-numeric:tabular-nums;line-height:1;}
+.top-date{font-size:11px;color:var(--text-dim);margin-top:3px;}
+.content{padding:28px 32px 60px;}
+
+/* ---------- Components ---------- */
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:16px;margin-bottom:24px;}
+.metric{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--border-soft);
+  border-radius:16px;padding:20px;box-shadow:var(--shadow-sm);position:relative;overflow:hidden;}
+.metric::before{content:"";position:absolute;top:0;left:0;width:3px;height:100%;background:var(--gold);opacity:.6;}
+.metric-label{font-size:12px;letter-spacing:.5px;color:var(--text-dim);text-transform:uppercase;}
+.metric-val{font-family:'Cormorant Garamond',serif;font-size:38px;line-height:1;margin:10px 0 4px;}
+.metric-sub{font-size:12px;color:var(--text-faint);}
+.panel{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--border-soft);
+  border-radius:16px;padding:22px;margin-bottom:20px;box-shadow:var(--shadow-sm);}
+.panel-title{font-family:'Cormorant Garamond',serif;font-size:21px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;gap:12px;}
+.row-actions{display:flex;gap:8px;align-items:center;}
+table{width:100%;border-collapse:collapse;font-size:14px;}
+th{text-align:left;font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text-faint);
+  padding:10px 12px;border-bottom:1px solid var(--border-soft);font-weight:600;}
+td{padding:13px 12px;border-bottom:1px solid var(--border-soft);color:var(--text);}
+tr:last-child td{border-bottom:none;}
+tbody tr{transition:background .12s var(--ease-out);}
+tbody tr:hover{background:rgba(24,43,69,0.4);}
+.empty{text-align:center;color:var(--text-faint);padding:40px 20px;font-size:14px;}
+.pill{display:inline-block;padding:4px 12px;border-radius:999px;font-size:12px;font-weight:600;letter-spacing:.3px;}
+.pill.in{background:rgba(95,180,138,0.16);color:var(--green);}
+.pill.out{background:rgba(224,122,107,0.16);color:var(--red);}
+.pill.gold{background:rgba(201,168,76,0.16);color:var(--gold);}
+.pill.blue{background:rgba(155,196,226,0.16);color:var(--blue);}
+.pill.amber{background:rgba(224,163,107,0.16);color:var(--amber);}
+.link{color:var(--gold);cursor:pointer;font-size:13px;font-weight:500;}
 .link:hover{text-decoration:underline;}
+.mini-note{font-size:12px;color:var(--text-faint);line-height:1.6;margin-top:14px;}
 
-/* ---------- Keypad ---------- */
-.pin-dots{display:flex;justify-content:center;gap:16px;margin:8px 0 26px;}
-.pin-dot{width:16px;height:16px;border-radius:50%;border:1.5px solid var(--border-strong);transition:all .18s var(--ease-out);}
-.pin-dot.filled{background:var(--gold);border-color:var(--gold);transform:scale(1.05);}
-.keypad{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;max-width:320px;margin:0 auto;}
-.key{
-  aspect-ratio:1;border-radius:50%;border:1px solid var(--border);background:rgba(24,43,69,0.5);
-  font-family:'Cormorant Garamond',serif;font-size:30px;color:var(--text);cursor:pointer;
-  display:flex;align-items:center;justify-content:center;transition:transform .12s var(--ease-out),background .12s var(--ease-out);
-  user-select:none;
-}
-.key:hover{background:rgba(24,43,69,0.95);}
-.key:active{transform:scale(.92);background:var(--gold);color:#1a1306;}
-.key.fn{font-size:15px;font-family:'Inter';letter-spacing:.5px;border-color:transparent;background:transparent;color:var(--text-dim);}
-.key.fn:active{background:rgba(224,122,107,0.2);color:var(--red);transform:scale(.92);}
+/* ---------- Floor editor ---------- */
+.floor-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
+.floor-canvas{position:relative;width:100%;height:560px;border-radius:16px;overflow:hidden;
+  background:
+    linear-gradient(rgba(201,168,76,0.05) 1px,transparent 1px) 0 0/32px 32px,
+    linear-gradient(90deg,rgba(201,168,76,0.05) 1px,transparent 1px) 0 0/32px 32px,
+    linear-gradient(180deg,var(--bg-2),var(--bg));
+  border:1px solid var(--border);box-shadow:inset 0 0 60px rgba(0,0,0,0.4);touch-action:none;}
+.table-node{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  cursor:grab;user-select:none;transition:box-shadow .14s var(--ease-out),border-color .14s var(--ease-out);}
+.table-node.dragging{cursor:grabbing;z-index:10;}
+.table-shape{display:flex;align-items:center;justify-content:center;border:2px solid var(--border-strong);
+  background:linear-gradient(180deg,var(--panel-3),var(--panel));color:var(--text);font-weight:600;font-size:15px;
+  box-shadow:var(--shadow-sm);}
+.table-node.sel .table-shape{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,0.25),var(--shadow-sm);}
+.table-shape.round{border-radius:50%;}
+.table-shape.square{border-radius:10px;}
+.table-cap{font-size:10px;color:var(--text-faint);margin-top:4px;white-space:nowrap;}
+.table-node.s-occupied .table-shape{border-color:var(--red);background:linear-gradient(180deg,rgba(224,122,107,0.22),var(--panel));}
+.table-node.s-reserved .table-shape{border-color:var(--amber);background:linear-gradient(180deg,rgba(224,163,107,0.2),var(--panel));}
+.seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
+.seg button{background:transparent;border:none;color:var(--text-dim);padding:9px 14px;font-size:13px;cursor:pointer;font-family:'Inter';transition:background .12s;}
+.seg button.on{background:var(--gold);color:#1a1306;font-weight:600;}
+.seg button:not(.on):hover{background:rgba(24,43,69,0.7);color:var(--text);}
 
-/* ---------- Camera ---------- */
-.cam-wrap{
-  width:240px;height:240px;border-radius:50%;overflow:hidden;margin:0 auto 16px;
-  border:3px solid var(--border-strong);background:#000;position:relative;
-}
-.cam-wrap video{width:100%;height:100%;object-fit:cover;transform:scaleX(-1);}
-.cam-ring{position:absolute;inset:-3px;border-radius:50%;border:3px solid transparent;}
-.cam-ring.scanning{border-top-color:var(--gold);animation:spin 1s linear infinite;}
-.cam-ring.ok{border-color:var(--green);}
-.cam-ring.bad{border-color:var(--red);}
-@keyframes spin{to{transform:rotate(360deg);}}
-.status-line{text-align:center;font-size:14px;color:var(--text-dim);min-height:22px;margin-bottom:8px;}
-.status-line.ok{color:var(--green);}
-.status-line.bad{color:var(--red);}
+/* ---------- Forms / grid ---------- */
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
+.form-grid.cols-2{grid-template-columns:1fr 1fr;}
+.field{display:flex;flex-direction:column;gap:7px;}
+.field label{font-size:12px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim);}
+select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23C9A84C' d='M6 8L0 0h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;}
+.chip-row{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{padding:8px 14px;border-radius:999px;border:1px solid var(--border);background:rgba(24,43,69,0.5);
+  color:var(--text-dim);font-size:13px;cursor:pointer;transition:all .14s var(--ease-out);user-select:none;}
+.chip.on{background:rgba(201,168,76,0.18);border-color:var(--border-strong);color:var(--gold);}
+.chip.allergy.on{background:rgba(224,122,107,0.18);border-color:rgba(224,122,107,0.5);color:var(--red);}
 
-/* ---------- Toast ---------- */
-#toast{position:fixed;bottom:28px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:10px;z-index:200;align-items:center;}
-.toast-item{
-  display:flex;align-items:center;gap:10px;background:var(--panel-2);border:1px solid var(--border-strong);
-  border-radius:12px;padding:13px 20px;font-size:14px;box-shadow:var(--shadow);animation:rise .3s var(--ease-out);min-width:240px;
-}
+/* ---------- Modal ---------- */
+.modal-backdrop{position:fixed;inset:0;background:rgba(5,9,15,0.7);backdrop-filter:blur(4px);z-index:100;
+  display:flex;align-items:center;justify-content:center;padding:24px;animation:fade .2s var(--ease-out);}
+@keyframes fade{from{opacity:0;}to{opacity:1;}}
+.modal{width:100%;max-width:560px;max-height:88vh;overflow-y:auto;background:linear-gradient(180deg,var(--panel),var(--bg-2));
+  border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);padding:28px;animation:rise .3s var(--ease-out);}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:25px;margin-bottom:18px;}
+.modal-foot{display:flex;gap:12px;margin-top:24px;}
+.modal-foot .btn{flex:1;}
+
+#toast{position:fixed;bottom:28px;right:28px;display:flex;flex-direction:column;gap:10px;z-index:200;}
+.toast-item{display:flex;align-items:center;gap:10px;background:var(--panel-2);border:1px solid var(--border-strong);
+  border-radius:12px;padding:13px 20px;font-size:14px;box-shadow:var(--shadow);animation:rise .3s var(--ease-out);min-width:220px;}
 .toast-item.success{border-color:rgba(95,180,138,0.5);}
 .toast-item.error{border-color:rgba(224,122,107,0.5);}
 
-/* ---------- BOH dashboard ---------- */
-.boh-wrap{max-width:1100px;margin:0 auto;padding:30px 24px 60px;}
-.boh-head{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:8px;flex-wrap:wrap;gap:12px;}
-.boh-h1{font-family:'Cormorant Garamond',serif;font-size:38px;line-height:1;}
-.boh-sub{color:var(--text-dim);font-size:14px;margin-top:6px;}
-.tabs{display:flex;gap:8px;margin:24px 0 22px;flex-wrap:wrap;}
-.tab{
-  padding:10px 18px;border-radius:999px;border:1px solid var(--border);background:rgba(24,43,69,0.4);
-  color:var(--text-dim);font-size:13px;cursor:pointer;transition:all .16s var(--ease-out);
+@media(max-width:860px){
+  .sidebar{transform:translateX(-100%);transition:transform .25s var(--ease-out);}
+  .sidebar.open{transform:none;}
+  .main{margin-left:0;}
+  .menu-toggle{display:flex !important;}
 }
-.tab.active{background:linear-gradient(180deg,var(--gold),var(--gold-soft));color:#1a1306;border-color:transparent;font-weight:600;}
-.tab:hover:not(.active){border-color:var(--border-strong);color:var(--text);}
-.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:26px;}
-.metric{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--border);border-radius:18px;padding:22px;}
-.metric-label{font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim);}
-.metric-val{font-family:'Cormorant Garamond',serif;font-size:34px;color:var(--gold);margin:8px 0 4px;}
-.metric-sub{font-size:12px;color:var(--text-faint);}
-.panel{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--border);border-radius:18px;padding:24px;margin-bottom:20px;}
-.panel-title{font-family:'Cormorant Garamond',serif;font-size:22px;margin-bottom:16px;display:flex;align-items:center;justify-content:space-between;}
-table{width:100%;border-collapse:collapse;font-size:14px;}
-th{text-align:left;color:var(--text-dim);font-size:11px;letter-spacing:1px;text-transform:uppercase;padding:10px 12px;border-bottom:1px solid var(--border);}
-td{padding:12px;border-bottom:1px solid rgba(201,168,76,0.08);}
-tr:last-child td{border-bottom:none;}
-.pill{display:inline-block;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:600;}
-.pill.in{background:rgba(95,180,138,0.18);color:var(--green);}
-.pill.out{background:rgba(224,122,107,0.16);color:var(--red);}
-.pill.gold{background:rgba(201,168,76,0.16);color:var(--gold);}
-.empty{text-align:center;color:var(--text-faint);padding:40px 20px;font-size:14px;}
-.mini-note{font-size:12px;color:var(--text-faint);text-align:center;line-height:1.6;margin-top:18px;}
-.back-link{color:var(--text-dim);font-size:13px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;}
-.back-link:hover{color:var(--gold);}
-@media(max-width:560px){
-  .center-card{padding:30px 22px;}
-  .title{font-size:28px;}
-  .mode-grid{grid-template-columns:1fr;}
-}
+.menu-toggle{display:none;width:42px;height:42px;border-radius:11px;border:1px solid var(--border);
+  background:var(--panel);color:var(--gold);align-items:center;justify-content:center;font-size:20px;cursor:pointer;}
 </style>
 </head>
 <body>
-<!-- content injected per screen -->
 <div id="root"></div>
+<div id="modal-root"></div>
 <div id="toast"></div>
-
-<!-- Firebase (compat) + face-api -->
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
-<script defer src="https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/dist/face-api.min.js"></script>
 <script>
-/* ============================================================
-   EPICUREAN HOUSE @ THE CHOCOLATE STUDIO
-   Back of House + Time Clock — Beta
-   Single-file build. Connects to existing Firebase project.
-   ============================================================ */
-
-/* ---- Firebase config (same project as existing build) ---- */
 var firebaseConfig = {
   apiKey: "AIzaSyAvg9x8kmKmZjcu62D2Jb4jpO57ArC657Y",
   authDomain: "epicurean-house-at-the-choc-st.firebaseapp.com",
@@ -214,603 +205,558 @@ var firebaseConfig = {
   appId: "1:320703681087:web:04f7c9a17637388a039e8a"
 };
 var fbApp=null, fbDb=null, fbReady=false;
-try{
-  fbApp = firebase.initializeApp(firebaseConfig);
-  fbDb = firebase.firestore();
-  fbReady = true;
-}catch(e){ console.warn('Firebase init failed — running in local-only mode', e); fbReady=false; }
+try{ fbApp=firebase.initializeApp(firebaseConfig); fbDb=firebase.firestore(); fbReady=true; }
+catch(e){ console.warn('Firebase init failed — local-only mode', e); fbReady=false; }
 </script>
 <script>
 /* ============================================================
-   Epicurean House — BOH + Time Clock (Beta)  |  app.js
+   EPICUREAN HOUSE @ THE CHOCOLATE STUDIO — BACK OF HOUSE
+   Aloha-inspired management dashboard, 2027 streamline.
+   Manager access only. Connects to the same Firebase project
+   as the standalone Time Clock app.
    ============================================================ */
 
-/* ---------------- Data layer (Firebase + local fallback) ---------------- */
+/* ---------------- Data layer ---------------- */
 function lsGet(k, fb){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):fb; }catch(e){ return fb; } }
 function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
+function fbGetDoc(col,id){ if(!fbReady)return Promise.resolve(null); return fbDb.collection(col).doc(id).get().then(function(s){return s.exists?s.data():null;}).catch(function(e){console.warn('read',e);return null;}); }
+function fbSetDoc(col,id,data){ if(!fbReady)return Promise.resolve(false); return fbDb.collection(col).doc(id).set(data,{merge:true}).then(function(){return true;}).catch(function(e){console.warn('write',e);return false;}); }
 
-function fbGetDoc(col, id){
-  if(!fbReady) return Promise.resolve(null);
-  return fbDb.collection(col).doc(id).get()
-    .then(function(s){ return s.exists ? s.data() : null; })
-    .catch(function(e){ console.warn('read fail', e); return null; });
-}
-function fbSetDoc(col, id, data){
-  if(!fbReady) return Promise.resolve(false);
-  return fbDb.collection(col).doc(id).set(data, {merge:true})
-    .then(function(){ return true; })
-    .catch(function(e){ console.warn('write fail', e); return false; });
-}
-function fbListen(col, id, cb){
-  if(!fbReady) return function(){};
-  return fbDb.collection(col).doc(id).onSnapshot(
-    function(s){ cb(s.exists ? s.data() : null); },
-    function(e){ console.warn('listen fail', e); }
-  );
-}
+/* ---------------- Role system (first digit of code) ---------------- */
+var ROLES = {
+  '1':{key:'kitchen',    label:'Kitchen',        color:'#E0A36B', pos:false},
+  '2':{key:'sales',      label:'Sales Floor',    color:'#9BC4E2', pos:false},
+  '3':{key:'foodmaster', label:'Food Master',    color:'#5FB48A', pos:true },
+  '4':{key:'front',      label:'Front of House', color:'#C9A84C', pos:false},
+  '5':{key:'manager',    label:'Manager',        color:'#E07A6B', pos:true }
+};
+function roleFromCode(code){ return ROLES[(code||'')[0]] || {key:'staff',label:'Staff',color:'#C9A84C',pos:false}; }
+function roleColor(key){ for(var d in ROLES){ if(ROLES[d].key===key) return ROLES[d].color; } return '#C9A84C'; }
 
-/* ---------------- Seed staff (from existing build) ---------------- */
-var SEED_STAFF = [
-  {id:'s1', name:'Andre Mendoza', role:'Food Master', code:'1988', enrolled:false, faceprint:null},
-  {id:'s2', name:'Paco Arias',    role:'Sommelier',   code:'2024', enrolled:false, faceprint:null},
-  {id:'s3', name:'Max Rodriguez', role:'Food Master', code:'7189', enrolled:false, faceprint:null},
-  {id:'s4', name:'Edwin Perez',   role:'Bartender',   code:'4900', enrolled:false, faceprint:null}
+/* Manager permissions — individually toggleable per manager */
+var PERMISSIONS = [
+  {key:'floor',    label:'Edit Floor & Tables'},
+  {key:'staff',    label:'Manage Staff'},
+  {key:'guests',   label:'Manage Guests'},
+  {key:'timecards',label:'View Time Cards & Payroll'},
+  {key:'menu',     label:'Manage Menu'},
+  {key:'settings', label:'Change Settings'}
 ];
 
-/* App state */
+var MASTER_CODE = 'EPICUREAN2024'; // owner master — full access
+
+/* ---------------- Seed data ---------------- */
+var SEED_STAFF = [
+  {id:'s1', name:'Andre Mendoza',  code:'3001', wage:18, enrolled:false, perms:null},
+  {id:'s2', name:'Paco Arias',     code:'3002', wage:18, enrolled:false, perms:null},
+  {id:'s3', name:'Maria Lopez',    code:'1001', wage:17, enrolled:false, perms:null},
+  {id:'s4', name:'Edwin Perez',    code:'4001', wage:16, enrolled:false, perms:null},
+  {id:'s5', name:'General Manager',code:'5001', wage:30, enrolled:false, perms:{floor:true,staff:true,guests:true,timecards:true,menu:true,settings:true}}
+];
+var SEED_TABLES = [
+  {id:'t1', name:'1', shape:'round',  seats:2, x:90,  y:80,  size:64, status:'open', section:'Main'},
+  {id:'t2', name:'2', shape:'round',  seats:2, x:230, y:80,  size:64, status:'open', section:'Main'},
+  {id:'t3', name:'3', shape:'square', seats:4, x:90,  y:230, size:78, status:'open', section:'Main'},
+  {id:'t4', name:'4', shape:'square', seats:4, x:250, y:230, size:78, status:'open', section:'Main'},
+  {id:'t5', name:'5', shape:'round',  seats:6, x:440, y:150, size:96, status:'open', section:'Window'},
+  {id:'t6', name:'6', shape:'square', seats:2, x:620, y:90,  size:60, status:'open', section:'Bar'}
+];
+
 var STATE = {
-  staff: lsGet('eh_staff', SEED_STAFF.slice()),
-  punches: lsGet('eh_punches', []),     // {id,staffId,name,role,type:'in'|'out',ts,matchScore,method}
-  managers: lsGet('eh_managers', [{name:'General Manager', code:'EPICUREAN2024'}])
+  staff:   lsGet('eh_staff',   SEED_STAFF.slice()),
+  punches: lsGet('eh_punches', []),
+  tables:  lsGet('eh_tables',  SEED_TABLES.slice()),
+  guests:  lsGet('eh_guests',  []),
+  sections: lsGet('eh_sections', ['Main','Window','Bar','Patio'])
 };
+var SESSION = { user:null }; // {name, role, perms, isOwner}
 
-var MASTER_CODE = 'EPICUREAN2024';
+function saveStaff(){ lsSet('eh_staff',STATE.staff); fbSetDoc('boh_shared','staff_clock',{list:STATE.staff,updatedAt:Date.now()}); }
+function savePunches(){ lsSet('eh_punches',STATE.punches); fbSetDoc('boh_shared','punches',{list:STATE.punches.slice(-800),updatedAt:Date.now()}); }
+function saveTables(){ lsSet('eh_tables',STATE.tables); fbSetDoc('boh_shared','tables',{list:STATE.tables,sections:STATE.sections,updatedAt:Date.now()}); }
+function saveGuests(){ lsSet('eh_guests',STATE.guests); fbSetDoc('boh_shared','guests',{list:STATE.guests,updatedAt:Date.now()}); }
 
-/* Persist + sync helpers */
-function saveStaff(){
-  lsSet('eh_staff', STATE.staff);
-  fbSetDoc('boh_shared', 'staff_clock', {list:STATE.staff, updatedAt:Date.now()});
-}
-function savePunches(){
-  lsSet('eh_punches', STATE.punches);
-  fbSetDoc('boh_shared', 'punches', {list:STATE.punches.slice(-500), updatedAt:Date.now()});
-}
-function saveManagers(){
-  lsSet('eh_managers', STATE.managers);
-  fbSetDoc('boh_shared', 'managers', {list:STATE.managers, updatedAt:Date.now()});
-}
-
-/* Pull shared data from Firebase on load (best-effort, non-blocking) */
 function syncFromCloud(){
-  if(!fbReady) return Promise.resolve();
+  if(!fbReady)return Promise.resolve();
   return Promise.all([
-    fbGetDoc('boh_shared','staff_clock').then(function(d){
-      if(d && d.list && d.list.length){ STATE.staff = d.list; lsSet('eh_staff', STATE.staff); }
-    }),
-    fbGetDoc('boh_shared','punches').then(function(d){
-      if(d && d.list){ STATE.punches = d.list; lsSet('eh_punches', STATE.punches); }
-    }),
-    fbGetDoc('boh_shared','managers').then(function(d){
-      if(d && d.list && d.list.length){
-        STATE.managers = d.list;
-        if(!STATE.managers.find(function(m){return m.code===MASTER_CODE;}))
-          STATE.managers.push({name:'General Manager', code:MASTER_CODE});
-        lsSet('eh_managers', STATE.managers);
-      }
-    })
+    fbGetDoc('boh_shared','staff_clock').then(function(d){ if(d&&d.list&&d.list.length){ STATE.staff=mergeStaff(STATE.staff,d.list); lsSet('eh_staff',STATE.staff); } }),
+    fbGetDoc('boh_shared','punches').then(function(d){ if(d&&d.list){ STATE.punches=d.list; lsSet('eh_punches',STATE.punches); } }),
+    fbGetDoc('boh_shared','tables').then(function(d){ if(d){ if(d.list&&d.list.length){STATE.tables=d.list;lsSet('eh_tables',STATE.tables);} if(d.sections){STATE.sections=d.sections;lsSet('eh_sections',STATE.sections);} } }),
+    fbGetDoc('boh_shared','guests').then(function(d){ if(d&&d.list){ STATE.guests=d.list; lsSet('eh_guests',STATE.guests); } })
   ]).catch(function(){});
 }
+/* preserve local faceprints (clock app writes them) while taking cloud's roster */
+function mergeStaff(local, cloud){
+  return cloud.map(function(c){ var l=local.filter(function(x){return x.id===c.id;})[0]; if(l&&l.faceprint&&!c.faceprint){ c.faceprint=l.faceprint; c.enrolled=true; } return c; });
+}
 
-/* ---------------- Small DOM helpers ---------------- */
-var $ = function(id){ return document.getElementById(id); };
-function el(tag, attrs, html){
-  var n=document.createElement(tag);
-  if(attrs) for(var k in attrs){ if(k==='class') n.className=attrs[k]; else n.setAttribute(k, attrs[k]); }
-  if(html!=null) n.innerHTML=html;
-  return n;
-}
-function toast(msg, type){
-  var c=$('toast');
-  var t=el('div',{class:'toast-item '+(type||'')},
-    '<span>'+(type==='success'?'✓':type==='error'?'✕':'ℹ')+'</span><span>'+msg+'</span>');
-  c.appendChild(t);
-  setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateY(8px)'; setTimeout(function(){t.remove();}, 250); }, 2600);
-}
+/* ---------------- DOM helpers ---------------- */
+var $=function(id){ return document.getElementById(id); };
+function el(t,a,h){ var n=document.createElement(t); if(a)for(var k in a){ if(k==='class')n.className=a[k]; else n.setAttribute(k,a[k]); } if(h!=null)n.innerHTML=h; return n; }
+function esc(s){ return (''+(s==null?'':s)).replace(/[&<>"]/g,function(c){return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c];}); }
+function toast(msg,type){ var c=$('toast'); var t=el('div',{class:'toast-item '+(type||'')},'<span>'+(type==='success'?'✓':type==='error'?'✕':'ℹ')+'</span><span>'+esc(msg)+'</span>'); c.appendChild(t); setTimeout(function(){ t.style.opacity='0'; t.style.transform='translateY(8px)'; setTimeout(function(){t.remove();},250); },2600); }
 function fmtTime(ts){ return new Date(ts).toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'}); }
-function fmtDate(ts){ return new Date(ts).toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}); }
+function fmtDate(ts){ return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric'}); }
+function fmtPhone(p){ p=(''+p).replace(/\D/g,''); if(p.length===10)return '('+p.slice(0,3)+') '+p.slice(3,6)+'-'+p.slice(6); return p; }
 
-/* ---------------- Brand bar + live clock ---------------- */
-function brandBar(){
-  return ''+
-  '<div class="brandbar">'+
-    '<div class="brand">'+
-      '<div class="brand-mark">E</div>'+
-      '<div>'+
-        '<div class="brand-name">Epicurean House <span style="color:var(--gold);font-size:16px">@ The Chocolate Studio</span></div>'+
-        '<div class="brand-sub">Back of House · Beta</div>'+
-      '</div>'+
-    '</div>'+
-    '<div class="brand-right">'+
-      '<div class="clock-display">'+
-        '<div class="clock-time" id="live-clock">--:--:--</div>'+
-        '<div class="clock-date" id="live-date">&nbsp;</div>'+
-      '</div>'+
-    '</div>'+
-  '</div>';
-}
-var _clockTimer=null;
-function startLiveClock(){
-  function tick(){
-    var n=new Date();
-    var c=$('live-clock'), d=$('live-date');
-    if(c) c.textContent=n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
-    if(d) d.textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-  }
-  if(_clockTimer) clearInterval(_clockTimer);
-  tick(); _clockTimer=setInterval(tick,1000);
+/* ---------------- Permissions ---------------- */
+function can(permKey){
+  if(!SESSION.user) return false;
+  if(SESSION.user.isOwner) return true;
+  return !!(SESSION.user.perms && SESSION.user.perms[permKey]);
 }
 
-/* ============================================================
-   ROUTER
-   ============================================================ */
-var ROUTE = 'landing';
-function go(route){ ROUTE = route; render(); }
+/* ---------------- Routing ---------------- */
+var ROUTE = 'overview';
+function go(r){ ROUTE=r; closeSidebar(); render(); }
 
-function render(){
-  var root = $('root');
-  if(ROUTE === 'landing')      root.innerHTML = brandBar() + viewLanding();
-  else if(ROUTE === 'clock')   root.innerHTML = brandBar() + viewClock();
-  else if(ROUTE === 'boh-login') root.innerHTML = brandBar() + viewBohLogin();
-  else if(ROUTE === 'boh')     root.innerHTML = brandBar() + viewBoh();
-  else root.innerHTML = brandBar() + viewLanding();
-
-  startLiveClock();
-
-  if(ROUTE === 'clock')       bindClock();
-  if(ROUTE === 'boh-login')   bindBohLogin();
-  if(ROUTE === 'boh')         bindBoh();
-}
-
-/* ============================================================
-   LANDING — choose Time Clock or Back of House
-   ============================================================ */
-function viewLanding(){
-  return ''+
-  '<div class="screen">'+
-    '<div class="center-card">'+
-      '<div class="eyebrow">Welcome</div>'+
-      '<div class="title serif">Epicurean House</div>'+
-      '<div class="subtitle">@ The Chocolate Studio — Staff Portal</div>'+
-      '<div class="divider-orn">&#10070;</div>'+
-      '<div class="mode-grid">'+
-        '<div class="mode-tile" onclick="go(\'clock\')">'+
-          '<div class="mode-ico">&#128337;</div>'+
-          '<div class="mode-title serif">Time Clock</div>'+
-          '<div class="mode-desc">Clock in &amp; out.<br>Code + face verification.</div>'+
-        '</div>'+
-        '<div class="mode-tile" onclick="go(\'boh-login\')">'+
-          '<div class="mode-ico">&#9733;</div>'+
-          '<div class="mode-title serif">Back of House</div>'+
-          '<div class="mode-desc">Management dashboard.<br>Manager access only.</div>'+
-        '</div>'+
-      '</div>'+
-      '<div class="mini-note">For the four clock stations, leave this open on the Time Clock screen.<br>Managers use Back of House on their own device.</div>'+
-    '</div>'+
-  '</div>';
-}
-
-/* ============================================================
-   TIME CLOCK  —  4-digit code + real 1:1 face match
-   ============================================================ */
-var CLOCK = {
-  step: 'code',     // 'code' | 'face' | 'result'
-  pin: '',
-  staff: null,
-  stream: null,
-  modelsLoaded: false,
-  busy: false
-};
-var FACE_MATCH_THRESHOLD = 0.50; // euclidean distance; lower = stricter. 0.5 is a solid balance.
-
-function viewClock(){
-  return '<div class="screen"><div class="center-card" id="clock-card">'+clockInner()+'</div></div>';
-}
-
-function clockInner(){
-  if(CLOCK.step === 'code')   return clockCodeStep();
-  if(CLOCK.step === 'face')   return clockFaceStep();
-  if(CLOCK.step === 'result') return CLOCK.resultHTML || '';
-  return clockCodeStep();
-}
-
-function clockCodeStep(){
-  var dots='';
-  for(var i=0;i<4;i++){ dots+='<div class="pin-dot'+(i<CLOCK.pin.length?' filled':'')+'"></div>'; }
-  var keys=['1','2','3','4','5','6','7','8','9'];
-  var keyHTML='';
-  keys.forEach(function(k){ keyHTML+='<div class="key" data-k="'+k+'">'+k+'</div>'; });
-  keyHTML+='<div class="key fn" data-k="clear">Clear</div>';
-  keyHTML+='<div class="key" data-k="0">0</div>';
-  keyHTML+='<div class="key fn" data-k="back">&#9003;</div>';
-  return ''+
-    '<div class="eyebrow">Time Clock</div>'+
-    '<div class="title serif">Enter Your Code</div>'+
-    '<div class="subtitle">Type your 4-digit staff code</div>'+
-    '<div class="pin-dots">'+dots+'</div>'+
-    '<div class="keypad">'+keyHTML+'</div>'+
-    '<span class="link" onclick="go(\'landing\')">&#8592; Back to portal</span>';
-}
-
-function clockFaceStep(){
-  return ''+
-    '<div class="eyebrow">Identity Check</div>'+
-    '<div class="title serif">'+(CLOCK.staff?CLOCK.staff.name:'')+'</div>'+
-    '<div class="subtitle">'+(CLOCK.staff && CLOCK.staff.enrolled ? 'Look at the camera to verify' : 'First time — we will register your face')+'</div>'+
-    '<div class="cam-wrap"><div class="cam-ring" id="cam-ring"></div><video id="cam-video" autoplay muted playsinline></video></div>'+
-    '<div class="status-line" id="face-status">Starting camera&hellip;</div>'+
-    '<div class="btn-row">'+
-      '<button class="btn btn-ghost" onclick="clockCancel()">Cancel</button>'+
-      '<button class="btn btn-gold" id="face-action" disabled>'+(CLOCK.staff && CLOCK.staff.enrolled?'Verify &amp; Clock':'Register Face')+'</button>'+
-    '</div>'+
-    '<div class="mini-note">A photo of this punch is saved for the manager&rsquo;s records.</div>';
-}
-
-function bindClock(){
-  if(CLOCK.step==='code'){
-    var card=$('clock-card');
-    card.querySelectorAll('.key').forEach(function(key){
-      key.addEventListener('click', function(){
-        var k=key.getAttribute('data-k');
-        if(k==='clear'){ CLOCK.pin=''; }
-        else if(k==='back'){ CLOCK.pin=CLOCK.pin.slice(0,-1); }
-        else if(CLOCK.pin.length<4){ CLOCK.pin+=k; }
-        $('clock-card').innerHTML = clockCodeStep();
-        bindClock();
-        if(CLOCK.pin.length===4) setTimeout(submitClockCode, 150);
-      });
-    });
-  } else if(CLOCK.step==='face'){
-    startFaceFlow();
-  }
-}
-
-function submitClockCode(){
-  var match = STATE.staff.filter(function(s){ return s.code===CLOCK.pin; })[0];
-  if(!match){
-    toast('Code not recognized', 'error');
-    CLOCK.pin='';
-    $('clock-card').innerHTML = clockCodeStep();
-    bindClock();
-    return;
-  }
-  CLOCK.staff = match;
-  CLOCK.step = 'face';
-  $('clock-card').innerHTML = clockFaceStep();
-  bindClock();
-}
-
-function clockCancel(){
-  stopCam();
-  CLOCK.pin=''; CLOCK.staff=null; CLOCK.step='code';
-  $('clock-card').innerHTML = clockCodeStep();
-  bindClock();
-}
-
-function stopCam(){
-  if(CLOCK.stream){ CLOCK.stream.getTracks().forEach(function(t){t.stop();}); CLOCK.stream=null; }
-}
-
-/* ---- Face models ---- */
-function loadFaceModels(){
-  if(CLOCK.modelsLoaded) return Promise.resolve(true);
-  if(typeof faceapi === 'undefined') return Promise.reject(new Error('face library not loaded'));
-  var URL='https://cdn.jsdelivr.net/npm/@vladmandic/face-api@1.7.13/model';
-  return Promise.all([
-    faceapi.nets.tinyFaceDetector.loadFromUri(URL),
-    faceapi.nets.faceLandmark68Net.loadFromUri(URL),
-    faceapi.nets.faceRecognitionNet.loadFromUri(URL)
-  ]).then(function(){ CLOCK.modelsLoaded=true; return true; });
-}
-
-function setFaceStatus(msg, cls){
-  var s=$('face-status'); if(s){ s.textContent=msg; s.className='status-line'+(cls?(' '+cls):''); }
-  var r=$('cam-ring'); if(r){ r.className='cam-ring'+(cls==='ok'?' ok':cls==='bad'?' bad':''); }
-}
-
-function startFaceFlow(){
-  setFaceStatus('Loading face engine\u2026');
-  loadFaceModels().then(function(){
-    return navigator.mediaDevices.getUserMedia({video:{facingMode:'user'}, audio:false});
-  }).then(function(stream){
-    CLOCK.stream=stream;
-    var v=$('cam-video'); if(!v){ return; }
-    v.srcObject=stream;
-    setFaceStatus(CLOCK.staff.enrolled ? 'Center your face, then tap Verify' : 'Center your face, then tap Register');
-    var btn=$('face-action');
-    if(btn){
-      btn.disabled=false;
-      btn.onclick = CLOCK.staff.enrolled ? doVerify : doEnroll;
-    }
-  }).catch(function(err){
-    console.warn(err);
-    if(err && err.name==='NotAllowedError') setFaceStatus('Camera blocked. Allow camera access for this site.', 'bad');
-    else if(err && (''+err.message).indexOf('face library')>-1) setFaceStatus('Face engine unavailable — check internet.', 'bad');
-    else setFaceStatus('Camera unavailable on this device.', 'bad');
-  });
-}
-
-function captureDescriptor(){
-  var v=$('cam-video');
-  if(!v) return Promise.resolve(null);
-  var opts=new faceapi.TinyFaceDetectorOptions({inputSize:320, scoreThreshold:0.5});
-  return faceapi.detectSingleFace(v, opts).withFaceLandmarks().withFaceDescriptor()
-    .then(function(res){ return res ? Array.from(res.descriptor) : null; });
-}
-
-function doEnroll(){
-  if(CLOCK.busy) return; CLOCK.busy=true;
-  var btn=$('face-action'); if(btn) btn.disabled=true;
-  setFaceStatus('Registering your face\u2026', null);
-  var ring=$('cam-ring'); if(ring) ring.className='cam-ring scanning';
-  captureDescriptor().then(function(desc){
-    if(!desc){ setFaceStatus('No face detected. Try again.', 'bad'); CLOCK.busy=false; if(btn) btn.disabled=false; return; }
-    // store faceprint on the staff member
-    var idx = STATE.staff.findIndex(function(s){ return s.id===CLOCK.staff.id; });
-    if(idx>-1){ STATE.staff[idx].faceprint=desc; STATE.staff[idx].enrolled=true; CLOCK.staff=STATE.staff[idx]; }
-    saveStaff();
-    setFaceStatus('Face registered \u2713', 'ok');
-    setTimeout(function(){ recordPunch(CLOCK.staff, 1.0, 'enroll'); }, 600);
-  }).catch(function(e){ console.warn(e); setFaceStatus('Something went wrong. Try again.', 'bad'); CLOCK.busy=false; if(btn) btn.disabled=false; });
-}
-
-function doVerify(){
-  if(CLOCK.busy) return; CLOCK.busy=true;
-  var btn=$('face-action'); if(btn) btn.disabled=true;
-  setFaceStatus('Verifying\u2026', null);
-  var ring=$('cam-ring'); if(ring) ring.className='cam-ring scanning';
-  captureDescriptor().then(function(desc){
-    if(!desc){ setFaceStatus('No face detected. Try again.', 'bad'); CLOCK.busy=false; if(btn) btn.disabled=false; return; }
-    var stored = CLOCK.staff.faceprint;
-    if(!stored){ setFaceStatus('No registered face on file. Registering now.', null); var idx=STATE.staff.findIndex(function(s){return s.id===CLOCK.staff.id;}); if(idx>-1){STATE.staff[idx].faceprint=desc;STATE.staff[idx].enrolled=true;} saveStaff(); setTimeout(function(){recordPunch(CLOCK.staff,1.0,'enroll');},500); return; }
-    var dist = faceapi.euclideanDistance(desc, stored);
-    var score = Math.max(0, 1 - dist); // friendly 0..1
-    if(dist <= FACE_MATCH_THRESHOLD){
-      setFaceStatus('Verified \u2713 ('+Math.round(score*100)+'% match)', 'ok');
-      setTimeout(function(){ recordPunch(CLOCK.staff, score, 'face'); }, 600);
-    } else {
-      setFaceStatus('Face does not match this code. Punch denied.', 'bad');
-      CLOCK.busy=false;
-      if(btn){ btn.disabled=false; }
-      // log the failed attempt for the manager
-      logFailedAttempt(CLOCK.staff, score);
-    }
-  }).catch(function(e){ console.warn(e); setFaceStatus('Something went wrong. Try again.', 'bad'); CLOCK.busy=false; if(btn) btn.disabled=false; });
-}
-
-function lastPunchType(staffId){
-  for(var i=STATE.punches.length-1;i>=0;i--){ if(STATE.punches[i].staffId===staffId && (STATE.punches[i].type==='in'||STATE.punches[i].type==='out')) return STATE.punches[i].type; }
-  return null;
-}
-
-function recordPunch(staff, score, method){
-  var last = lastPunchType(staff.id);
-  var type = (last==='in') ? 'out' : 'in';
-  var p = { id:'p'+Date.now(), staffId:staff.id, name:staff.name, role:staff.role, type:type, ts:Date.now(), matchScore:Math.round(score*100), method:method };
-  STATE.punches.push(p);
-  savePunches();
-  stopCam();
-  CLOCK.busy=false;
-  CLOCK.step='result';
-  CLOCK.resultHTML = clockResult(staff, type, score);
-  $('clock-card').innerHTML = CLOCK.resultHTML;
-  // auto-return to code entry after a few seconds
-  setTimeout(function(){ if(ROUTE==='clock'){ CLOCK.pin=''; CLOCK.staff=null; CLOCK.step='code'; $('clock-card').innerHTML=clockCodeStep(); bindClock(); } }, 4500);
-}
-
-function logFailedAttempt(staff, score){
-  var p = { id:'f'+Date.now(), staffId:staff.id, name:staff.name, role:staff.role, type:'denied', ts:Date.now(), matchScore:Math.round(score*100), method:'face-fail' };
-  STATE.punches.push(p); savePunches();
-}
-
-function clockResult(staff, type, score){
-  var inOut = type==='in' ? 'Clocked In' : 'Clocked Out';
-  var color = type==='in' ? 'var(--green)' : 'var(--gold)';
-  return ''+
-    '<div style="text-align:center;padding:10px 0">'+
-      '<div style="font-size:54px;margin-bottom:10px;color:'+color+'">'+(type==='in'?'\u2714':'\u23FB')+'</div>'+
-      '<div class="eyebrow">'+inOut+'</div>'+
-      '<div class="title serif" style="margin-top:6px">'+staff.name+'</div>'+
-      '<div class="subtitle">'+staff.role+' &middot; '+new Date().toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'})+'</div>'+
-      '<div class="divider-orn">&#10070;</div>'+
-      '<div style="font-size:13px;color:var(--text-dim)">Identity confirmed at '+Math.round(score*100)+'% match.</div>'+
-      '<button class="btn btn-gold" style="margin-top:22px" onclick="clockCancel()">Done</button>'+
-    '</div>';
-}
-
-/* ============================================================
-   BACK OF HOUSE — manager login
-   ============================================================ */
-function viewBohLogin(){
-  return ''+
-  '<div class="screen"><div class="center-card">'+
+/* ---------------- LOGIN ---------------- */
+function viewLogin(){
+  return '<div class="login-screen"><div class="login-card">'+
+    '<div class="login-mark">E</div>'+
     '<div class="eyebrow">Management Access</div>'+
-    '<div class="title serif">Back of House</div>'+
-    '<div class="subtitle">Enter your manager code to continue</div>'+
+    '<div class="login-title serif">Back of House</div>'+
+    '<div class="login-sub">Epicurean House @ The Chocolate Studio</div>'+
     '<div class="divider-orn">&#10070;</div>'+
     '<label class="fld" for="mgr-code">Manager Code</label>'+
-    '<input class="input" id="mgr-code" type="password" inputmode="text" placeholder="\u2022 \u2022 \u2022 \u2022 \u2022 \u2022" autocomplete="off">'+
+    '<input class="input" id="mgr-code" type="password" inputmode="numeric" placeholder="• • • •" autocomplete="off">'+
     '<button class="btn btn-gold" id="mgr-go" style="margin-top:18px">Enter Dashboard</button>'+
-    '<span class="link" onclick="go(\'landing\')">&#8592; Back to portal</span>'+
+    '<div class="login-hint">Manager codes begin with <b style="color:var(--gold)">5</b>. Staff codes (1–4) cannot access this area.<br>Clock stations use the separate Time Clock app.</div>'+
   '</div></div>';
 }
-
-function bindBohLogin(){
+function bindLogin(){
   var input=$('mgr-code'), btn=$('mgr-go');
   function attempt(){
     var v=(input.value||'').trim();
-    var ok = (v===MASTER_CODE) || STATE.managers.some(function(m){ return m.code===v; });
-    if(ok){ sessionStorage.setItem('eh_boh','1'); go('boh'); }
-    else { toast('Incorrect manager code', 'error'); input.value=''; input.focus(); }
+    if(v===MASTER_CODE){ SESSION.user={name:'Owner',role:'Owner',perms:null,isOwner:true}; sessionStorage.setItem('eh_boh_user',JSON.stringify(SESSION.user)); toast('Welcome back','success'); ROUTE='overview'; render(); return; }
+    var m=STATE.staff.filter(function(s){return s.code===v;})[0];
+    if(m && (m.code||'')[0]==='5'){
+      var perms=m.perms||{floor:true,staff:true,guests:true,timecards:true,menu:true,settings:true};
+      SESSION.user={name:m.name,role:'Manager',perms:perms,isOwner:false,staffId:m.id};
+      sessionStorage.setItem('eh_boh_user',JSON.stringify(SESSION.user)); toast('Welcome, '+m.name,'success'); ROUTE='overview'; render(); return;
+    }
+    if(m){ toast('That code does not have manager access','error'); }
+    else { toast('Code not recognized','error'); }
+    input.value=''; input.focus();
   }
-  btn.addEventListener('click', attempt);
-  input.addEventListener('keydown', function(e){ if(e.key==='Enter') attempt(); });
-  setTimeout(function(){ input.focus(); }, 100);
+  btn.addEventListener('click',attempt);
+  input.addEventListener('keydown',function(e){ if(e.key==='Enter')attempt(); });
+  setTimeout(function(){ input.focus(); },120);
+}
+function logout(){ SESSION.user=null; sessionStorage.removeItem('eh_boh_user'); ROUTE='overview'; render(); }
+
+/* ---------------- SHELL ---------------- */
+var NAV = [
+  {group:'Operations', items:[
+    {r:'overview', ico:'◆', label:'Overview', perm:null},
+    {r:'floor',    ico:'▦', label:'Floor & Tables', perm:'floor'},
+    {r:'clocked',  ico:'◷', label:'On the Clock', perm:null}
+  ]},
+  {group:'People', items:[
+    {r:'staff',    ico:'☰', label:'Employees', perm:'staff'},
+    {r:'guests',   ico:'♛', label:'Guests', perm:'guests'},
+    {r:'timecards',ico:'▤', label:'Time Cards', perm:'timecards'}
+  ]}
+];
+function sidebar(){
+  var u=SESSION.user;
+  var navHTML='';
+  NAV.forEach(function(grp){
+    navHTML+='<div class="nav-group">'+grp.group+'</div>';
+    grp.items.forEach(function(it){
+      var locked = it.perm && !can(it.perm);
+      navHTML+='<div class="nav-item'+(ROUTE===it.r?' active':'')+(locked?' locked':'')+'" '+(locked?'':'data-r="'+it.r+'"')+'>'+
+        '<span class="nav-ico">'+it.ico+'</span>'+it.label+(locked?' <span style="margin-left:auto;font-size:11px">🔒</span>':'')+'</div>';
+    });
+  });
+  var initials=(u.name||'M').split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
+  return '<div class="sidebar" id="sidebar">'+
+    '<div class="side-brand"><div class="side-mark">E</div><div><div class="side-name serif">Epicurean House</div><div class="side-tag">Back of House</div></div></div>'+
+    '<div class="nav">'+navHTML+'</div>'+
+    '<div class="side-foot"><div class="side-user"><div class="side-avatar">'+initials+'</div><div><div class="side-uname">'+esc(u.name)+'</div><div class="side-urole">'+esc(u.role)+(u.isOwner?' · Full access':'')+'</div></div></div>'+
+    '<button class="btn btn-ghost btn-sm" style="width:100%" onclick="logout()">Sign Out</button></div>'+
+  '</div>';
+}
+function topbar(title,sub){
+  return '<div class="topbar"><div style="display:flex;align-items:center;gap:14px">'+
+    '<div class="menu-toggle" onclick="toggleSidebar()">☰</div>'+
+    '<div><div class="page-title serif">'+title+'</div><div class="page-sub">'+sub+'</div></div></div>'+
+    '<div class="top-clock"><div class="top-time" id="live-clock">--:--</div><div class="top-date" id="live-date">&nbsp;</div></div></div>';
+}
+function toggleSidebar(){ var s=$('sidebar'); if(s)s.classList.toggle('open'); }
+function closeSidebar(){ var s=$('sidebar'); if(s)s.classList.remove('open'); }
+
+var _ct=null;
+function startClock(){
+  function tick(){ var n=new Date(); var c=$('live-clock'),d=$('live-date');
+    if(c)c.textContent=n.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit'});
+    if(d)d.textContent=n.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'}); }
+  if(_ct)clearInterval(_ct); tick(); _ct=setInterval(tick,1000);
+}
+
+/* ---------------- RENDER ---------------- */
+function render(){
+  if(!SESSION.user){ $('root').innerHTML=viewLogin(); bindLogin(); return; }
+  var page=pageFor(ROUTE);
+  $('root').innerHTML='<div class="shell">'+sidebar()+'<div class="main">'+topbar(page.title,page.sub)+'<div class="content" id="content">'+page.body+'</div></div></div>';
+  startClock();
+  document.querySelectorAll('.nav-item[data-r]').forEach(function(n){ n.addEventListener('click',function(){ go(n.getAttribute('data-r')); }); });
+  if(page.bind)page.bind();
+}
+
+function pageFor(r){
+  switch(r){
+    case 'floor':     return PAGE_floor();
+    case 'clocked':   return PAGE_clocked();
+    case 'staff':     return PAGE_staff();
+    case 'guests':    return PAGE_guests();
+    case 'timecards': return PAGE_timecards();
+    default:          return PAGE_overview();
+  }
 }
 
 /* ============================================================
-   BACK OF HOUSE — dashboard (Toast/Lightspeed clarity,
-   Aloha-style operational layout)
+   PAGE: OVERVIEW
    ============================================================ */
-var BOH_TAB = 'overview';
-
-function viewBoh(){
-  if(sessionStorage.getItem('eh_boh')!=='1'){ setTimeout(function(){go('boh-login');},0); return ''; }
-  var tabs=[['overview','Overview'],['clocked','On the Clock'],['timecards','Time Cards'],['team','Team']];
-  var tabHTML='';
-  tabs.forEach(function(t){ tabHTML+='<div class="tab'+(BOH_TAB===t[0]?' active':'')+'" data-tab="'+t[0]+'">'+t[1]+'</div>'; });
-  return ''+
-  '<div class="boh-wrap">'+
-    '<div class="boh-head">'+
-      '<div>'+
-        '<div class="boh-h1 serif">Back of House</div>'+
-        '<div class="boh-sub">Live operations &middot; '+new Date().toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})+'</div>'+
-      '</div>'+
-      '<div style="display:flex;gap:10px;align-items:center">'+
-        '<span class="back-link" onclick="bohLogout()">Sign out &#8599;</span>'+
-      '</div>'+
-    '</div>'+
-    '<div class="tabs">'+tabHTML+'</div>'+
-    '<div id="boh-body">'+bohBody()+'</div>'+
-  '</div>';
-}
-
-function bohLogout(){ sessionStorage.removeItem('eh_boh'); go('landing'); }
-
 function todayStart(){ var d=new Date(); d.setHours(0,0,0,0); return d.getTime(); }
-
 function currentlyClocked(){
-  // walk punches; track last in/out per staff
   var status={};
   STATE.punches.forEach(function(p){
-    if(p.type==='in') status[p.staffId]={in:p.ts, name:p.name, role:p.role};
+    if(p.type==='in') status[p.staffId]={in:p.ts,name:p.name,role:p.role,roleKey:p.roleKey,staffId:p.staffId};
     else if(p.type==='out') delete status[p.staffId];
   });
   return Object.keys(status).map(function(k){ return status[k]; });
 }
-
-function bohBody(){
-  if(BOH_TAB==='overview')  return bohOverview();
-  if(BOH_TAB==='clocked')   return bohClocked();
-  if(BOH_TAB==='timecards') return bohTimecards();
-  if(BOH_TAB==='team')      return bohTeam();
-  return bohOverview();
-}
-
-function bohOverview(){
-  var onClock = currentlyClocked();
-  var todays = STATE.punches.filter(function(p){ return p.ts>=todayStart(); });
-  var ins = todays.filter(function(p){return p.type==='in';}).length;
-  var denied = todays.filter(function(p){return p.type==='denied';}).length;
-  var enrolled = STATE.staff.filter(function(s){return s.enrolled;}).length;
-
-  var metrics=''+
-    metric('On the Clock', onClock.length, 'staff working now')+
-    metric("Today's Clock-Ins", ins, 'punches recorded today')+
-    metric('Team Enrolled', enrolled+' / '+STATE.staff.length, 'faces registered')+
-    metric('Denied Attempts', denied, 'face mismatches today', denied>0?'var(--red)':null);
-
-  var rows = onClock.length ? onClock.map(function(s){
-    var mins = Math.round((Date.now()-s.in)/60000);
-    var dur = mins>=60 ? (Math.floor(mins/60)+'h '+(mins%60)+'m') : (mins+'m');
-    return '<tr><td>'+s.name+'</td><td style="color:var(--text-dim)">'+s.role+'</td><td>'+fmtTime(s.in)+'</td><td>'+dur+'</td><td><span class="pill in">On shift</span></td></tr>';
-  }).join('') : '';
-
-  return metrics===''?'':('<div class="metrics">'+metrics+'</div>')+
-    '<div class="panel">'+
-      '<div class="panel-title">On the Clock Now <span style="font-size:13px;color:var(--text-dim);font-family:Inter">'+onClock.length+' active</span></div>'+
-      (onClock.length ? '<table><thead><tr><th>Name</th><th>Role</th><th>Since</th><th>Duration</th><th>Status</th></tr></thead><tbody>'+rows+'</tbody></table>'
-                      : '<div class="empty">No staff currently clocked in.</div>')+
-    '</div>'+
-    '<div class="panel">'+
-      '<div class="panel-title">Recent Activity</div>'+
-      recentActivityTable(8)+
-    '</div>';
-}
-
-function metric(label, val, sub, color){
+function metric(label,val,sub,color){
   return '<div class="metric"><div class="metric-label">'+label+'</div>'+
     '<div class="metric-val"'+(color?(' style="color:'+color+'"'):'')+'>'+val+'</div>'+
     '<div class="metric-sub">'+sub+'</div></div>';
 }
-
-function recentActivityTable(limit){
-  var list = STATE.punches.slice().reverse().slice(0, limit||20);
-  if(!list.length) return '<div class="empty">No clock activity yet. Punches will appear here.</div>';
-  var rows = list.map(function(p){
-    var pill = p.type==='in'?'<span class="pill in">In</span>':p.type==='out'?'<span class="pill out">Out</span>':p.type==='denied'?'<span class="pill out">Denied</span>':'<span class="pill gold">Enrolled</span>';
-    return '<tr><td>'+p.name+'</td><td>'+pill+'</td><td>'+fmtDate(p.ts)+'</td><td>'+fmtTime(p.ts)+'</td><td style="color:var(--text-dim)">'+(p.matchScore!=null?p.matchScore+'%':'—')+'</td></tr>';
-  }).join('');
-  return '<table><thead><tr><th>Name</th><th>Action</th><th>Date</th><th>Time</th><th>Face Match</th></tr></thead><tbody>'+rows+'</tbody></table>';
-}
-
-function bohClocked(){
+function PAGE_overview(){
   var onClock=currentlyClocked();
-  if(!onClock.length) return '<div class="panel"><div class="empty">No one is on the clock right now.</div></div>';
-  var rows=onClock.map(function(s){
-    var mins=Math.round((Date.now()-s.in)/60000);
-    var dur=mins>=60?(Math.floor(mins/60)+'h '+(mins%60)+'m'):(mins+'m');
-    return '<tr><td>'+s.name+'</td><td style="color:var(--text-dim)">'+s.role+'</td><td>'+fmtTime(s.in)+'</td><td>'+dur+'</td></tr>';
+  var todays=STATE.punches.filter(function(p){return p.ts>=todayStart();});
+  var ins=todays.filter(function(p){return p.type==='in';}).length;
+  var denied=todays.filter(function(p){return p.type==='denied';}).length;
+  var openTables=STATE.tables.filter(function(t){return t.status==='open';}).length;
+
+  var metrics='<div class="metrics">'+
+    metric('On the Clock',onClock.length,'staff working now')+
+    metric('Open Tables',openTables+' / '+STATE.tables.length,'available to seat')+
+    metric('Guests on File',STATE.guests.length,'profiles saved')+
+    metric('Denied Punches',denied,'face mismatches today',denied>0?'var(--red)':null)+
+  '</div>';
+
+  var onRows=onClock.length?onClock.map(function(s){
+    var mins=Math.round((Date.now()-s.in)/60000); var dur=mins>=60?(Math.floor(mins/60)+'h '+(mins%60)+'m'):(mins+'m');
+    return '<tr><td>'+esc(s.name)+'</td><td><span class="pill" style="background:'+roleColor(s.roleKey)+'22;color:'+roleColor(s.roleKey)+'">'+esc(s.role)+'</span></td><td>'+fmtTime(s.in)+'</td><td>'+dur+'</td></tr>';
+  }).join(''):'';
+
+  var body=metrics+
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">'+
+      '<div class="panel"><div class="panel-title">On the Clock Now</div>'+
+        (onClock.length?'<table><thead><tr><th>Name</th><th>Role</th><th>Since</th><th>Duration</th></tr></thead><tbody>'+onRows+'</tbody></table>':'<div class="empty">No staff currently clocked in.</div>')+'</div>'+
+      '<div class="panel"><div class="panel-title">Recent Activity</div>'+recentActivity(7)+'</div>'+
+    '</div>';
+  return {title:'Overview',sub:'Live operations at a glance',body:body};
+}
+function recentActivity(limit){
+  var list=STATE.punches.slice().reverse().slice(0,limit||20);
+  if(!list.length)return '<div class="empty">No clock activity yet.</div>';
+  var rows=list.map(function(p){
+    var pill=p.type==='in'?'<span class="pill in">In</span>':p.type==='out'?'<span class="pill out">Out</span>':p.type==='denied'?'<span class="pill out">Denied</span>':'<span class="pill gold">Enrolled</span>';
+    return '<tr><td>'+esc(p.name)+'</td><td>'+pill+'</td><td style="color:var(--text-dim)">'+fmtDate(p.ts)+' '+fmtTime(p.ts)+'</td></tr>';
   }).join('');
-  return '<div class="panel"><div class="panel-title">On the Clock Now</div><table><thead><tr><th>Name</th><th>Role</th><th>Since</th><th>Duration</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  return '<table><thead><tr><th>Name</th><th>Action</th><th>When</th></tr></thead><tbody>'+rows+'</tbody></table>';
 }
 
-function bohTimecards(){
-  return '<div class="panel"><div class="panel-title">Time Cards <span class="back-link" onclick="exportPunches()">Export CSV &#8595;</span></div>'+
-    recentActivityTable(60)+'</div>';
+/* ============================================================
+   PAGE: ON THE CLOCK
+   ============================================================ */
+function PAGE_clocked(){
+  var onClock=currentlyClocked();
+  var rows=onClock.map(function(s){
+    var mins=Math.round((Date.now()-s.in)/60000); var dur=mins>=60?(Math.floor(mins/60)+'h '+(mins%60)+'m'):(mins+'m');
+    return '<tr><td>'+esc(s.name)+'</td><td><span class="pill" style="background:'+roleColor(s.roleKey)+'22;color:'+roleColor(s.roleKey)+'">'+esc(s.role)+'</span></td><td>'+fmtTime(s.in)+'</td><td>'+dur+'</td></tr>';
+  }).join('');
+  var body='<div class="panel"><div class="panel-title">Currently On the Clock <span class="pill gold">'+onClock.length+' active</span></div>'+
+    (onClock.length?'<table><thead><tr><th>Name</th><th>Role</th><th>Since</th><th>Duration</th></tr></thead><tbody>'+rows+'</tbody></table>':'<div class="empty">No one is on the clock right now.</div>')+'</div>';
+  return {title:'On the Clock',sub:'Who is working right now',body:body};
 }
 
+/* ============================================================
+   PAGE: TIME CARDS
+   ============================================================ */
+function PAGE_timecards(){
+  if(!can('timecards'))return lockedPage('Time Cards');
+  var body='<div class="panel"><div class="panel-title">Time Cards & Punch Log <div class="row-actions"><button class="btn btn-ghost btn-sm" onclick="exportPunches()">Export CSV ↓</button></div></div>'+
+    fullPunchTable()+'</div>';
+  return {title:'Time Cards',sub:'Attendance history & payroll export',body:body};
+}
+function fullPunchTable(){
+  var list=STATE.punches.slice().reverse().slice(0,120);
+  if(!list.length)return '<div class="empty">No punches recorded yet. They will appear here as staff clock in.</div>';
+  var rows=list.map(function(p){
+    var pill=p.type==='in'?'<span class="pill in">In</span>':p.type==='out'?'<span class="pill out">Out</span>':p.type==='denied'?'<span class="pill out">Denied</span>':'<span class="pill gold">Enrolled</span>';
+    return '<tr><td>'+esc(p.name)+'</td><td style="color:var(--text-dim)">'+esc(p.role||'')+'</td><td>'+pill+'</td><td>'+fmtDate(p.ts)+'</td><td>'+fmtTime(p.ts)+'</td><td style="color:var(--text-dim)">'+(p.matchScore!=null?p.matchScore+'%':'—')+'</td></tr>';
+  }).join('');
+  return '<table><thead><tr><th>Name</th><th>Role</th><th>Action</th><th>Date</th><th>Time</th><th>Face Match</th></tr></thead><tbody>'+rows+'</tbody></table>';
+}
 function exportPunches(){
   var head='Name,Role,Action,Date,Time,FaceMatch,Method\n';
-  var body=STATE.punches.map(function(p){
-    return [p.name,p.role,p.type,new Date(p.ts).toLocaleDateString(),new Date(p.ts).toLocaleTimeString(),(p.matchScore!=null?p.matchScore+'%':''),p.method||''].join(',');
-  }).join('\n');
-  var blob=new Blob([head+body],{type:'text/csv'});
-  var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='epicurean-timecards.csv'; a.click();
-  toast('Time cards exported', 'success');
+  var body=STATE.punches.map(function(p){ return [p.name,p.role||'',p.type,new Date(p.ts).toLocaleDateString(),new Date(p.ts).toLocaleTimeString(),(p.matchScore!=null?p.matchScore+'%':''),p.method||''].join(','); }).join('\n');
+  var blob=new Blob([head+body],{type:'text/csv'}); var a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='epicurean-timecards.csv'; a.click(); toast('Time cards exported','success');
 }
 
-function bohTeam(){
-  var rows=STATE.staff.map(function(s){
-    var badge = s.enrolled ? '<span class="pill in">Enrolled</span>' : '<span class="pill out">Not enrolled</span>';
-    return '<tr><td>'+s.name+'</td><td style="color:var(--text-dim)">'+s.role+'</td><td><span class="pill gold">code \u2022\u2022\u2022\u2022</span></td><td>'+badge+'</td>'+
-      '<td>'+(s.enrolled?'<span class="back-link" onclick="resetFace(\''+s.id+'\')">Reset face</span>':'<span style="color:var(--text-faint)">—</span>')+'</td></tr>';
-  }).join('');
-  return '<div class="panel"><div class="panel-title">Team <span style="font-size:13px;color:var(--text-dim);font-family:Inter">'+STATE.staff.length+' members</span></div>'+
-    '<table><thead><tr><th>Name</th><th>Role</th><th>Clock Code</th><th>Face</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div class="mini-note">Staff register their face the first time they clock in. Reset clears it so they re-register on the next punch.</div></div>';
+function lockedPage(name){
+  return {title:name,sub:'Restricted',body:'<div class="panel"><div class="empty">🔒 You do not have permission to view '+name+'.<br><span style="font-size:13px">Ask the owner to enable this in your manager permissions.</span></div></div>'};
 }
 
-function resetFace(id){
-  var idx=STATE.staff.findIndex(function(s){return s.id===id;});
-  if(idx>-1){ STATE.staff[idx].enrolled=false; STATE.staff[idx].faceprint=null; saveStaff(); toast('Face reset for '+STATE.staff[idx].name,'success'); $('boh-body').innerHTML=bohBody(); bindBoh(); }
+/* ============================================================
+   PAGE: FLOOR & TABLES  (drag-and-drop editor)
+   ============================================================ */
+var FLOOR={ sel:null, section:'All' };
+function PAGE_floor(){
+  if(!can('floor'))return lockedPage('Floor & Tables');
+  var secOpts=['All'].concat(STATE.sections);
+  var segHTML=secOpts.map(function(s){ return '<button class="'+(FLOOR.section===s?'on':'')+'" data-sec="'+esc(s)+'">'+esc(s)+'</button>'; }).join('');
+  var body=
+    '<div class="floor-toolbar">'+
+      '<div class="seg" id="sec-seg">'+segHTML+'</div>'+
+      '<button class="btn btn-gold btn-sm" onclick="addTable()">+ Add Table</button>'+
+      '<button class="btn btn-ghost btn-sm" onclick="addSection()">+ Section</button>'+
+      '<div style="flex:1"></div>'+
+      '<span class="mini-note" style="margin:0">Drag tables to arrange. Tap a table to edit.</span>'+
+    '</div>'+
+    '<div class="floor-canvas" id="floor-canvas"></div>'+
+    '<div id="floor-edit"></div>'+
+    '<div class="mini-note">This floor layout is saved to your shared database and will feed the food masters&rsquo; POS on their phones.</div>';
+  return {title:'Floor & Tables',sub:'Arrange your dining room',body:body,bind:bindFloor};
 }
-
-function bindBoh(){
-  if(sessionStorage.getItem('eh_boh')!=='1') return;
-  document.querySelectorAll('.tab').forEach(function(t){
-    t.addEventListener('click', function(){ BOH_TAB=t.getAttribute('data-tab'); render(); });
+function tablesInView(){ return STATE.tables.filter(function(t){ return FLOOR.section==='All'||t.section===FLOOR.section; }); }
+function bindFloor(){
+  renderTables();
+  document.querySelectorAll('#sec-seg button').forEach(function(b){
+    b.addEventListener('click',function(){ FLOOR.section=b.getAttribute('data-sec'); FLOOR.sel=null; render(); });
   });
 }
+function renderTables(){
+  var canvas=$('floor-canvas'); if(!canvas)return; canvas.innerHTML='';
+  tablesInView().forEach(function(t){
+    var node=el('div',{class:'table-node'+(FLOOR.sel===t.id?' sel':'')+' s-'+t.status,'data-id':t.id});
+    node.style.left=t.x+'px'; node.style.top=t.y+'px';
+    node.innerHTML='<div class="table-shape '+t.shape+'" style="width:'+t.size+'px;height:'+t.size+'px">'+esc(t.name)+'</div>'+
+      '<div class="table-cap">'+t.seats+' seats · '+esc(t.section)+'</div>';
+    canvas.appendChild(node);
+    makeDraggable(node,t);
+  });
+  renderFloorEdit();
+}
+function makeDraggable(node,t){
+  var startX,startY,origX,origY,moved=false,dragging=false;
+  function down(e){ e.preventDefault(); dragging=true;moved=false; var p=point(e); startX=p.x;startY=p.y;origX=t.x;origY=t.y; node.classList.add('dragging');
+    document.addEventListener('mousemove',move); document.addEventListener('mouseup',up); document.addEventListener('touchmove',move,{passive:false}); document.addEventListener('touchend',up); }
+  function move(e){ if(!dragging)return; e.preventDefault(); var p=point(e); var dx=p.x-startX,dy=p.y-startY; if(Math.abs(dx)+Math.abs(dy)>4)moved=true;
+    var canvas=$('floor-canvas'); var maxX=canvas.clientWidth-t.size-6, maxY=canvas.clientHeight-t.size-26;
+    t.x=Math.max(4,Math.min(maxX,origX+dx)); t.y=Math.max(4,Math.min(maxY,origY+dy));
+    node.style.left=t.x+'px'; node.style.top=t.y+'px'; }
+  function up(){ dragging=false; node.classList.remove('dragging');
+    document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',up); document.removeEventListener('touchmove',move); document.removeEventListener('touchend',up);
+    if(moved){ saveTables(); } else { FLOOR.sel=(FLOOR.sel===t.id?null:t.id); document.querySelectorAll('.table-node').forEach(function(n){n.classList.toggle('sel',n.getAttribute('data-id')===FLOOR.sel);}); renderFloorEdit(); } }
+  function point(e){ var t2=e.touches?e.touches[0]:e; return {x:t2.clientX,y:t2.clientY}; }
+  node.addEventListener('mousedown',down); node.addEventListener('touchstart',down,{passive:false});
+}
+function renderFloorEdit(){
+  var box=$('floor-edit'); if(!box)return;
+  if(!FLOOR.sel){ box.innerHTML=''; return; }
+  var t=STATE.tables.filter(function(x){return x.id===FLOOR.sel;})[0]; if(!t){ box.innerHTML=''; return; }
+  var secOpts=STATE.sections.map(function(s){ return '<option'+(t.section===s?' selected':'')+'>'+esc(s)+'</option>'; }).join('');
+  box.innerHTML='<div class="panel" style="margin-top:18px"><div class="panel-title">Edit Table '+esc(t.name)+'</div>'+
+    '<div class="form-grid">'+
+      '<div class="field"><label>Table Name / Number</label><input class="input" id="te-name" value="'+esc(t.name)+'"></div>'+
+      '<div class="field"><label>Seats</label><input class="input" id="te-seats" type="number" min="1" max="20" value="'+t.seats+'"></div>'+
+      '<div class="field"><label>Shape</label><select class="input" id="te-shape"><option value="round"'+(t.shape==='round'?' selected':'')+'>Round</option><option value="square"'+(t.shape==='square'?' selected':'')+'>Square</option></select></div>'+
+      '<div class="field"><label>Section</label><select class="input" id="te-section">'+secOpts+'</select></div>'+
+      '<div class="field"><label>Status</label><select class="input" id="te-status"><option value="open"'+(t.status==='open'?' selected':'')+'>Open</option><option value="occupied"'+(t.status==='occupied'?' selected':'')+'>Occupied</option><option value="reserved"'+(t.status==='reserved'?' selected':'')+'>Reserved</option></select></div>'+
+      '<div class="field"><label>Size</label><select class="input" id="te-size"><option value="56"'+(t.size==56?' selected':'')+'>Small</option><option value="72"'+(t.size==72?' selected':'')+'>Medium</option><option value="96"'+(t.size==96?' selected':'')+'>Large</option></select></div>'+
+    '</div>'+
+    '<div class="modal-foot"><button class="btn btn-gold" onclick="saveTableEdit()">Save Table</button><button class="btn btn-danger" onclick="deleteTable()">Delete</button></div>'+
+  '</div>';
+}
+function addTable(){
+  var n=STATE.tables.length+1; var sec=FLOOR.section==='All'?STATE.sections[0]:FLOOR.section;
+  var t={id:'t'+Date.now(),name:''+n,shape:'round',seats:2,x:40,y:40,size:64,status:'open',section:sec};
+  STATE.tables.push(t); saveTables(); FLOOR.sel=t.id; render(); toast('Table added','success');
+}
+function saveTableEdit(){
+  var t=STATE.tables.filter(function(x){return x.id===FLOOR.sel;})[0]; if(!t)return;
+  t.name=$('te-name').value||t.name; t.seats=parseInt($('te-seats').value)||t.seats; t.shape=$('te-shape').value;
+  t.section=$('te-section').value; t.status=$('te-status').value; t.size=parseInt($('te-size').value)||t.size;
+  saveTables(); render(); toast('Table saved','success');
+}
+function deleteTable(){
+  STATE.tables=STATE.tables.filter(function(x){return x.id!==FLOOR.sel;}); FLOOR.sel=null; saveTables(); render(); toast('Table removed','success');
+}
+function addSection(){
+  openModal('New Section','<div class="field"><label>Section Name</label><input class="input" id="new-sec" placeholder="e.g. Terrace"></div>',
+    'Add Section',function(){ var v=($('new-sec').value||'').trim(); if(!v){toast('Enter a name','error');return false;} if(STATE.sections.indexOf(v)<0)STATE.sections.push(v); FLOOR.section=v; saveTables(); render(); toast('Section added','success'); return true; });
+}
+
+/* ============================================================
+   PAGE: EMPLOYEES
+   ============================================================ */
+function PAGE_staff(){
+  if(!can('staff'))return lockedPage('Employees');
+  var rows=STATE.staff.map(function(s){
+    var role=roleFromCode(s.code);
+    var face=s.enrolled?'<span class="pill in">Enrolled</span>':'<span class="pill out">Not enrolled</span>';
+    var posBadge=role.pos?'<span class="pill blue">POS</span>':'<span style="color:var(--text-faint);font-size:12px">—</span>';
+    return '<tr>'+
+      '<td><b>'+esc(s.name)+'</b></td>'+
+      '<td><span class="pill" style="background:'+role.color+'22;color:'+role.color+'">'+role.label+'</span></td>'+
+      '<td style="font-family:monospace;color:var(--text-dim)">'+esc(s.code[0])+'•••</td>'+
+      '<td>'+posBadge+'</td>'+
+      '<td>'+face+'</td>'+
+      '<td>$'+(s.wage||0)+'/hr</td>'+
+      '<td class="row-actions"><span class="link" onclick="editStaff(\''+s.id+'\')">Edit</span>'+(s.enrolled?' · <span class="link" onclick="resetFace(\''+s.id+'\')">Reset face</span>':'')+'</td>'+
+    '</tr>';
+  }).join('');
+  var legend='<div class="chip-row" style="margin-bottom:16px">'+
+    Object.keys(ROLES).map(function(d){ var r=ROLES[d]; return '<span class="pill" style="background:'+r.color+'22;color:'+r.color+'">'+d+'xxx · '+r.label+(r.pos?' (POS)':'')+'</span>'; }).join('')+'</div>';
+  var body=legend+
+    '<div class="panel"><div class="panel-title">Employees <div class="row-actions"><button class="btn btn-gold btn-sm" onclick="addStaff()">+ Add Employee</button></div></div>'+
+    '<table><thead><tr><th>Name</th><th>Role</th><th>Code</th><th>POS</th><th>Face</th><th>Wage</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div class="mini-note">The first digit of the code sets the role &amp; access: <b>1</b> Kitchen · <b>2</b> Sales · <b>3</b> Food Master (POS) · <b>4</b> Front of House · <b>5</b> Manager. Staff register their face the first time they clock in.</div></div>';
+  return {title:'Employees',sub:STATE.staff.length+' team members',body:body};
+}
+function staffForm(s){
+  s=s||{name:'',code:'',wage:15};
+  var role=roleFromCode(s.code);
+  var isMgr=(s.code||'')[0]==='5';
+  var permHTML=PERMISSIONS.map(function(p){ var on=s.perms&&s.perms[p.key]; return '<span class="chip perm-chip'+(on?' on':'')+'" data-perm="'+p.key+'">'+p.label+'</span>'; }).join('');
+  return '<div class="form-grid cols-2">'+
+      '<div class="field"><label>Full Name</label><input class="input" id="sf-name" value="'+esc(s.name)+'" placeholder="First Last"></div>'+
+      '<div class="field"><label>4-Digit Code</label><input class="input" id="sf-code" inputmode="numeric" maxlength="4" value="'+esc(s.code)+'" placeholder="e.g. 3001" oninput="onCodeInput()"></div>'+
+    '</div>'+
+    '<div id="sf-role-hint" style="margin:10px 0 4px">'+roleHint(s.code)+'</div>'+
+    '<div class="field" style="margin-top:8px"><label>Hourly Wage ($)</label><input class="input" id="sf-wage" type="number" min="0" step="0.5" value="'+(s.wage||15)+'"></div>'+
+    '<div id="sf-perms" style="margin-top:18px;'+(isMgr?'':'display:none')+'"><label class="fld">Manager Permissions</label><div class="chip-row">'+permHTML+'</div>'+
+      '<div class="mini-note">Toggle exactly what this manager can do. The owner master code always has full access.</div></div>';
+}
+function roleHint(code){
+  var r=roleFromCode(code); if(!code)return '<span class="mini-note" style="margin:0">Enter a code — the first digit sets the role.</span>';
+  return '<span class="pill" style="background:'+r.color+'22;color:'+r.color+'">First digit '+code[0]+' → '+r.label+(r.pos?' · can use POS':' · no POS')+'</span>';
+}
+function onCodeInput(){
+  var code=$('sf-code').value; var h=$('sf-role-hint'); if(h)h.innerHTML=roleHint(code);
+  var pm=$('sf-perms'); if(pm)pm.style.display=(code[0]==='5')?'block':'none';
+}
+function bindPermChips(){
+  document.querySelectorAll('.perm-chip').forEach(function(c){ c.addEventListener('click',function(){ c.classList.toggle('on'); }); });
+}
+function collectPerms(){
+  if(($('sf-code').value||'')[0]!=='5')return null;
+  var perms={}; document.querySelectorAll('.perm-chip').forEach(function(c){ perms[c.getAttribute('data-perm')]=c.classList.contains('on'); }); return perms;
+}
+function addStaff(){
+  openModal('Add Employee',staffForm(null),'Add Employee',function(){
+    var name=($('sf-name').value||'').trim(), code=($('sf-code').value||'').trim();
+    if(!name){toast('Enter a name','error');return false;}
+    if(!/^\d{4}$/.test(code)){toast('Code must be 4 digits','error');return false;}
+    if(STATE.staff.some(function(x){return x.code===code;})){toast('That code is already used','error');return false;}
+    STATE.staff.push({id:'s'+Date.now(),name:name,code:code,wage:parseFloat($('sf-wage').value)||15,enrolled:false,faceprint:null,perms:collectPerms()});
+    saveStaff(); render(); toast('Employee added','success'); return true;
+  },bindPermChips);
+}
+function editStaff(id){
+  var s=STATE.staff.filter(function(x){return x.id===id;})[0]; if(!s)return;
+  openModal('Edit Employee',staffForm(s),'Save Changes',function(){
+    var name=($('sf-name').value||'').trim(), code=($('sf-code').value||'').trim();
+    if(!name){toast('Enter a name','error');return false;}
+    if(!/^\d{4}$/.test(code)){toast('Code must be 4 digits','error');return false;}
+    if(STATE.staff.some(function(x){return x.code===code&&x.id!==id;})){toast('That code is already used','error');return false;}
+    s.name=name; s.code=code; s.wage=parseFloat($('sf-wage').value)||15; s.perms=collectPerms();
+    saveStaff(); render(); toast('Employee updated','success'); return true;
+  },bindPermChips,'<button class="btn btn-danger" onclick="deleteStaff(\''+id+'\')">Delete Employee</button>');
+}
+function deleteStaff(id){ STATE.staff=STATE.staff.filter(function(x){return x.id!==id;}); saveStaff(); closeModal(); render(); toast('Employee removed','success'); }
+function resetFace(id){ var s=STATE.staff.filter(function(x){return x.id===id;})[0]; if(s){ s.enrolled=false; s.faceprint=null; saveStaff(); render(); toast('Face reset — '+s.name+' will re-register on next clock-in','success'); } }
+
+/* ============================================================
+   PAGE: GUESTS (phone-linked preferences)
+   ============================================================ */
+var ALLERGENS=['Gluten','Nuts','Dairy','Shellfish','Eggs','Soy'];
+var DIETS=['Vegetarian','Vegan','Pescatarian','Halal','Kosher'];
+var WINE_PREFS=['Red','White','Rosé','Sparkling','Bold & Tannic','Light & Crisp','Sweet','Dry'];
+function PAGE_guests(){
+  if(!can('guests'))return lockedPage('Guests');
+  var rows=STATE.guests.length?STATE.guests.slice().reverse().map(function(g){
+    var allerg=(g.allergies||[]).map(function(a){return '<span class="pill out" style="margin:2px">'+esc(a)+'</span>';}).join('')||'<span style="color:var(--text-faint)">none</span>';
+    var diet=(g.diets||[]).map(function(d){return '<span class="pill gold" style="margin:2px">'+esc(d)+'</span>';}).join('')||'';
+    return '<tr><td><b>'+esc(g.name||'Guest')+'</b></td><td style="font-family:monospace">'+fmtPhone(g.phone)+'</td><td>'+allerg+' '+diet+'</td><td style="color:var(--text-dim)">'+(g.visits||1)+'</td><td><span class="link" onclick="editGuest(\''+g.id+'\')">View / Edit</span></td></tr>';
+  }).join(''):'';
+  var body='<div class="panel"><div class="panel-title">Guest Profiles <div class="row-actions"><button class="btn btn-gold btn-sm" onclick="addGuest()">+ Add Guest</button></div></div>'+
+    (STATE.guests.length?'<table><thead><tr><th>Name</th><th>Phone</th><th>Restrictions & Preferences</th><th>Visits</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>':'<div class="empty">No guests yet. Add a guest, or they will appear automatically when they use the menu iPad.</div>')+
+    '<div class="mini-note">Each guest is linked by phone number. Their allergies, dietary needs and wine taste pre-load into the menu iPad when they return, and are shared with food masters to serve them better.</div></div>';
+  return {title:'Guests',sub:STATE.guests.length+' profiles on file',body:body};
+}
+function guestForm(g){
+  g=g||{name:'',phone:'',allergies:[],diets:[],winePrefs:[],notes:''};
+  function chips(list,sel,cls){ return list.map(function(x){ var on=(sel||[]).indexOf(x)>-1; return '<span class="chip '+cls+(on?' on':'')+'" data-val="'+esc(x)+'">'+esc(x)+'</span>'; }).join(''); }
+  return '<div class="form-grid cols-2">'+
+      '<div class="field"><label>Guest Name</label><input class="input" id="gf-name" value="'+esc(g.name)+'" placeholder="First Last"></div>'+
+      '<div class="field"><label>Phone Number</label><input class="input" id="gf-phone" inputmode="tel" value="'+esc(g.phone)+'" placeholder="(212) 555-0100"></div>'+
+    '</div>'+
+    '<div style="margin-top:16px"><label class="fld">Allergies</label><div class="chip-row" id="gf-allergies">'+chips(ALLERGENS,g.allergies,'allergy')+'</div></div>'+
+    '<div style="margin-top:16px"><label class="fld">Dietary</label><div class="chip-row" id="gf-diets">'+chips(DIETS,g.diets,'')+'</div></div>'+
+    '<div style="margin-top:16px"><label class="fld">Wine Taste</label><div class="chip-row" id="gf-wine">'+chips(WINE_PREFS,g.winePrefs,'')+'</div></div>'+
+    '<div class="field" style="margin-top:16px"><label>Notes for Food Masters</label><input class="input" id="gf-notes" value="'+esc(g.notes||'')+'" placeholder="e.g. celebrates anniversary in June, loves Burgundy"></div>';
+}
+function collectChips(containerId){ var out=[]; var c=$(containerId); if(!c)return out; c.querySelectorAll('.chip.on').forEach(function(ch){ out.push(ch.getAttribute('data-val')); }); return out; }
+function bindGuestChips(){ document.querySelectorAll('#modal-root .chip').forEach(function(c){ c.addEventListener('click',function(){ c.classList.toggle('on'); }); }); }
+function addGuest(){
+  openModal('Add Guest',guestForm(null),'Save Guest',function(){
+    var name=($('gf-name').value||'').trim(), phone=($('gf-phone').value||'').replace(/\D/g,'');
+    if(!phone||phone.length<7){toast('Enter a valid phone number','error');return false;}
+    if(STATE.guests.some(function(x){return x.phone===phone;})){toast('A guest with that phone already exists','error');return false;}
+    STATE.guests.push({id:'g'+Date.now(),name:name,phone:phone,allergies:collectChips('gf-allergies'),diets:collectChips('gf-diets'),winePrefs:collectChips('gf-wine'),notes:($('gf-notes').value||'').trim(),visits:1,createdAt:Date.now()});
+    saveGuests(); render(); toast('Guest saved','success'); return true;
+  },bindGuestChips);
+}
+function editGuest(id){
+  var g=STATE.guests.filter(function(x){return x.id===id;})[0]; if(!g)return;
+  openModal('Guest Profile',guestForm(g),'Save Changes',function(){
+    var phone=($('gf-phone').value||'').replace(/\D/g,'');
+    if(!phone||phone.length<7){toast('Enter a valid phone number','error');return false;}
+    g.name=($('gf-name').value||'').trim(); g.phone=phone; g.allergies=collectChips('gf-allergies'); g.diets=collectChips('gf-diets'); g.winePrefs=collectChips('gf-wine'); g.notes=($('gf-notes').value||'').trim();
+    saveGuests(); render(); toast('Guest updated','success'); return true;
+  },bindGuestChips,'<button class="btn btn-danger" onclick="deleteGuest(\''+id+'\')">Delete Guest</button>');
+}
+function deleteGuest(id){ STATE.guests=STATE.guests.filter(function(x){return x.id!==id;}); saveGuests(); closeModal(); render(); toast('Guest removed','success'); }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+var MODAL_OK=null;
+function openModal(title,bodyHTML,okLabel,onOk,afterRender,extraFootBtn){
+  MODAL_OK=onOk;
+  $('modal-root').innerHTML='<div class="modal-backdrop" id="mb"><div class="modal"><div class="modal-title serif">'+title+'</div>'+bodyHTML+
+    '<div class="modal-foot">'+(extraFootBtn||'')+'<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-gold" id="modal-ok">'+okLabel+'</button></div></div></div>';
+  $('modal-ok').addEventListener('click',function(){ if(MODAL_OK){ var keep=MODAL_OK(); if(keep!==false)closeModal(); } else closeModal(); });
+  $('mb').addEventListener('click',function(e){ if(e.target.id==='mb')closeModal(); });
+  if(afterRender)afterRender();
+}
+function closeModal(){ $('modal-root').innerHTML=''; MODAL_OK=null; }
 
 /* ============================================================
    BOOT
    ============================================================ */
 function boot(){
+  var saved=sessionStorage.getItem('eh_boh_user'); if(saved){ try{ SESSION.user=JSON.parse(saved); }catch(e){} }
   render();
-  syncFromCloud().then(function(){ if(ROUTE==='boh'){ var b=$('boh-body'); if(b){ b.innerHTML=bohBody(); bindBoh(); } } });
+  syncFromCloud().then(function(){ if(SESSION.user)render(); });
 }
-if(document.readyState==='loading') document.addEventListener('DOMContentLoaded', boot);
-else boot();
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot); else boot();
+
 </script>
 </body>
 </html>
