@@ -273,12 +273,49 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 }
 .menu-toggle{display:none;width:42px;height:42px;border-radius:11px;border:1px solid var(--border);
   background:var(--panel);color:var(--gold);align-items:center;justify-content:center;font-size:20px;cursor:pointer;}
+
+/* ---------- Employee module ---------- */
+.form-grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.form-grid.cols-4{grid-template-columns:1fr 1fr 1fr 1fr;}
+textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
+.section-label{font-size:11px;font-weight:700;letter-spacing:1.4px;text-transform:uppercase;color:var(--gold-soft);margin:22px 0 12px;padding-bottom:7px;border-bottom:1px solid var(--border-soft);}
+.emp-head{display:flex;align-items:center;gap:16px;margin-bottom:18px;flex-wrap:wrap;}
+.emp-avatar{width:56px;height:56px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700;flex-shrink:0;}
+.emp-head-info{flex:1;min-width:180px;}
+.emp-name{font-size:26px;line-height:1;}
+.emp-meta{font-size:12.5px;color:var(--text-dim);margin-top:5px;}
+.emp-head-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.etabs{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--border-soft);margin-bottom:20px;}
+.etab{padding:11px 15px;font-size:13px;font-weight:600;color:var(--text-dim);cursor:pointer;border-bottom:2px solid transparent;transition:all .14s var(--ease-out);white-space:nowrap;}
+.etab:hover{color:var(--text);}
+.etab.active{color:var(--gold);border-bottom-color:var(--gold);}
+.note-item{background:rgba(24,43,69,0.4);border:1px solid var(--border-soft);border-radius:11px;padding:13px 15px;margin-bottom:10px;}
+.note-meta{font-size:11px;letter-spacing:.4px;color:var(--text-faint);text-transform:uppercase;margin-bottom:6px;}
+.note-text{font-size:14px;line-height:1.55;color:var(--text);}
+.notes-list{margin-top:8px;}
+.sales-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin:6px 0 8px;}
+.sales-card{background:linear-gradient(180deg,var(--panel-2),var(--bg-2));border:1px solid var(--border-soft);border-radius:13px;padding:15px;position:relative;overflow:hidden;}
+.sales-card::before{content:"";position:absolute;top:0;left:0;width:100%;height:2px;background:var(--gold);opacity:.5;}
+.sales-cat{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--text-dim);}
+.sales-val{font-family:'Cormorant Garamond',serif;font-size:28px;line-height:1;margin:8px 0 3px;color:var(--text);}
+.sales-sub{font-size:10.5px;color:var(--text-faint);font-style:italic;}
+.pos-banner{background:rgba(224,163,107,0.1);border:1px solid rgba(224,163,107,0.3);border-radius:12px;padding:13px 16px;font-size:12.5px;color:var(--amber);line-height:1.6;margin-bottom:16px;}
+.chart-wrap{background:rgba(11,20,32,0.4);border:1px solid var(--border-soft);border-radius:14px;padding:16px;position:relative;}
+.charts-2{display:grid;grid-template-columns:1.4fr 1fr;gap:16px;}
+@media(max-width:760px){.charts-2{grid-template-columns:1fr;}.form-grid.cols-3,.form-grid.cols-4{grid-template-columns:1fr 1fr;}}
+.pay-stub{margin-top:20px;}
+.pay-stub:empty{display:none;}
+.stub-title{font-size:20px;margin-bottom:14px;color:var(--gold);}
+.stub-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-soft);font-size:14px;}
+.stub-row.stub-sub{font-weight:700;color:var(--text);border-top:1px solid var(--border);margin-top:4px;}
+.stub-row.stub-total{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--green);border-bottom:none;border-top:2px solid var(--gold);margin-top:6px;padding-top:14px;}
 </style>
 </head>
 <body>
 <div id="root"></div>
 <div id="modal-root"></div>
 <div id="toast"></div>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
 <script>
@@ -331,14 +368,55 @@ var PERMISSIONS = [
 
 var MASTER_CODE = 'EPICUREAN2024'; // owner master — full access
 
+/* ---------------- Jobcodes & access levels ---------------- */
+/* An employee can hold several jobcodes, each with its own access level + pay rate. */
+var JOBCODES = ['Server','Bartender','Host','Kitchen','Food Master','Manager','Owner'];
+var ACCESS_LEVELS = ['No Access','Order Only','POS','Manager','Full'];
+
+/* ---------------- Sales categories (populated later by the POS) ---------------- */
+var SALES_CATS = ['Food','Liquor','Wine','Beer','Dessert','Non-Alcoholic','Retail'];
+
+/* ---------------- Monthly review categories (1-5) ---------------- */
+var REVIEW_CATS = ['Punctuality','Teamwork','Guest Service','Product Knowledge','Cleanliness','Overall'];
+
+/* ---------------- Payroll defaults (manager-adjustable, editable anytime) ---------------- */
+var PAYROLL_DEFAULTS = { federalPct:10, statePct:5, ssPct:6.2, medicarePct:1.45, otherAmt:0, otMultiplier:1.5, otThreshold:40 };
+function payrollSettings(){ return lsGet('eh_payroll', JSON.parse(JSON.stringify(PAYROLL_DEFAULTS))); }
+function savePayrollSettings(p){ lsSet('eh_payroll',p); fbSetDoc('boh_shared','payroll_settings',{settings:p,updatedAt:Date.now()}); }
+
 /* ---------------- Seed data ---------------- */
+/* Rich employee record. Legacy records (name/code/wage) are auto-upgraded by normStaff(). */
+function newRate(rate,reason){ return {id:'r'+Math.random().toString(36).slice(2,7), effective:Date.now(), rate:rate, reason:reason||'Initial rate', modified:Date.now()}; }
 var SEED_STAFF = [
-  {id:'s1', name:'Andre Mendoza',  code:'3001', wage:18, enrolled:false, perms:null},
-  {id:'s2', name:'Paco Arias',     code:'3002', wage:18, enrolled:false, perms:null},
-  {id:'s3', name:'Maria Lopez',    code:'1001', wage:17, enrolled:false, perms:null},
-  {id:'s4', name:'Edwin Perez',    code:'4001', wage:16, enrolled:false, perms:null},
-  {id:'s5', name:'General Manager',code:'5001', wage:30, enrolled:false, perms:{floor:true,staff:true,guests:true,timecards:true,menu:true,settings:true}}
+  {id:'s1', name:'Andre Mendoza',  code:'3001', wage:18, enrolled:false, perms:null,
+    jobs:[{code:'Food Master',access:'POS',rate:18}], rates:[newRate(18)],
+    contact:{address:'',city:'',state:'',zip:'',phone:'',email:'',emName:'',emPhone:''}, dependents:[], notes:[], reviews:[], sales:{}, status:'active', hired:Date.now()},
+  {id:'s2', name:'Paco Arias',     code:'3002', wage:18, enrolled:false, perms:null,
+    jobs:[{code:'Food Master',access:'POS',rate:18}], rates:[newRate(18)],
+    contact:{address:'',city:'',state:'',zip:'',phone:'',email:'',emName:'',emPhone:''}, dependents:[], notes:[], reviews:[], sales:{}, status:'active', hired:Date.now()},
+  {id:'s3', name:'Maria Lopez',    code:'1001', wage:17, enrolled:false, perms:null,
+    jobs:[{code:'Kitchen',access:'No Access',rate:17}], rates:[newRate(17)],
+    contact:{address:'',city:'',state:'',zip:'',phone:'',email:'',emName:'',emPhone:''}, dependents:[], notes:[], reviews:[], sales:{}, status:'active', hired:Date.now()},
+  {id:'s4', name:'Edwin Perez',    code:'4001', wage:16, enrolled:false, perms:null,
+    jobs:[{code:'Server',access:'Order Only',rate:16}], rates:[newRate(16)],
+    contact:{address:'',city:'',state:'',zip:'',phone:'',email:'',emName:'',emPhone:''}, dependents:[], notes:[], reviews:[], sales:{}, status:'active', hired:Date.now()},
+  {id:'s5', name:'General Manager',code:'5001', wage:30, enrolled:false, perms:{floor:true,staff:true,guests:true,timecards:true,menu:true,settings:true},
+    jobs:[{code:'Manager',access:'Full',rate:30}], rates:[newRate(30)],
+    contact:{address:'',city:'',state:'',zip:'',phone:'',email:'',emName:'',emPhone:''}, dependents:[], notes:[], reviews:[], sales:{}, status:'active', hired:Date.now()}
 ];
+/* Ensure every staff record has the rich fields, upgrading legacy rows in place. */
+function normStaff(s){
+  if(!s.jobs){ var role=roleFromCode(s.code); var acc=role.pos?'POS':'No Access'; if((s.code||'')[0]==='5')acc='Full'; s.jobs=[{code:role.label,access:acc,rate:s.wage||15}]; }
+  if(!s.rates||!s.rates.length){ s.rates=[newRate(s.wage||15)]; }
+  if(!s.contact){ s.contact={address:'',city:'',state:'',zip:'',phone:'',email:'',emName:'',emPhone:''}; }
+  if(!s.dependents)s.dependents=[];
+  if(!s.notes)s.notes=[];
+  if(!s.reviews)s.reviews=[];
+  if(!s.sales)s.sales={};
+  if(!s.status)s.status='active';
+  if(!s.hired)s.hired=Date.now();
+  return s;
+}
 /* Rooms: each room holds an ordered list of floor objects.
    Object schema: {id,type,x,y,w,h, num?,seats?,shape?,status?,server?,label?} */
 var SEED_ROOMS = [
@@ -388,7 +466,7 @@ function loadRoomObjs(){
 }
 
 var STATE = {
-  staff:   lsGet('eh_staff',   SEED_STAFF.slice()),
+  staff:   lsGet('eh_staff',   SEED_STAFF.slice()).map(normStaff),
   punches: lsGet('eh_punches', []),
   guests:  lsGet('eh_guests',  []),
   rooms:   lsGet('eh_rooms', SEED_ROOMS.slice()),
@@ -412,7 +490,7 @@ function syncFromCloud(){
 }
 /* preserve local faceprints (clock app writes them) while taking cloud's roster */
 function mergeStaff(local, cloud){
-  return cloud.map(function(c){ var l=local.filter(function(x){return x.id===c.id;})[0]; if(l&&l.faceprint&&!c.faceprint){ c.faceprint=l.faceprint; c.enrolled=true; } return c; });
+  return cloud.map(function(c){ var l=local.filter(function(x){return x.id===c.id;})[0]; if(l&&l.faceprint&&!c.faceprint){ c.faceprint=l.faceprint; c.enrolled=true; } return normStaff(c); });
 }
 
 /* ---------------- DOM helpers ---------------- */
@@ -534,6 +612,7 @@ function pageFor(r){
     case 'floor':     return PAGE_floor();
     case 'clocked':   return PAGE_clocked();
     case 'staff':     return PAGE_staff();
+    case 'payroll_settings': return PAGE_payroll_settings();
     case 'guests':    return PAGE_guests();
     case 'timecards': return PAGE_timecards();
     default:          return PAGE_overview();
@@ -948,82 +1027,440 @@ function delRoom(id){
 /* ============================================================
    PAGE: EMPLOYEES
    ============================================================ */
+/* ============================================================
+   PAGE: EMPLOYEES  (Aloha-grade employee management)
+   Roster list -> detailed tabbed record. Legacy 4-digit code
+   login is preserved; jobcodes/access are the richer layer.
+   ============================================================ */
+
+var EMP = { openId:null, tab:'profile' };
+
+/* ---- shared helpers ---- */
+function empById(id){ return STATE.staff.filter(function(x){return x.id===id;})[0]; }
+function currentRate(s){ // most recent rate by effective date
+  if(!s.rates||!s.rates.length) return s.wage||0;
+  var r=s.rates.slice().sort(function(a,b){return b.effective-a.effective;})[0];
+  return r?r.rate:(s.wage||0);
+}
+function primaryJob(s){ return (s.jobs&&s.jobs[0])?s.jobs[0].code:roleFromCode(s.code).label; }
+function empIndex(s){ // 1-based index in roster
+  return STATE.staff.map(function(x){return x.id;}).indexOf(s.id)+1;
+}
+function fmtDay(ts){ return new Date(ts).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }
+function accessColor(a){ return {'No Access':'#8892a6','Order Only':'#9BC4E2','POS':'#5FB48A','Manager':'#E07A6B','Full':'#C9A84C'}[a]||'#8892a6'; }
+
+/* ---- persist ---- */
+function persistStaff(){ saveStaff(); }
+
+/* ============================================================
+   ROSTER (list view)
+   ============================================================ */
 function PAGE_staff(){
   if(!can('staff'))return lockedPage('Employees');
-  var rows=STATE.staff.map(function(s){
+  if(EMP.openId && empById(EMP.openId)) return PAGE_empDetail(empById(EMP.openId));
+
+  var rows=STATE.staff.map(function(s,i){
     var role=roleFromCode(s.code);
+    var job=primaryJob(s);
+    var acc=(s.jobs&&s.jobs[0])?s.jobs[0].access:'—';
     var face=s.enrolled?'<span class="pill in">Enrolled</span>':'<span class="pill out">Not enrolled</span>';
-    var posBadge=role.pos?'<span class="pill blue">POS</span>':'<span style="color:var(--text-faint);font-size:12px">—</span>';
-    return '<tr>'+
+    var statusPill=s.status==='inactive'?'<span class="pill out">Inactive</span>':'<span class="pill in">Active</span>';
+    return '<tr style="cursor:pointer" onclick="openEmp(\''+s.id+'\')">'+
+      '<td style="color:var(--text-faint);font-family:monospace">'+(i+1)+'</td>'+
       '<td><b>'+esc(s.name)+'</b></td>'+
-      '<td><span class="pill" style="background:'+role.color+'22;color:'+role.color+'">'+role.label+'</span></td>'+
-      '<td style="font-family:monospace;color:var(--text-dim)">'+esc(s.code[0])+'•••</td>'+
-      '<td>'+posBadge+'</td>'+
+      '<td><span class="pill" style="background:'+role.color+'22;color:'+role.color+'">'+esc(job)+'</span></td>'+
+      '<td><span class="pill" style="background:'+accessColor(acc)+'22;color:'+accessColor(acc)+'">'+esc(acc)+'</span></td>'+
+      '<td style="font-family:monospace;color:var(--text-dim)">'+esc((s.code||'')[0]||'')+'•••</td>'+
+      '<td>$'+currentRate(s).toFixed(2)+'/hr</td>'+
+      '<td>'+statusPill+'</td>'+
       '<td>'+face+'</td>'+
-      '<td>$'+(s.wage||0)+'/hr</td>'+
-      '<td class="row-actions"><span class="link" onclick="editStaff(\''+s.id+'\')">Edit</span>'+(s.enrolled?' · <span class="link" onclick="resetFace(\''+s.id+'\')">Reset face</span>':'')+'</td>'+
+      '<td class="row-actions"><span class="link">Open →</span></td>'+
     '</tr>';
   }).join('');
   var legend='<div class="chip-row" style="margin-bottom:16px">'+
     Object.keys(ROLES).map(function(d){ var r=ROLES[d]; return '<span class="pill" style="background:'+r.color+'22;color:'+r.color+'">'+d+'xxx · '+r.label+(r.pos?' (POS)':'')+'</span>'; }).join('')+'</div>';
   var body=legend+
-    '<div class="panel"><div class="panel-title">Employees <div class="row-actions"><button class="btn btn-gold btn-sm" onclick="addStaff()">+ Add Employee</button></div></div>'+
-    '<table><thead><tr><th>Name</th><th>Role</th><th>Code</th><th>POS</th><th>Face</th><th>Wage</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'+
-    '<div class="mini-note">The first digit of the code sets the role &amp; access: <b>1</b> Kitchen · <b>2</b> Sales · <b>3</b> Food Master (POS) · <b>4</b> Front of House · <b>5</b> Manager. Staff register their face the first time they clock in.</div></div>';
+    '<div class="panel"><div class="panel-title">Employees <div class="row-actions">'+
+      '<button class="btn btn-ghost btn-sm" onclick="go(\'payroll_settings\')">Payroll Settings</button> '+
+      '<button class="btn btn-gold btn-sm" onclick="addStaff()">+ New Employee</button></div></div>'+
+    '<table><thead><tr><th>#</th><th>Name</th><th>Position</th><th>Access</th><th>Code</th><th>Rate</th><th>Status</th><th>Face</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div class="mini-note">Click any employee to open their full record — contact, jobcodes &amp; access, pay-rate history, dependents, notes, monthly reviews, sales by category, and weekly paycheck. The first digit of the login code still sets base access: <b>1</b> Kitchen · <b>2</b> Sales · <b>3</b> Food Master (POS) · <b>4</b> Front of House · <b>5</b> Manager.</div></div>';
   return {title:'Employees',sub:STATE.staff.length+' team members',body:body};
 }
+function openEmp(id){ EMP.openId=id; EMP.tab='profile'; render(); }
+function closeEmp(){ EMP.openId=null; render(); }
+function empTab(t){ EMP.tab=t; render(); }
+
+/* ============================================================
+   EMPLOYEE DETAIL (tabbed record)
+   ============================================================ */
+function PAGE_empDetail(s){
+  var role=roleFromCode(s.code);
+  var initials=(s.name||'E').split(' ').map(function(w){return w[0];}).slice(0,2).join('').toUpperCase();
+  var tabs=[
+    ['profile','Profile & Contact'],['jobs','Jobcodes & Access'],['rates','Pay Rates'],
+    ['dependents','Dependents'],['notes','Notes'],['reviews','Monthly Reviews'],
+    ['sales','Sales'],['paycheck','Weekly Paycheck']
+  ];
+  var tabBar=tabs.map(function(t){ return '<div class="etab'+(EMP.tab===t[0]?' active':'')+'" onclick="empTab(\''+t[0]+'\')">'+t[1]+'</div>'; }).join('');
+
+  var header='<div class="emp-head">'+
+    '<div class="emp-avatar" style="background:'+role.color+'22;color:'+role.color+'">'+initials+'</div>'+
+    '<div class="emp-head-info"><div class="emp-name serif">'+esc(s.name)+'</div>'+
+      '<div class="emp-meta">Employee #'+empIndex(s)+' · '+esc(primaryJob(s))+' · Code '+esc((s.code||'')[0]||'')+'••• · $'+currentRate(s).toFixed(2)+'/hr</div></div>'+
+    '<div class="emp-head-actions">'+
+      '<button class="btn btn-ghost btn-sm" onclick="closeEmp()">← Roster</button> '+
+      '<button class="btn btn-danger btn-sm" onclick="deleteStaff(\''+s.id+'\')">Delete</button>'+
+    '</div></div>';
+
+  var content='';
+  switch(EMP.tab){
+    case 'jobs':       content=tabJobs(s); break;
+    case 'rates':      content=tabRates(s); break;
+    case 'dependents': content=tabDependents(s); break;
+    case 'notes':      content=tabNotes(s); break;
+    case 'reviews':    content=tabReviews(s); break;
+    case 'sales':      content=tabSales(s); break;
+    case 'paycheck':   content=tabPaycheck(s); break;
+    default:           content=tabProfile(s);
+  }
+  var body='<div class="panel">'+header+'<div class="etabs">'+tabBar+'</div><div class="etab-body" id="etab-body">'+content+'</div></div>';
+  return {title:'Employee Record',sub:esc(s.name),body:body,bind:function(){ if(EMP.tab==='sales')drawSalesCharts(s); if(EMP.tab==='reviews')drawReviewChart(s); }};
+}
+
+/* ---- Tab: Profile & Contact ---- */
+function tabProfile(s){
+  var c=s.contact||{};
+  function fld(label,id,val,ph,type){ return '<div class="field"><label>'+label+'</label><input class="input" id="'+id+'" type="'+(type||'text')+'" value="'+esc(val||'')+'" placeholder="'+(ph||'')+'"></div>'; }
+  return '<div class="form-grid cols-2">'+
+      fld('Full Name','pf-name',s.name,'First Last')+
+      fld('4-Digit Login Code','pf-code',s.code,'e.g. 3001')+
+    '</div>'+
+    '<div id="pf-role-hint" style="margin:10px 0 6px">'+roleHint(s.code)+'</div>'+
+    '<div class="form-grid cols-2">'+
+      '<div class="field"><label>Status</label><select class="input" id="pf-status"><option value="active"'+(s.status!=='inactive'?' selected':'')+'>Active</option><option value="inactive"'+(s.status==='inactive'?' selected':'')+'>Inactive</option></select></div>'+
+      fld('Hire Date','pf-hired',new Date(s.hired||Date.now()).toISOString().slice(0,10),'','date')+
+    '</div>'+
+    '<div class="section-label">Contact</div>'+
+    '<div class="form-grid cols-2">'+
+      fld('Street Address','pf-address',c.address,'123 Main St')+
+      fld('City','pf-city',c.city,'City')+
+    '</div>'+
+    '<div class="form-grid cols-3">'+
+      fld('State','pf-state',c.state,'ST')+
+      fld('ZIP','pf-zip',c.zip,'00000')+
+      fld('Phone','pf-phone',c.phone,'(212) 555-0100','tel')+
+    '</div>'+
+    fld('Email','pf-email',c.email,'name@email.com','email')+
+    '<div class="section-label">Emergency Contact</div>'+
+    '<div class="form-grid cols-2">'+
+      fld('Contact Name','pf-emname',c.emName,'Full name')+
+      fld('Contact Phone','pf-emphone',c.emPhone,'(212) 555-0100','tel')+
+    '</div>'+
+    '<div class="row-actions" style="margin-top:18px"><button class="btn btn-gold" onclick="saveProfile(\''+s.id+'\')">Save Profile</button></div>';
+}
+function saveProfile(id){
+  var s=empById(id); if(!s)return;
+  var name=($('pf-name').value||'').trim(), code=($('pf-code').value||'').trim();
+  if(!name){toast('Enter a name','error');return;}
+  if(!/^\d{4}$/.test(code)){toast('Code must be 4 digits','error');return;}
+  if(STATE.staff.some(function(x){return x.code===code&&x.id!==id;})){toast('That code is already used','error');return;}
+  s.name=name; s.code=code; s.status=$('pf-status').value;
+  var hd=$('pf-hired').value; if(hd)s.hired=new Date(hd).getTime();
+  s.contact={ address:$('pf-address').value.trim(), city:$('pf-city').value.trim(), state:$('pf-state').value.trim(), zip:$('pf-zip').value.trim(), phone:$('pf-phone').value.trim(), email:$('pf-email').value.trim(), emName:$('pf-emname').value.trim(), emPhone:$('pf-emphone').value.trim() };
+  persistStaff(); render(); toast('Profile saved','success');
+}
+
+/* ---- Tab: Jobcodes & Access ---- */
+function tabJobs(s){
+  var rows=(s.jobs||[]).map(function(j,i){
+    return '<tr>'+
+      '<td>'+jobSelect('job-code-'+i,j.code)+'</td>'+
+      '<td>'+accessSelect('job-acc-'+i,j.access)+'</td>'+
+      '<td><input class="input" style="max-width:120px" id="job-rate-'+i+'" type="number" min="0" step="0.25" value="'+(j.rate||0)+'"></td>'+
+      '<td class="row-actions"><span class="link" onclick="removeJob(\''+s.id+'\','+i+')">Remove</span></td>'+
+    '</tr>';
+  }).join('')||'<tr><td colspan="4" style="color:var(--text-faint);padding:14px">No jobcodes yet. Add one below.</td></tr>';
+  return '<div class="mini-note" style="margin-top:0">An employee can hold several jobcodes — each with its own access level and pay rate, exactly like the POS terminal. Access level controls what they can do on the POS &amp; bar screens once those connect to this hub.</div>'+
+    '<table style="margin-top:12px"><thead><tr><th>Jobcode</th><th>Access Level</th><th>Pay Rate ($/hr)</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div class="row-actions" style="margin-top:16px"><button class="btn btn-ghost btn-sm" onclick="addJob(\''+s.id+'\')">+ Add Jobcode</button> <button class="btn btn-gold btn-sm" onclick="saveJobs(\''+s.id+'\')">Save Jobcodes</button></div>'+
+    managerPermsBlock(s);
+}
+function jobSelect(id,val){ return '<select class="input" id="'+id+'">'+JOBCODES.map(function(j){return '<option'+(j===val?' selected':'')+'>'+j+'</option>';}).join('')+'</select>'; }
+function accessSelect(id,val){ return '<select class="input" id="'+id+'">'+ACCESS_LEVELS.map(function(a){return '<option'+(a===val?' selected':'')+'>'+a+'</option>';}).join('')+'</select>'; }
+function addJob(id){ var s=empById(id); if(!s)return; s.jobs=s.jobs||[]; s.jobs.push({code:JOBCODES[0],access:'No Access',rate:currentRate(s)||15}); persistStaff(); render(); }
+function removeJob(id,i){ var s=empById(id); if(!s)return; s.jobs.splice(i,1); persistStaff(); render(); }
+function saveJobs(id){
+  var s=empById(id); if(!s)return;
+  s.jobs=(s.jobs||[]).map(function(j,i){ return { code:$('job-code-'+i).value, access:$('job-acc-'+i).value, rate:parseFloat($('job-rate-'+i).value)||0 }; });
+  s.perms=collectPermsInline(s);
+  persistStaff(); render(); toast('Jobcodes saved','success');
+}
+function managerPermsBlock(s){
+  var isMgr=(s.code||'')[0]==='5' || (s.jobs||[]).some(function(j){return j.access==='Manager'||j.access==='Full';});
+  if(!isMgr)return '';
+  var permHTML=PERMISSIONS.map(function(p){ var on=s.perms&&s.perms[p.key]; return '<span class="chip perm-chip'+(on?' on':'')+'" data-perm="'+p.key+'" onclick="this.classList.toggle(\'on\')">'+p.label+'</span>'; }).join('');
+  return '<div class="section-label">Manager Permissions</div><div class="chip-row">'+permHTML+'</div>'+
+    '<div class="mini-note">Toggle exactly what this manager can do inside the BOH hub. The owner master code always has full access.</div>';
+}
+function collectPermsInline(s){
+  var isMgr=(s.code||'')[0]==='5' || (s.jobs||[]).some(function(j){return j.access==='Manager'||j.access==='Full';});
+  if(!isMgr)return null;
+  var perms={}; document.querySelectorAll('.perm-chip').forEach(function(c){ perms[c.getAttribute('data-perm')]=c.classList.contains('on'); }); return perms;
+}
+
+/* ---- Tab: Pay Rates (history) ---- */
+function tabRates(s){
+  var rows=(s.rates||[]).slice().sort(function(a,b){return b.effective-a.effective;}).map(function(r,i){
+    return '<tr>'+(i===0?'<td><span class="pill gold">Current</span></td>':'<td style="color:var(--text-faint)">—</td>')+
+      '<td>'+fmtDay(r.effective)+'</td>'+
+      '<td><b>$'+Number(r.rate).toFixed(2)+'</b></td>'+
+      '<td style="color:var(--text-dim)">'+esc(r.reason||'')+'</td>'+
+      '<td style="color:var(--text-faint)">'+fmtDay(r.modified||r.effective)+'</td>'+
+    '</tr>';
+  }).join('')||'<tr><td colspan="5" style="color:var(--text-faint);padding:14px">No pay rates recorded.</td></tr>';
+  return '<div class="mini-note" style="margin-top:0">Rates change often — add a new rate whenever pay changes and the history is kept for the record. The most recent effective date is the current rate used for payroll.</div>'+
+    '<table style="margin-top:12px"><thead><tr><th></th><th>Effective Date</th><th>Pay Rate</th><th>Reason</th><th>Modified</th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div class="section-label">Add New Rate</div>'+
+    '<div class="form-grid cols-3">'+
+      '<div class="field"><label>New Rate ($/hr)</label><input class="input" id="rt-rate" type="number" min="0" step="0.25" placeholder="0.00"></div>'+
+      '<div class="field"><label>Effective Date</label><input class="input" id="rt-date" type="date" value="'+new Date().toISOString().slice(0,10)+'"></div>'+
+      '<div class="field"><label>Reason</label><input class="input" id="rt-reason" placeholder="e.g. Bumped up, Annual raise"></div>'+
+    '</div>'+
+    '<div class="row-actions" style="margin-top:8px"><button class="btn btn-gold" onclick="addRate(\''+s.id+'\')">Add Rate</button></div>';
+}
+function addRate(id){
+  var s=empById(id); if(!s)return;
+  var rate=parseFloat($('rt-rate').value); if(!(rate>=0)){toast('Enter a valid rate','error');return;}
+  var dt=$('rt-date').value; var eff=dt?new Date(dt).getTime():Date.now();
+  s.rates=s.rates||[]; s.rates.push({id:'r'+Math.random().toString(36).slice(2,7),effective:eff,rate:rate,reason:($('rt-reason').value||'').trim()||'Rate change',modified:Date.now()});
+  s.wage=currentRate(s);
+  persistStaff(); render(); toast('New rate added','success');
+}
+
+/* ---- Tab: Dependents ---- */
+function tabDependents(s){
+  var rows=(s.dependents||[]).map(function(d,i){
+    return '<tr><td><b>'+esc(d.name)+'</b></td><td>'+esc(d.relation||'')+'</td><td style="color:var(--text-dim)">'+(d.dob?esc(d.dob):'—')+'</td>'+
+      '<td class="row-actions"><span class="link" onclick="removeDependent(\''+s.id+'\','+i+')">Remove</span></td></tr>';
+  }).join('')||'<tr><td colspan="4" style="color:var(--text-faint);padding:14px">No dependents on file.</td></tr>';
+  return '<table><thead><tr><th>Name</th><th>Relation</th><th>Date of Birth</th><th></th></tr></thead><tbody>'+rows+'</tbody></table>'+
+    '<div class="section-label">Add Dependent</div>'+
+    '<div class="form-grid cols-3">'+
+      '<div class="field"><label>Name</label><input class="input" id="dep-name" placeholder="Full name"></div>'+
+      '<div class="field"><label>Relation</label><input class="input" id="dep-rel" placeholder="Spouse, Child, etc."></div>'+
+      '<div class="field"><label>Date of Birth</label><input class="input" id="dep-dob" type="date"></div>'+
+    '</div>'+
+    '<div class="row-actions" style="margin-top:8px"><button class="btn btn-gold" onclick="addDependent(\''+s.id+'\')">Add Dependent</button></div>';
+}
+function addDependent(id){
+  var s=empById(id); if(!s)return;
+  var name=($('dep-name').value||'').trim(); if(!name){toast('Enter a name','error');return;}
+  s.dependents=s.dependents||[]; s.dependents.push({name:name,relation:($('dep-rel').value||'').trim(),dob:$('dep-dob').value||''});
+  persistStaff(); render(); toast('Dependent added','success');
+}
+function removeDependent(id,i){ var s=empById(id); if(!s)return; s.dependents.splice(i,1); persistStaff(); render(); }
+
+/* ---- Tab: Notes ---- */
+function tabNotes(s){
+  var rows=(s.notes||[]).slice().reverse().map(function(n){
+    return '<div class="note-item"><div class="note-meta">'+fmtDay(n.ts)+' · '+esc(n.by||'Manager')+'</div><div class="note-text">'+esc(n.text)+'</div></div>';
+  }).join('')||'<div class="empty">No notes yet.</div>';
+  return '<div class="field"><label>Add a Note</label><textarea class="input" id="note-text" rows="3" placeholder="Coaching, incidents, kudos, availability changes…"></textarea></div>'+
+    '<div class="row-actions" style="margin:8px 0 18px"><button class="btn btn-gold" onclick="addNote(\''+s.id+'\')">Add Note</button></div>'+
+    '<div class="notes-list">'+rows+'</div>';
+}
+function addNote(id){
+  var s=empById(id); if(!s)return;
+  var text=($('note-text').value||'').trim(); if(!text){toast('Write a note first','error');return;}
+  s.notes=s.notes||[]; s.notes.push({ts:Date.now(),by:(SESSION.user&&SESSION.user.name)||'Manager',text:text});
+  persistStaff(); render(); toast('Note added','success');
+}
+
+/* ---- Tab: Monthly Reviews ---- */
+function tabReviews(s){
+  var revs=(s.reviews||[]).slice().sort(function(a,b){return b.month.localeCompare(a.month);});
+  var list=revs.map(function(r){
+    var cats=REVIEW_CATS.map(function(c){ return '<span class="pill" style="background:#5FB48A22;color:#5FB48A;margin:2px">'+esc(c)+': '+(r.scores[c]||'-')+'</span>'; }).join('');
+    return '<div class="note-item"><div class="note-meta">'+esc(r.month)+' · reviewed by '+esc(r.by||'Manager')+' · avg '+r.avg+'/5</div><div style="margin:6px 0">'+cats+'</div>'+(r.comment?'<div class="note-text">'+esc(r.comment)+'</div>':'')+'</div>';
+  }).join('')||'<div class="empty">No reviews yet.</div>';
+  var catInputs=REVIEW_CATS.map(function(c){
+    return '<div class="field"><label>'+c+' (1-5)</label><select class="input" id="rv-'+c.replace(/\s/g,'')+'">'+[5,4,3,2,1].map(function(n){return '<option value="'+n+'"'+(n===4?' selected':'')+'>'+n+'</option>';}).join('')+'</select></div>';
+  }).join('');
+  return '<div class="mini-note" style="margin-top:0">Record a monthly review to track and discuss performance. The trend chart shows their overall score over time.</div>'+
+    '<div class="chart-wrap" style="height:220px"><canvas id="reviewChart"></canvas></div>'+
+    '<div class="section-label">New Monthly Review</div>'+
+    '<div class="form-grid cols-2"><div class="field"><label>Month</label><input class="input" id="rv-month" type="month" value="'+new Date().toISOString().slice(0,7)+'"></div></div>'+
+    '<div class="form-grid cols-3">'+catInputs+'</div>'+
+    '<div class="field"><label>Comments</label><textarea class="input" id="rv-comment" rows="2" placeholder="Strengths, goals, coaching points…"></textarea></div>'+
+    '<div class="row-actions" style="margin:8px 0 18px"><button class="btn btn-gold" onclick="addReview(\''+s.id+'\')">Save Review</button></div>'+
+    '<div class="notes-list">'+list+'</div>';
+}
+function addReview(id){
+  var s=empById(id); if(!s)return;
+  var month=$('rv-month').value; if(!month){toast('Pick a month','error');return;}
+  var scores={}, sum=0; REVIEW_CATS.forEach(function(c){ var v=parseInt($('rv-'+c.replace(/\s/g,'')).value)||0; scores[c]=v; sum+=v; });
+  var avg=(sum/REVIEW_CATS.length).toFixed(1);
+  s.reviews=s.reviews||[];
+  s.reviews=s.reviews.filter(function(r){return r.month!==month;}); // one review per month
+  s.reviews.push({month:month,scores:scores,avg:avg,comment:($('rv-comment').value||'').trim(),by:(SESSION.user&&SESSION.user.name)||'Manager',ts:Date.now()});
+  persistStaff(); render(); toast('Review saved','success');
+}
+function drawReviewChart(s){
+  if(typeof Chart==='undefined')return; var cv=$('reviewChart'); if(!cv)return;
+  var revs=(s.reviews||[]).slice().sort(function(a,b){return a.month.localeCompare(b.month);});
+  new Chart(cv.getContext('2d'),{type:'line',data:{labels:revs.map(function(r){return r.month;}),datasets:[{label:'Overall avg /5',data:revs.map(function(r){return r.avg;}),borderColor:'#C9A84C',backgroundColor:'#C9A84C33',tension:.3,fill:true,pointRadius:4}]},options:chartOpts(5)});
+}
+
+/* ---- Tab: Sales (POS-ready placeholders + productivity charts) ---- */
+function tabSales(s){
+  var hasData=s.sales && Object.keys(s.sales).length>0;
+  var cards=SALES_CATS.map(function(c){
+    return '<div class="sales-card"><div class="sales-cat">'+esc(c)+'</div><div class="sales-val" id="sv-'+c.replace(/[^a-z]/gi,'')+'">$0.00</div><div class="sales-sub">awaiting POS feed</div></div>';
+  }).join('');
+  return '<div class="pos-banner">POS not connected yet — these columns and charts are laid out and ready. Once the POS is built, each check rung by this employee flows here automatically (Food, Liquor, Wine, Beer, Dessert, Non-Alcoholic, Retail), feeding daily / monthly / annual productivity.</div>'+
+    '<div class="sales-grid">'+cards+'</div>'+
+    '<div class="section-label">Productivity — Sales by Category</div>'+
+    '<div class="form-grid cols-3" style="margin-bottom:10px"><div class="field"><label>Time range</label><select class="input" id="sales-range" onchange="drawSalesCharts(empById(\''+s.id+'\'))"><option value="daily">Daily (this week)</option><option value="monthly" selected>Monthly (this year)</option><option value="annual">Annual</option></select></div></div>'+
+    '<div class="charts-2">'+
+      '<div class="chart-wrap" style="height:260px"><canvas id="salesBar"></canvas></div>'+
+      '<div class="chart-wrap" style="height:260px"><canvas id="salesMix"></canvas></div>'+
+    '</div>'+
+    '<div class="mini-note">'+(hasData?'':'Showing empty scaffolding. ')+'These charts populate from live POS data. You will be able to open this screen with the employee and review their daily, monthly, and annual productivity side by side.</div>';
+}
+var _charts=[];
+function destroyCharts(){ _charts.forEach(function(c){try{c.destroy();}catch(e){}}); _charts=[]; }
+function chartOpts(max){ return {responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#c7cfda'}}},scales:{x:{ticks:{color:'#8892a6'},grid:{color:'#ffffff10'}},y:{beginAtZero:true,suggestedMax:max,ticks:{color:'#8892a6'},grid:{color:'#ffffff10'}}}}; }
+function drawSalesCharts(s){
+  if(typeof Chart==='undefined')return; destroyCharts();
+  var range=($('sales-range')&&$('sales-range').value)||'monthly';
+  var labels = range==='daily' ? ['Mon','Tue','Wed','Thu','Fri','Sat','Sun']
+             : range==='annual' ? ['2023','2024','2025','2026']
+             : ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var palette=['#C9A84C','#E07A6B','#5FB48A','#9BC4E2','#E0A36B','#B79CED','#6BC2B0'];
+  // Empty datasets (zeros) until POS feeds real numbers
+  var barCv=$('salesBar');
+  if(barCv){ _charts.push(new Chart(barCv.getContext('2d'),{type:'bar',data:{labels:labels,datasets:SALES_CATS.map(function(c,i){return {label:c,data:labels.map(function(){return 0;}),backgroundColor:palette[i%palette.length]};})},options:Object.assign(chartOpts(),{scales:{x:{stacked:true,ticks:{color:'#8892a6'},grid:{color:'#ffffff10'}},y:{stacked:true,beginAtZero:true,ticks:{color:'#8892a6'},grid:{color:'#ffffff10'}}}})})); }
+  var mixCv=$('salesMix');
+  if(mixCv){ _charts.push(new Chart(mixCv.getContext('2d'),{type:'doughnut',data:{labels:SALES_CATS,datasets:[{data:SALES_CATS.map(function(){return 1;}),backgroundColor:palette}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right',labels:{color:'#c7cfda'}},title:{display:true,text:'Category mix (placeholder)',color:'#8892a6'}}}})); }
+}
+
+/* ---- Tab: Weekly Paycheck ---- */
+function hoursThisWeek(staffId){
+  // pair in/out punches within the current week; fallback 0
+  var now=new Date(); var day=now.getDay(); var monday=new Date(now); monday.setHours(0,0,0,0); monday.setDate(now.getDate()-((day+6)%7));
+  var start=monday.getTime();
+  var punches=STATE.punches.filter(function(p){return p.staffId===staffId && p.ts>=start && (p.type==='in'||p.type==='out');}).sort(function(a,b){return a.ts-b.ts;});
+  var total=0, open=null;
+  punches.forEach(function(p){ if(p.type==='in')open=p.ts; else if(p.type==='out'&&open){ total+=(p.ts-open); open=null; } });
+  return total/3600000; // hours
+}
+function tabPaycheck(s){
+  var ps=payrollSettings();
+  var rate=currentRate(s);
+  var hrs=hoursThisWeek(s.id);
+  var reg=Math.min(hrs,ps.otThreshold), ot=Math.max(0,hrs-ps.otThreshold);
+  return '<div class="mini-note" style="margin-top:0">Weekly paycheck estimate from clocked hours × current rate. Deduction percentages are set in <span class="link" onclick="go(\'payroll_settings\')">Payroll Settings</span> and can be changed anytime as rates change. This is an estimate for planning, not an official tax filing.</div>'+
+    '<div class="form-grid cols-3">'+
+      '<div class="field"><label>Regular Hours</label><input class="input" id="pc-reg" type="number" step="0.25" value="'+reg.toFixed(2)+'"></div>'+
+      '<div class="field"><label>Overtime Hours (×'+ps.otMultiplier+')</label><input class="input" id="pc-ot" type="number" step="0.25" value="'+ot.toFixed(2)+'"></div>'+
+      '<div class="field"><label>Pay Rate ($/hr)</label><input class="input" id="pc-rate" type="number" step="0.25" value="'+rate.toFixed(2)+'"></div>'+
+    '</div>'+
+    '<div class="form-grid cols-4">'+
+      '<div class="field"><label>Federal %</label><input class="input" id="pc-fed" type="number" step="0.1" value="'+ps.federalPct+'"></div>'+
+      '<div class="field"><label>State %</label><input class="input" id="pc-state" type="number" step="0.1" value="'+ps.statePct+'"></div>'+
+      '<div class="field"><label>Social Security %</label><input class="input" id="pc-ss" type="number" step="0.01" value="'+ps.ssPct+'"></div>'+
+      '<div class="field"><label>Medicare %</label><input class="input" id="pc-med" type="number" step="0.01" value="'+ps.medicarePct+'"></div>'+
+    '</div>'+
+    '<div class="form-grid cols-2">'+
+      '<div class="field"><label>Other Deductions ($)</label><input class="input" id="pc-other" type="number" step="0.01" value="'+ps.otherAmt+'"></div>'+
+      '<div class="field" style="display:flex;align-items:flex-end"><button class="btn btn-gold" style="width:100%" onclick="calcPay(\''+s.id+'\')">Calculate Paycheck</button></div>'+
+    '</div>'+
+    '<div id="pc-result" class="pay-stub"></div>';
+}
+function calcPay(id){
+  var s=empById(id); if(!s)return;
+  var reg=parseFloat($('pc-reg').value)||0, ot=parseFloat($('pc-ot').value)||0, rate=parseFloat($('pc-rate').value)||0;
+  var ps=payrollSettings();
+  var gross=reg*rate + ot*rate*ps.otMultiplier;
+  var fed=gross*(parseFloat($('pc-fed').value)||0)/100;
+  var st=gross*(parseFloat($('pc-state').value)||0)/100;
+  var ss=gross*(parseFloat($('pc-ss').value)||0)/100;
+  var med=gross*(parseFloat($('pc-med').value)||0)/100;
+  var other=parseFloat($('pc-other').value)||0;
+  var totalDed=fed+st+ss+med+other;
+  var net=gross-totalDed;
+  function row(l,v,neg){ return '<div class="stub-row"><span>'+l+'</span><span'+(neg?' style="color:var(--red)"':'')+'>'+(neg?'-':'')+'$'+Math.abs(v).toFixed(2)+'</span></div>'; }
+  $('pc-result').innerHTML='<div class="stub-title serif">Weekly Pay Stub — '+esc(s.name)+'</div>'+
+    row('Regular ('+reg.toFixed(2)+' h × $'+rate.toFixed(2)+')', reg*rate)+
+    row('Overtime ('+ot.toFixed(2)+' h × $'+(rate*ps.otMultiplier).toFixed(2)+')', ot*rate*ps.otMultiplier)+
+    '<div class="stub-row stub-sub"><span>Gross Pay</span><span>$'+gross.toFixed(2)+'</span></div>'+
+    row('Federal Withholding',fed,true)+row('State Withholding',st,true)+row('Social Security',ss,true)+row('Medicare',med,true)+row('Other',other,true)+
+    '<div class="stub-row stub-total"><span>Net Pay</span><span>$'+net.toFixed(2)+'</span></div>'+
+    '<div class="mini-note">Hours pull automatically from clock punches for the current week; you can adjust any field before calculating. Estimate only.</div>';
+}
+
+/* ============================================================
+   PAGE: PAYROLL SETTINGS
+   ============================================================ */
+function PAGE_payroll_settings(){
+  if(!can('staff'))return lockedPage('Payroll Settings');
+  var ps=payrollSettings();
+  function f(label,id,val,step){ return '<div class="field"><label>'+label+'</label><input class="input" id="'+id+'" type="number" step="'+(step||'0.1')+'" value="'+val+'"></div>'; }
+  var body='<div class="panel"><div class="panel-title">Payroll Settings <div class="row-actions"><button class="btn btn-ghost btn-sm" onclick="go(\'staff\')">← Employees</button></div></div>'+
+    '<div class="mini-note" style="margin-top:0">Default deduction rates applied to every weekly paycheck. Change them anytime as tax rates or policies change — each employee record also lets you override per-check before calculating.</div>'+
+    '<div class="form-grid cols-3" style="margin-top:12px">'+
+      f('Federal Withholding %','set-fed',ps.federalPct)+
+      f('State Withholding %','set-state',ps.statePct)+
+      f('Social Security %','set-ss',ps.ssPct,'0.01')+
+    '</div>'+
+    '<div class="form-grid cols-3">'+
+      f('Medicare %','set-med',ps.medicarePct,'0.01')+
+      f('Overtime Multiplier','set-otm',ps.otMultiplier,'0.1')+
+      f('Overtime After (hrs/week)','set-ott',ps.otThreshold,'1')+
+    '</div>'+
+    '<div class="row-actions" style="margin-top:8px"><button class="btn btn-gold" onclick="saveSettings()">Save Settings</button></div></div>';
+  return {title:'Payroll Settings',sub:'Deduction rates & overtime rules',body:body};
+}
+function saveSettings(){
+  var ps={ federalPct:parseFloat($('set-fed').value)||0, statePct:parseFloat($('set-state').value)||0, ssPct:parseFloat($('set-ss').value)||0, medicarePct:parseFloat($('set-med').value)||0, otherAmt:0, otMultiplier:parseFloat($('set-otm').value)||1.5, otThreshold:parseFloat($('set-ott').value)||40 };
+  savePayrollSettings(ps); toast('Payroll settings saved','success'); go('staff');
+}
+
+/* ---- add / delete employee (roster) ---- */
 function staffForm(s){
   s=s||{name:'',code:'',wage:15};
-  var role=roleFromCode(s.code);
-  var isMgr=(s.code||'')[0]==='5';
-  var permHTML=PERMISSIONS.map(function(p){ var on=s.perms&&s.perms[p.key]; return '<span class="chip perm-chip'+(on?' on':'')+'" data-perm="'+p.key+'">'+p.label+'</span>'; }).join('');
   return '<div class="form-grid cols-2">'+
       '<div class="field"><label>Full Name</label><input class="input" id="sf-name" value="'+esc(s.name)+'" placeholder="First Last"></div>'+
       '<div class="field"><label>4-Digit Code</label><input class="input" id="sf-code" inputmode="numeric" maxlength="4" value="'+esc(s.code)+'" placeholder="e.g. 3001" oninput="onCodeInput()"></div>'+
     '</div>'+
     '<div id="sf-role-hint" style="margin:10px 0 4px">'+roleHint(s.code)+'</div>'+
-    '<div class="field" style="margin-top:8px"><label>Hourly Wage ($)</label><input class="input" id="sf-wage" type="number" min="0" step="0.5" value="'+(s.wage||15)+'"></div>'+
-    '<div id="sf-perms" style="margin-top:18px;'+(isMgr?'':'display:none')+'"><label class="fld">Manager Permissions</label><div class="chip-row">'+permHTML+'</div>'+
-      '<div class="mini-note">Toggle exactly what this manager can do. The owner master code always has full access.</div></div>';
+    '<div class="field" style="margin-top:8px"><label>Starting Hourly Rate ($)</label><input class="input" id="sf-wage" type="number" min="0" step="0.5" value="'+(s.wage||15)+'"></div>'+
+    '<div class="mini-note">This creates the record. Open it afterward to add jobcodes, contact details, dependents, reviews and more.</div>';
 }
 function roleHint(code){
-  var r=roleFromCode(code); if(!code)return '<span class="mini-note" style="margin:0">Enter a code — the first digit sets the role.</span>';
+  var r=roleFromCode(code); if(!code)return '<span class="mini-note" style="margin:0">Enter a code — the first digit sets base access.</span>';
   return '<span class="pill" style="background:'+r.color+'22;color:'+r.color+'">First digit '+code[0]+' → '+r.label+(r.pos?' · can use POS':' · no POS')+'</span>';
 }
-function onCodeInput(){
-  var code=$('sf-code').value; var h=$('sf-role-hint'); if(h)h.innerHTML=roleHint(code);
-  var pm=$('sf-perms'); if(pm)pm.style.display=(code[0]==='5')?'block':'none';
-}
-function bindPermChips(){
-  document.querySelectorAll('.perm-chip').forEach(function(c){ c.addEventListener('click',function(){ c.classList.toggle('on'); }); });
-}
-function collectPerms(){
-  if(($('sf-code').value||'')[0]!=='5')return null;
-  var perms={}; document.querySelectorAll('.perm-chip').forEach(function(c){ perms[c.getAttribute('data-perm')]=c.classList.contains('on'); }); return perms;
-}
+function onCodeInput(){ var code=$('sf-code').value; var h=$('sf-role-hint'); if(h)h.innerHTML=roleHint(code); }
 function addStaff(){
-  openModal('Add Employee',staffForm(null),'Add Employee',function(){
+  openModal('New Employee',staffForm(null),'Create',function(){
     var name=($('sf-name').value||'').trim(), code=($('sf-code').value||'').trim();
     if(!name){toast('Enter a name','error');return false;}
     if(!/^\d{4}$/.test(code)){toast('Code must be 4 digits','error');return false;}
     if(STATE.staff.some(function(x){return x.code===code;})){toast('That code is already used','error');return false;}
-    STATE.staff.push({id:'s'+Date.now(),name:name,code:code,wage:parseFloat($('sf-wage').value)||15,enrolled:false,faceprint:null,perms:collectPerms()});
-    saveStaff(); render(); toast('Employee added','success'); return true;
-  },bindPermChips);
+    var wage=parseFloat($('sf-wage').value)||15; var role=roleFromCode(code); var acc=role.pos?'POS':'No Access'; if(code[0]==='5')acc='Full';
+    var s=normStaff({id:'s'+Date.now(),name:name,code:code,wage:wage,enrolled:false,faceprint:null,perms:(code[0]==='5'?{floor:true,staff:true,guests:true,timecards:true,menu:true,settings:true}:null),jobs:[{code:role.label,access:acc,rate:wage}],rates:[newRate(wage)]});
+    STATE.staff.push(s); persistStaff(); EMP.openId=s.id; EMP.tab='profile'; render(); toast('Employee created','success'); return true;
+  });
 }
-function editStaff(id){
-  var s=STATE.staff.filter(function(x){return x.id===id;})[0]; if(!s)return;
-  openModal('Edit Employee',staffForm(s),'Save Changes',function(){
-    var name=($('sf-name').value||'').trim(), code=($('sf-code').value||'').trim();
-    if(!name){toast('Enter a name','error');return false;}
-    if(!/^\d{4}$/.test(code)){toast('Code must be 4 digits','error');return false;}
-    if(STATE.staff.some(function(x){return x.code===code&&x.id!==id;})){toast('That code is already used','error');return false;}
-    s.name=name; s.code=code; s.wage=parseFloat($('sf-wage').value)||15; s.perms=collectPerms();
-    saveStaff(); render(); toast('Employee updated','success'); return true;
-  },bindPermChips,'<button class="btn btn-danger" onclick="deleteStaff(\''+id+'\')">Delete Employee</button>');
+function editStaff(id){ openEmp(id); }
+function deleteStaff(id){
+  openModal('Delete Employee','<div style="color:var(--text-dim);font-size:14px;line-height:1.6">Remove this employee and their entire record? This cannot be undone.</div>','Delete',function(){
+    STATE.staff=STATE.staff.filter(function(x){return x.id!==id;}); persistStaff(); EMP.openId=null; render(); toast('Employee removed','success'); return true;
+  });
 }
-function deleteStaff(id){ STATE.staff=STATE.staff.filter(function(x){return x.id!==id;}); saveStaff(); closeModal(); render(); toast('Employee removed','success'); }
-function resetFace(id){ var s=STATE.staff.filter(function(x){return x.id===id;})[0]; if(s){ s.enrolled=false; s.faceprint=null; saveStaff(); render(); toast('Face reset — '+s.name+' will re-register on next clock-in','success'); } }
+function resetFace(id){ var s=empById(id); if(s){ s.enrolled=false; s.faceprint=null; persistStaff(); render(); toast('Face reset — '+s.name+' will re-register on next clock-in','success'); } }
 
 /* ============================================================
    PAGE: GUESTS (phone-linked preferences)
