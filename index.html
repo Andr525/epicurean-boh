@@ -126,30 +126,116 @@ tbody tr:hover{background:rgba(24,43,69,0.4);}
 .link:hover{text-decoration:underline;}
 .mini-note{font-size:12px;color:var(--text-faint);line-height:1.6;margin-top:14px;}
 
-/* ---------- Floor editor ---------- */
-.floor-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:16px;}
-.floor-canvas{position:relative;width:100%;height:560px;border-radius:16px;overflow:hidden;
-  background:
-    linear-gradient(rgba(201,168,76,0.05) 1px,transparent 1px) 0 0/32px 32px,
-    linear-gradient(90deg,rgba(201,168,76,0.05) 1px,transparent 1px) 0 0/32px 32px,
-    linear-gradient(180deg,var(--bg-2),var(--bg));
-  border:1px solid var(--border);box-shadow:inset 0 0 60px rgba(0,0,0,0.4);touch-action:none;}
-.table-node{position:absolute;display:flex;flex-direction:column;align-items:center;justify-content:center;
-  cursor:grab;user-select:none;transition:box-shadow .14s var(--ease-out),border-color .14s var(--ease-out);}
-.table-node.dragging{cursor:grabbing;z-index:10;}
-.table-shape{display:flex;align-items:center;justify-content:center;border:2px solid var(--border-strong);
-  background:linear-gradient(180deg,var(--panel-3),var(--panel));color:var(--text);font-weight:600;font-size:15px;
-  box-shadow:var(--shadow-sm);}
-.table-node.sel .table-shape{border-color:var(--gold);box-shadow:0 0 0 3px rgba(201,168,76,0.25),var(--shadow-sm);}
-.table-shape.round{border-radius:50%;}
-.table-shape.square{border-radius:10px;}
-.table-cap{font-size:10px;color:var(--text-faint);margin-top:4px;white-space:nowrap;}
-.table-node.s-occupied .table-shape{border-color:var(--red);background:linear-gradient(180deg,rgba(224,122,107,0.22),var(--panel));}
-.table-node.s-reserved .table-shape{border-color:var(--amber);background:linear-gradient(180deg,rgba(224,163,107,0.2),var(--panel));}
+/* ---------- Floor editor (Aloha-grade) ---------- */
+.floor-toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.room-tabs{display:flex;gap:6px;flex-wrap:wrap;align-items:center;}
+.room-tab{padding:9px 16px;border-radius:10px;border:1px solid var(--border);background:rgba(24,43,69,0.5);
+  color:var(--text-dim);font-size:13px;font-weight:600;cursor:pointer;transition:all .14s var(--ease-out);white-space:nowrap;}
+.room-tab.on{background:linear-gradient(180deg,var(--gold),var(--gold-soft));color:#1a1306;border-color:var(--gold);}
+.room-tab:not(.on):hover{border-color:var(--border-strong);color:var(--text);}
+.room-tab .x{margin-left:8px;opacity:.55;font-size:14px;}
+.room-tab .x:hover{opacity:1;}
+
+/* mode toggle */
 .seg{display:inline-flex;border:1px solid var(--border);border-radius:10px;overflow:hidden;}
-.seg button{background:transparent;border:none;color:var(--text-dim);padding:9px 14px;font-size:13px;cursor:pointer;font-family:'Inter';transition:background .12s;}
-.seg button.on{background:var(--gold);color:#1a1306;font-weight:600;}
+.seg button{background:transparent;border:none;color:var(--text-dim);padding:9px 16px;font-size:13px;cursor:pointer;font-family:'Inter';font-weight:600;transition:background .12s;}
+.seg button.on{background:var(--gold);color:#1a1306;}
 .seg button:not(.on):hover{background:rgba(24,43,69,0.7);color:var(--text);}
+
+/* workspace: palette + canvas + inspector */
+.floor-workspace{display:grid;grid-template-columns:206px 1fr 250px;gap:14px;align-items:start;}
+.floor-workspace.live{grid-template-columns:1fr 250px;}
+.palette{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--border-soft);
+  border-radius:14px;padding:14px;box-shadow:var(--shadow-sm);max-height:620px;overflow-y:auto;}
+.palette-group{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-faint);
+  margin:14px 0 8px;}
+.palette-group:first-child{margin-top:0;}
+.pal-btn{display:flex;align-items:center;gap:9px;width:100%;text-align:left;padding:9px 11px;margin-bottom:5px;
+  border-radius:9px;border:1px solid var(--border-soft);background:rgba(24,43,69,0.4);color:var(--text-dim);
+  font-size:12.5px;font-weight:500;cursor:pointer;transition:all .13s var(--ease-out);font-family:'Inter';}
+.pal-btn:hover{border-color:var(--border-strong);color:var(--text);background:rgba(24,43,69,0.8);transform:translateX(2px);}
+.pal-btn .pi{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
+
+/* canvas */
+.floor-canvas-wrap{border-radius:16px;overflow:auto;border:1px solid var(--border);box-shadow:inset 0 0 60px rgba(0,0,0,0.4);
+  background:linear-gradient(180deg,var(--bg-2),var(--bg));max-height:620px;}
+.floor-canvas{position:relative;width:1200px;height:800px;
+  background:
+    linear-gradient(rgba(201,168,76,0.05) 1px,transparent 1px) 0 0/40px 40px,
+    linear-gradient(90deg,rgba(201,168,76,0.05) 1px,transparent 1px) 0 0/40px 40px;
+  touch-action:none;}
+.floor-obj{position:absolute;user-select:none;cursor:grab;box-sizing:border-box;transition:box-shadow .12s var(--ease-out);}
+.floor-obj.dragging{cursor:grabbing;z-index:50;}
+.floor-obj.selected{box-shadow:0 0 0 3px rgba(201,168,76,0.55);border-radius:8px;z-index:40;}
+.floor-canvas.live .floor-obj{cursor:pointer;}
+.floor-canvas.live .floor-obj[data-static="1"]{cursor:default;}
+.resize-handle{position:absolute;width:14px;height:14px;background:var(--gold);border:2px solid var(--bg);
+  border-radius:50%;bottom:-7px;right:-7px;cursor:se-resize;z-index:60;box-shadow:0 2px 6px rgba(0,0,0,0.4);}
+
+/* table shapes */
+.f-table{width:100%;height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  border:2.5px solid;box-shadow:var(--shadow-sm);font-weight:700;line-height:1;}
+.f-table.round{border-radius:50%;}
+.f-table.square{border-radius:12px;}
+.f-table.rect{border-radius:10px;}
+.f-tnum{font-size:15px;}
+.f-tsub{font-size:9px;font-weight:600;margin-top:2px;opacity:.85;}
+.f-svr{font-size:8px;margin-top:1px;font-weight:700;letter-spacing:.03em;}
+
+/* structural + zone shapes */
+.f-wall{width:100%;height:100%;background:linear-gradient(180deg,#6b5a3a,#4a3d26);border-radius:3px;
+  box-shadow:inset 0 1px 2px rgba(255,255,255,0.15);}
+.f-bar{width:100%;height:100%;background:linear-gradient(180deg,var(--panel-3),var(--panel));
+  border:2.5px solid var(--gold);border-radius:10px;display:flex;align-items:center;justify-content:center;
+  font-size:12px;font-weight:700;color:var(--gold);letter-spacing:.05em;}
+.f-door{width:100%;height:100%;background:var(--bg-2);border:2px solid var(--border-strong);
+  border-radius:50% 0 0 0;display:flex;align-items:center;justify-content:center;font-size:18px;}
+.f-plant{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:26px;}
+.f-host{width:100%;height:100%;background:var(--panel-3);border:1.5px solid var(--gold);border-radius:8px;
+  display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.06em;}
+.f-station{width:100%;height:100%;background:rgba(155,196,226,0.12);border:2px dashed var(--blue);border-radius:8px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--blue);text-align:center;padding:4px;gap:2px;}
+.f-label{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;
+  color:var(--text-dim);letter-spacing:.05em;text-transform:uppercase;}
+.f-couch{width:100%;height:100%;background:#5a4126;border-radius:18px 18px 6px 6px;border:2px solid #3f2d18;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:1px;color:#f3ecdc;}
+.f-couch .cs{font-size:9px;font-weight:600;}
+.f-stool{width:100%;height:100%;border-radius:50%;border:2.5px solid;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;font-weight:700;}
+.f-outdoor{width:100%;height:100%;border-radius:10px;border:2px dashed;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;gap:1px;font-weight:700;}
+.f-zone{width:100%;height:100%;border-radius:10px;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;font-size:11px;font-weight:700;text-align:center;padding:6px;gap:3px;line-height:1.2;}
+.f-zone .zi{font-size:20px;}
+.f-curve{width:100%;height:100%;background:var(--panel-3);border-radius:50% 50% 0 0 / 100% 100% 0 0;
+  border:2px solid var(--border-strong);border-bottom:none;}
+
+/* inspector */
+.inspector{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--border-soft);
+  border-radius:14px;padding:16px;box-shadow:var(--shadow-sm);position:sticky;top:88px;}
+.inspector h4{font-family:'Cormorant Garamond',serif;font-size:19px;margin-bottom:14px;color:var(--gold);}
+.insp-empty{color:var(--text-faint);font-size:13px;line-height:1.7;text-align:center;padding:26px 8px;}
+.insp-field{margin-bottom:12px;}
+.insp-field label{display:block;font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;}
+.insp-input{width:100%;background:rgba(11,20,32,0.6);border:1px solid var(--border);border-radius:9px;
+  padding:9px 11px;color:var(--text);font-size:14px;font-family:'Inter';}
+.insp-input:focus{outline:none;border-color:var(--border-strong);}
+select.insp-input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath fill='%23C9A84C' d='M6 8L0 0h12z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;}
+.insp-row{display:flex;gap:8px;}
+.insp-row .insp-input{min-width:0;}
+.insp-btns{display:flex;gap:8px;margin-top:6px;flex-wrap:wrap;}
+.insp-btns .btn{flex:1;padding:10px;font-size:12.5px;min-width:calc(50% - 4px);}
+
+/* live-service status legend */
+.status-legend{display:flex;flex-wrap:wrap;gap:10px 16px;margin-bottom:14px;}
+.status-key{display:flex;align-items:center;gap:7px;font-size:12px;color:var(--text-dim);}
+.status-dot{width:14px;height:14px;border-radius:4px;border:2px solid;flex-shrink:0;}
+
+@media(max-width:1100px){
+  .floor-workspace{grid-template-columns:1fr;}
+  .floor-workspace.live{grid-template-columns:1fr;}
+  .inspector{position:static;}
+}
 
 /* ---------- Forms / grid ---------- */
 .form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;}
@@ -253,27 +339,66 @@ var SEED_STAFF = [
   {id:'s4', name:'Edwin Perez',    code:'4001', wage:16, enrolled:false, perms:null},
   {id:'s5', name:'General Manager',code:'5001', wage:30, enrolled:false, perms:{floor:true,staff:true,guests:true,timecards:true,menu:true,settings:true}}
 ];
-var SEED_TABLES = [
-  {id:'t1', name:'1', shape:'round',  seats:2, x:90,  y:80,  size:64, status:'open', section:'Main'},
-  {id:'t2', name:'2', shape:'round',  seats:2, x:230, y:80,  size:64, status:'open', section:'Main'},
-  {id:'t3', name:'3', shape:'square', seats:4, x:90,  y:230, size:78, status:'open', section:'Main'},
-  {id:'t4', name:'4', shape:'square', seats:4, x:250, y:230, size:78, status:'open', section:'Main'},
-  {id:'t5', name:'5', shape:'round',  seats:6, x:440, y:150, size:96, status:'open', section:'Window'},
-  {id:'t6', name:'6', shape:'square', seats:2, x:620, y:90,  size:60, status:'open', section:'Bar'}
+/* Rooms: each room holds an ordered list of floor objects.
+   Object schema: {id,type,x,y,w,h, num?,seats?,shape?,status?,server?,label?} */
+var SEED_ROOMS = [
+  {id:'main',    name:'Main Dining'},
+  {id:'bar',     name:'Bar'},
+  {id:'patio',   name:'Patio'},
+  {id:'private', name:'Private Room'}
 ];
+var SEED_OBJS = {
+  main:[
+    {id:'t1', type:'table', shape:'round',  num:1, seats:2, x:80,  y:80,  w:70,  h:70,  status:'open', server:''},
+    {id:'t2', type:'table', shape:'round',  num:2, seats:2, x:220, y:80,  w:70,  h:70,  status:'open', server:''},
+    {id:'t3', type:'table', shape:'square', num:3, seats:4, x:80,  y:220, w:80,  h:80,  status:'open', server:''},
+    {id:'t4', type:'table', shape:'square', num:4, seats:4, x:240, y:220, w:80,  h:80,  status:'open', server:''},
+    {id:'t5', type:'table', shape:'round',  num:5, seats:6, x:440, y:150, w:96,  h:96,  status:'open', server:''},
+    {id:'t6', type:'table', shape:'rect',   num:6, seats:8, x:620, y:120, w:150, h:80,  status:'open', server:''},
+    {id:'w1', type:'wall',  x:40, y:40, w:760, h:12, label:''},
+    {id:'h1', type:'host',  x:820, y:60, w:70, h:44, label:'Host'}
+  ],
+  bar:[
+    {id:'bar1', type:'bar', x:120, y:120, w:360, h:80, label:'Bar Counter'},
+    {id:'st1', type:'stool', num:'B1', seats:1, x:140, y:230, w:40, h:40, status:'open', server:''},
+    {id:'st2', type:'stool', num:'B2', seats:1, x:210, y:230, w:40, h:40, status:'open', server:''},
+    {id:'st3', type:'stool', num:'B3', seats:1, x:280, y:230, w:40, h:40, status:'open', server:''},
+    {id:'st4', type:'stool', num:'B4', seats:1, x:350, y:230, w:40, h:40, status:'open', server:''}
+  ],
+  patio:[
+    {id:'o1', type:'outdoor', num:'P1', seats:2, x:100, y:100, w:70, h:70, status:'open', server:''},
+    {id:'o2', type:'outdoor', num:'P2', seats:2, x:220, y:100, w:70, h:70, status:'open', server:''},
+    {id:'k1', type:'kiosk', x:400, y:100, w:80, h:80, label:'Kiosk'}
+  ],
+  private:[
+    {id:'pr1', type:'table', shape:'rect', num:20, seats:12, x:200, y:200, w:240, h:100, status:'open', server:''}
+  ]
+};
+
+/* migrate legacy flat tables (eh_tables) into the main room if present */
+function loadRoomObjs(){
+  var stored=lsGet('eh_rooms_objs', null);
+  if(stored) return stored;
+  var legacy=lsGet('eh_tables', null);
+  if(legacy && legacy.length){
+    var mapped=legacy.map(function(t){ return {id:t.id,type:'table',shape:(t.shape==='square'?'square':'round'),num:(parseInt(t.name)||t.name),seats:t.seats,x:t.x,y:t.y,w:t.size||70,h:t.size||70,status:(t.status==='occupied'?'seated':t.status==='reserved'?'reserved':'open'),server:''}; });
+    return {main:mapped,bar:[],patio:[],private:[]};
+  }
+  return JSON.parse(JSON.stringify(SEED_OBJS));
+}
 
 var STATE = {
   staff:   lsGet('eh_staff',   SEED_STAFF.slice()),
   punches: lsGet('eh_punches', []),
-  tables:  lsGet('eh_tables',  SEED_TABLES.slice()),
   guests:  lsGet('eh_guests',  []),
-  sections: lsGet('eh_sections', ['Main','Window','Bar','Patio'])
+  rooms:   lsGet('eh_rooms', SEED_ROOMS.slice()),
+  roomObjs: loadRoomObjs()
 };
 var SESSION = { user:null }; // {name, role, perms, isOwner}
 
 function saveStaff(){ lsSet('eh_staff',STATE.staff); fbSetDoc('boh_shared','staff_clock',{list:STATE.staff,updatedAt:Date.now()}); }
 function savePunches(){ lsSet('eh_punches',STATE.punches); fbSetDoc('boh_shared','punches',{list:STATE.punches.slice(-800),updatedAt:Date.now()}); }
-function saveTables(){ lsSet('eh_tables',STATE.tables); fbSetDoc('boh_shared','tables',{list:STATE.tables,sections:STATE.sections,updatedAt:Date.now()}); }
+function saveFloor(){ lsSet('eh_rooms',STATE.rooms); lsSet('eh_rooms_objs',STATE.roomObjs); fbSetDoc('boh_shared','tables',{rooms:STATE.rooms,roomObjs:STATE.roomObjs,updatedAt:Date.now()}); }
 function saveGuests(){ lsSet('eh_guests',STATE.guests); fbSetDoc('boh_shared','guests',{list:STATE.guests,updatedAt:Date.now()}); }
 
 function syncFromCloud(){
@@ -281,7 +406,7 @@ function syncFromCloud(){
   return Promise.all([
     fbGetDoc('boh_shared','staff_clock').then(function(d){ if(d&&d.list&&d.list.length){ STATE.staff=mergeStaff(STATE.staff,d.list); lsSet('eh_staff',STATE.staff); } }),
     fbGetDoc('boh_shared','punches').then(function(d){ if(d&&d.list){ STATE.punches=d.list; lsSet('eh_punches',STATE.punches); } }),
-    fbGetDoc('boh_shared','tables').then(function(d){ if(d){ if(d.list&&d.list.length){STATE.tables=d.list;lsSet('eh_tables',STATE.tables);} if(d.sections){STATE.sections=d.sections;lsSet('eh_sections',STATE.sections);} } }),
+    fbGetDoc('boh_shared','tables').then(function(d){ if(d){ if(d.rooms&&d.rooms.length){STATE.rooms=d.rooms;lsSet('eh_rooms',STATE.rooms);} if(d.roomObjs){STATE.roomObjs=d.roomObjs;lsSet('eh_rooms_objs',STATE.roomObjs);} } }),
     fbGetDoc('boh_shared','guests').then(function(d){ if(d&&d.list){ STATE.guests=d.list; lsSet('eh_guests',STATE.guests); } })
   ]).catch(function(){});
 }
@@ -437,11 +562,11 @@ function PAGE_overview(){
   var todays=STATE.punches.filter(function(p){return p.ts>=todayStart();});
   var ins=todays.filter(function(p){return p.type==='in';}).length;
   var denied=todays.filter(function(p){return p.type==='denied';}).length;
-  var openTables=STATE.tables.filter(function(t){return t.status==='open';}).length;
+  var tAll=allTables(); var openTables=tAll.filter(function(t){return (t.status||'open')==='open';}).length;
 
   var metrics='<div class="metrics">'+
     metric('On the Clock',onClock.length,'staff working now')+
-    metric('Open Tables',openTables+' / '+STATE.tables.length,'available to seat')+
+    metric('Open Tables',openTables+' / '+tAll.length,'available to seat')+
     metric('Guests on File',STATE.guests.length,'profiles saved')+
     metric('Denied Punches',denied,'face mismatches today',denied>0?'var(--red)':null)+
   '</div>';
@@ -512,93 +637,312 @@ function lockedPage(name){
 }
 
 /* ============================================================
-   PAGE: FLOOR & TABLES  (drag-and-drop editor)
+   PAGE: FLOOR & TABLES  (Aloha-grade floor plan editor)
    ============================================================ */
-var FLOOR={ sel:null, section:'All' };
+var FLOOR={ room:'main', sel:null, mode:'edit' };
+
+/* status taxonomy — feeds POS + bar screens */
+var TABLE_STATUS={
+  open:        {label:'Open',          bg:'rgba(95,180,138,0.14)', border:'#5FB48A', text:'#8FD8B4'},
+  seated:      {label:'Seated',        bg:'rgba(224,163,107,0.16)',border:'#E0A36B', text:'#E0A36B'},
+  ordered:     {label:'Ordered',       bg:'rgba(155,196,226,0.16)',border:'#9BC4E2', text:'#9BC4E2'},
+  fired:       {label:'Food Fired',    bg:'rgba(201,168,76,0.18)', border:'#C9A84C', text:'#D9BE6E'},
+  check:       {label:'Check Dropped', bg:'rgba(190,150,220,0.16)',border:'#B98AD8', text:'#C79FE4'},
+  attention:   {label:'Needs Attention',bg:'rgba(224,122,107,0.2)',border:'#E07A6B', text:'#E07A6B'},
+  dirty:       {label:'Dirty / Bussing',bg:'rgba(120,130,145,0.18)',border:'#8792A3',text:'#A6B0BE'}
+};
+var STATUS_ORDER=['open','seated','ordered','fired','check','attention','dirty'];
+var SEATABLE={table:1,stool:1,outdoor:1,couch:1};
+
+function curObjs(){ if(!STATE.roomObjs[FLOOR.room])STATE.roomObjs[FLOOR.room]=[]; return STATE.roomObjs[FLOOR.room]; }
+function allTables(){ var out=[]; for(var r in STATE.roomObjs){ (STATE.roomObjs[r]||[]).forEach(function(o){ if(SEATABLE[o.type]){ out.push(o); } }); } return out; }
+function findObj(id){ var o=curObjs().filter(function(x){return x.id===id;})[0]; return o||null; }
+function serverName(id){ var s=STATE.staff.filter(function(x){return x.id===id;})[0]; return s?s.name:''; }
+function posStaff(){ return STATE.staff.filter(function(s){ var r=(s.code||'')[0]; return r==='3'||r==='5'; }); }
+
+/* palette definition */
+var PALETTE=[
+  {group:'Tables', items:[
+    {t:'table-round', i:'\u2b55', l:'Round table'},
+    {t:'table-square',i:'\u25fb', l:'Square table'},
+    {t:'table-rect',  i:'\u25ac', l:'Long table'},
+    {t:'couch',       i:'\uD83D\uDECB', l:'Booth / banquette'}
+  ]},
+  {group:'Seating', items:[
+    {t:'stool',   i:'\u25cf', l:'Bar stool'},
+    {t:'outdoor', i:'\u2600', l:'Outdoor seat'}
+  ]},
+  {group:'Service', items:[
+    {t:'bar',     i:'\uD83C\uDF78', l:'Bar counter'},
+    {t:'host',    i:'\uD83D\uDCCD', l:'Host stand'},
+    {t:'station', i:'\uD83D\uDCE6', l:'Server station'},
+    {t:'kiosk',   i:'\uD83D\uDED2', l:'Kiosk'}
+  ]},
+  {group:'Structure', items:[
+    {t:'wall-h',  i:'\u2501', l:'Wall (horizontal)'},
+    {t:'wall-v',  i:'\u2503', l:'Wall (vertical)'},
+    {t:'curve',   i:'\u2312', l:'Curved wall'},
+    {t:'door',    i:'\uD83D\uDEAA', l:'Door'},
+    {t:'plant',   i:'\uD83C\uDF3F', l:'Plant / divider'}
+  ]},
+  {group:'Zones', items:[
+    {t:'stage',   i:'\uD83C\uDFBC', l:'Stage / orchestra'},
+    {t:'kitchen', i:'\uD83D\uDD25', l:'Kitchen'},
+    {t:'privateroom',i:'\uD83C\uDFDB', l:'Private dining'},
+    {t:'store',   i:'\u2615', l:'Coffee studio'},
+    {t:'label',   i:'\uD83C\uDFF7', l:'Text label'}
+  ]}
+];
+
 function PAGE_floor(){
   if(!can('floor'))return lockedPage('Floor & Tables');
-  var secOpts=['All'].concat(STATE.sections);
-  var segHTML=secOpts.map(function(s){ return '<button class="'+(FLOOR.section===s?'on':'')+'" data-sec="'+esc(s)+'">'+esc(s)+'</button>'; }).join('');
-  var body=
+  var roomTabs=STATE.rooms.map(function(rm){
+    var canDel=STATE.rooms.length>1 && FLOOR.mode==='edit';
+    return '<div class="room-tab'+(FLOOR.room===rm.id?' on':'')+'" data-room="'+esc(rm.id)+'">'+esc(rm.name)+
+      (canDel&&FLOOR.room===rm.id?'<span class="x" data-delroom="'+esc(rm.id)+'">\u00d7</span>':'')+'</div>';
+  }).join('');
+
+  var toolbar=
     '<div class="floor-toolbar">'+
-      '<div class="seg" id="sec-seg">'+segHTML+'</div>'+
-      '<button class="btn btn-gold btn-sm" onclick="addTable()">+ Add Table</button>'+
-      '<button class="btn btn-ghost btn-sm" onclick="addSection()">+ Section</button>'+
+      '<div class="room-tabs" id="room-tabs">'+roomTabs+
+        (FLOOR.mode==='edit'?'<button class="btn btn-ghost btn-sm" onclick="addRoom()">+ Room</button>':'')+
+      '</div>'+
       '<div style="flex:1"></div>'+
-      '<span class="mini-note" style="margin:0">Drag tables to arrange. Tap a table to edit.</span>'+
-    '</div>'+
-    '<div class="floor-canvas" id="floor-canvas"></div>'+
-    '<div id="floor-edit"></div>'+
-    '<div class="mini-note">This floor layout is saved to your shared database and will feed the food masters&rsquo; POS on their phones.</div>';
-  return {title:'Floor & Tables',sub:'Arrange your dining room',body:body,bind:bindFloor};
+      '<div class="seg" id="mode-seg">'+
+        '<button class="'+(FLOOR.mode==='edit'?'on':'')+'" data-mode="edit">Edit Layout</button>'+
+        '<button class="'+(FLOOR.mode==='live'?'on':'')+'" data-mode="live">Live Service</button>'+
+      '</div>'+
+    '</div>';
+
+  var body;
+  if(FLOOR.mode==='edit'){
+    var palHTML=PALETTE.map(function(g){
+      return '<div class="palette-group">'+g.group+'</div>'+g.items.map(function(it){
+        return '<button class="pal-btn" data-add="'+it.t+'"><span class="pi">'+it.i+'</span>'+it.l+'</button>';
+      }).join('');
+    }).join('');
+    body=toolbar+
+      '<div class="floor-workspace" id="fw">'+
+        '<div class="palette" id="palette">'+palHTML+'</div>'+
+        '<div class="floor-canvas-wrap"><div class="floor-canvas" id="floor-canvas"></div></div>'+
+        '<div class="inspector" id="inspector"><h4>Properties</h4><div class="insp-empty">Select an object on the floor to edit it, or add one from the palette on the left.</div></div>'+
+      '</div>'+
+      '<div class="mini-note">Drag to move · drag the gold handle to resize · click to select. Layout saves to your shared database and feeds the food masters&rsquo; POS and bar screens.</div>';
+    return {title:'Floor Plan',sub:'Design your rooms',body:body,bind:bindFloor};
+  } else {
+    var legend='<div class="status-legend">'+STATUS_ORDER.map(function(k){ var s=TABLE_STATUS[k]; return '<div class="status-key"><span class="status-dot" style="background:'+s.bg+';border-color:'+s.border+'"></span>'+s.label+'</div>'; }).join('')+'</div>';
+    body=toolbar+legend+
+      '<div class="floor-workspace live" id="fw">'+
+        '<div class="floor-canvas-wrap"><div class="floor-canvas live" id="floor-canvas"></div></div>'+
+        '<div class="inspector" id="inspector"><h4>Table</h4><div class="insp-empty">Tap a table to set its status, assign a food master, or override an error.</div></div>'+
+      '</div>'+
+      '<div class="mini-note">This is the live view your food masters and bar screens see. As a manager you can override any table &mdash; change status, reassign the food master, or clear it.</div>';
+    return {title:'Live Service',sub:'Real-time table status & manager override',body:body,bind:bindFloor};
+  }
 }
-function tablesInView(){ return STATE.tables.filter(function(t){ return FLOOR.section==='All'||t.section===FLOOR.section; }); }
+
 function bindFloor(){
-  renderTables();
-  document.querySelectorAll('#sec-seg button').forEach(function(b){
-    b.addEventListener('click',function(){ FLOOR.section=b.getAttribute('data-sec'); FLOOR.sel=null; render(); });
+  renderFloor();
+  document.querySelectorAll('#room-tabs .room-tab').forEach(function(tab){
+    tab.addEventListener('click',function(e){
+      if(e.target.getAttribute('data-delroom')){ e.stopPropagation(); delRoom(e.target.getAttribute('data-delroom')); return; }
+      FLOOR.room=tab.getAttribute('data-room'); FLOOR.sel=null; render();
+    });
   });
+  document.querySelectorAll('#mode-seg button').forEach(function(b){
+    b.addEventListener('click',function(){ FLOOR.mode=b.getAttribute('data-mode'); FLOOR.sel=null; render(); });
+  });
+  var pal=$('palette');
+  if(pal){ pal.querySelectorAll('.pal-btn').forEach(function(b){ b.addEventListener('click',function(){ addFloorObj(b.getAttribute('data-add')); }); }); }
+  var canvas=$('floor-canvas');
+  if(canvas){ canvas.addEventListener('mousedown',function(e){ if(e.target===canvas){ FLOOR.sel=null; renderFloor(); } }); }
 }
-function renderTables(){
+
+function renderFloor(){
   var canvas=$('floor-canvas'); if(!canvas)return; canvas.innerHTML='';
-  tablesInView().forEach(function(t){
-    var node=el('div',{class:'table-node'+(FLOOR.sel===t.id?' sel':'')+' s-'+t.status,'data-id':t.id});
-    node.style.left=t.x+'px'; node.style.top=t.y+'px';
-    node.innerHTML='<div class="table-shape '+t.shape+'" style="width:'+t.size+'px;height:'+t.size+'px">'+esc(t.name)+'</div>'+
-      '<div class="table-cap">'+t.seats+' seats · '+esc(t.section)+'</div>';
-    canvas.appendChild(node);
-    makeDraggable(node,t);
-  });
-  renderFloorEdit();
+  curObjs().forEach(function(o){ drawObj(canvas,o); });
+  renderInspector();
 }
-function makeDraggable(node,t){
-  var startX,startY,origX,origY,moved=false,dragging=false;
-  function down(e){ e.preventDefault(); dragging=true;moved=false; var p=point(e); startX=p.x;startY=p.y;origX=t.x;origY=t.y; node.classList.add('dragging');
-    document.addEventListener('mousemove',move); document.addEventListener('mouseup',up); document.addEventListener('touchmove',move,{passive:false}); document.addEventListener('touchend',up); }
-  function move(e){ if(!dragging)return; e.preventDefault(); var p=point(e); var dx=p.x-startX,dy=p.y-startY; if(Math.abs(dx)+Math.abs(dy)>4)moved=true;
-    var canvas=$('floor-canvas'); var maxX=canvas.clientWidth-t.size-6, maxY=canvas.clientHeight-t.size-26;
-    t.x=Math.max(4,Math.min(maxX,origX+dx)); t.y=Math.max(4,Math.min(maxY,origY+dy));
-    node.style.left=t.x+'px'; node.style.top=t.y+'px'; }
-  function up(){ dragging=false; node.classList.remove('dragging');
-    document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',up); document.removeEventListener('touchmove',move); document.removeEventListener('touchend',up);
-    if(moved){ saveTables(); } else { FLOOR.sel=(FLOOR.sel===t.id?null:t.id); document.querySelectorAll('.table-node').forEach(function(n){n.classList.toggle('sel',n.getAttribute('data-id')===FLOOR.sel);}); renderFloorEdit(); } }
-  function point(e){ var t2=e.touches?e.touches[0]:e; return {x:t2.clientX,y:t2.clientY}; }
+
+function drawObj(canvas,o){
+  var node=el('div',{class:'floor-obj'+(FLOOR.sel===o.id&&FLOOR.mode==='edit'?' selected':''),'data-id':o.id});
+  node.style.left=o.x+'px'; node.style.top=o.y+'px'; node.style.width=o.w+'px'; node.style.height=o.h+'px';
+  if(o.rot)node.style.transform='rotate('+o.rot+'deg)';
+  var seatable=SEATABLE[o.type];
+  if(o.type==='table'){
+    var st=TABLE_STATUS[o.status||'open'];
+    node.innerHTML='<div class="f-table '+(o.shape||'round')+'" style="background:'+st.bg+';border-color:'+st.border+';color:'+st.text+'">'+
+      '<span class="f-tnum">'+esc(o.num)+'</span><span class="f-tsub">'+(o.seats||2)+' seats</span>'+
+      (o.server?'<span class="f-svr">'+esc(serverName(o.server)||'—')+'</span>':'')+'</div>';
+  } else if(o.type==='stool'){
+    var ss=TABLE_STATUS[o.status||'open'];
+    node.innerHTML='<div class="f-stool" style="background:'+ss.bg+';border-color:'+ss.border+';color:'+ss.text+';font-size:10px">'+esc(o.num||'S')+'</div>';
+  } else if(o.type==='outdoor'){
+    var os=TABLE_STATUS[o.status||'open'];
+    node.innerHTML='<div class="f-outdoor" style="background:'+os.bg+';border-color:'+os.border+';color:'+os.text+'"><span style="font-size:13px">\u2600</span><span style="font-size:11px">'+esc(o.num||'')+'</span></div>';
+  } else if(o.type==='couch'){
+    var cs=TABLE_STATUS[o.status||'open'];
+    node.innerHTML='<div class="f-couch" style="outline:2px solid '+cs.border+'"><span style="font-size:14px">\uD83D\uDECB</span><span class="cs">'+esc(o.num||'Booth')+' \u00b7 '+(o.seats||4)+'</span></div>';
+  } else if(o.type==='wall'){
+    node.innerHTML='<div class="f-wall"></div>';
+  } else if(o.type==='bar'){
+    node.innerHTML='<div class="f-bar">'+esc(o.label||'Bar')+'</div>';
+  } else if(o.type==='door'){
+    node.innerHTML='<div class="f-door">\uD83D\uDEAA</div>';
+  } else if(o.type==='plant'){
+    node.innerHTML='<div class="f-plant">\uD83C\uDF3F</div>';
+  } else if(o.type==='host'){
+    node.innerHTML='<div class="f-host">'+esc(o.label||'HOST')+'</div>';
+  } else if(o.type==='station'){
+    node.innerHTML='<div class="f-station"><span style="font-size:14px">\uD83D\uDCE6</span>'+esc(o.label||'Station')+'</div>';
+  } else if(o.type==='label'){
+    node.innerHTML='<div class="f-label">'+esc(o.label||'Label')+'</div>';
+  } else if(o.type==='curve'){
+    node.innerHTML='<div class="f-curve"></div>';
+  } else if(o.type==='stage'){
+    node.innerHTML='<div class="f-zone" style="background:rgba(155,90,200,0.14);border:2px solid #B98AD8;color:#C79FE4"><span class="zi">\uD83C\uDFBC</span>'+esc(o.label||'Orchestra')+'</div>';
+  } else if(o.type==='kitchen'){
+    node.innerHTML='<div class="f-zone" style="background:rgba(224,122,107,0.1);border:2px solid #E07A6B;color:#E07A6B"><span class="zi">\uD83D\uDD25</span>'+esc(o.label||'Kitchen')+'</div>';
+  } else if(o.type==='privateroom'){
+    node.innerHTML='<div class="f-zone" style="background:rgba(155,196,226,0.1);border:2px solid #9BC4E2;color:#9BC4E2"><span class="zi">\uD83C\uDFDB</span>'+esc(o.label||'Private Dining')+'</div>';
+  } else if(o.type==='kiosk'){
+    node.innerHTML='<div class="f-zone" style="background:rgba(95,180,138,0.12);border:2px solid #5FB48A;color:#8FD8B4"><span class="zi">\uD83D\uDED2</span>'+esc(o.label||'Kiosk')+'</div>';
+  } else if(o.type==='store'){
+    node.innerHTML='<div class="f-zone" style="background:rgba(201,168,76,0.1);border:2px solid #C9A84C;color:#D9BE6E"><span class="zi">\u2615</span>'+esc(o.label||'Coffee Studio')+'</div>';
+  } else {
+    node.innerHTML='<div class="f-zone" style="border:2px solid var(--border-strong)">'+esc(o.label||o.type)+'</div>';
+  }
+
+  if(FLOOR.mode==='edit'){
+    makeDraggable(node,o);
+    if(FLOOR.sel===o.id){ var h=el('div',{class:'resize-handle'}); addResize(h,node,o); node.appendChild(h); }
+  } else {
+    if(seatable){ node.addEventListener('click',function(e){ e.stopPropagation(); FLOOR.sel=o.id; renderInspector(); document.querySelectorAll('.floor-obj').forEach(function(n){}); }); }
+    else { node.setAttribute('data-static','1'); }
+  }
+  canvas.appendChild(node);
+}
+
+function pt(e){ var t=e.touches?e.touches[0]:e; return {x:t.clientX,y:t.clientY}; }
+function makeDraggable(node,o){
+  var sx,sy,ox,oy,moved,dragging=false;
+  function down(e){ if(e.target.classList.contains('resize-handle'))return; e.preventDefault(); dragging=true;moved=false; var p=pt(e); sx=p.x;sy=p.y;ox=o.x;oy=o.y; node.classList.add('dragging');
+    document.addEventListener('mousemove',move);document.addEventListener('mouseup',up);document.addEventListener('touchmove',move,{passive:false});document.addEventListener('touchend',up); }
+  function move(e){ if(!dragging)return; e.preventDefault(); var p=pt(e); var dx=p.x-sx,dy=p.y-sy; if(Math.abs(dx)+Math.abs(dy)>3)moved=true;
+    o.x=Math.max(0,Math.round((ox+dx)/10)*10); o.y=Math.max(0,Math.round((oy+dy)/10)*10);
+    node.style.left=o.x+'px'; node.style.top=o.y+'px'; }
+  function up(){ if(!dragging)return; dragging=false; node.classList.remove('dragging');
+    document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',up);document.removeEventListener('touchmove',move);document.removeEventListener('touchend',up);
+    if(moved){ saveFloor(); } else { FLOOR.sel=o.id; renderFloor(); } }
   node.addEventListener('mousedown',down); node.addEventListener('touchstart',down,{passive:false});
 }
-function renderFloorEdit(){
-  var box=$('floor-edit'); if(!box)return;
-  if(!FLOOR.sel){ box.innerHTML=''; return; }
-  var t=STATE.tables.filter(function(x){return x.id===FLOOR.sel;})[0]; if(!t){ box.innerHTML=''; return; }
-  var secOpts=STATE.sections.map(function(s){ return '<option'+(t.section===s?' selected':'')+'>'+esc(s)+'</option>'; }).join('');
-  box.innerHTML='<div class="panel" style="margin-top:18px"><div class="panel-title">Edit Table '+esc(t.name)+'</div>'+
-    '<div class="form-grid">'+
-      '<div class="field"><label>Table Name / Number</label><input class="input" id="te-name" value="'+esc(t.name)+'"></div>'+
-      '<div class="field"><label>Seats</label><input class="input" id="te-seats" type="number" min="1" max="20" value="'+t.seats+'"></div>'+
-      '<div class="field"><label>Shape</label><select class="input" id="te-shape"><option value="round"'+(t.shape==='round'?' selected':'')+'>Round</option><option value="square"'+(t.shape==='square'?' selected':'')+'>Square</option></select></div>'+
-      '<div class="field"><label>Section</label><select class="input" id="te-section">'+secOpts+'</select></div>'+
-      '<div class="field"><label>Status</label><select class="input" id="te-status"><option value="open"'+(t.status==='open'?' selected':'')+'>Open</option><option value="occupied"'+(t.status==='occupied'?' selected':'')+'>Occupied</option><option value="reserved"'+(t.status==='reserved'?' selected':'')+'>Reserved</option></select></div>'+
-      '<div class="field"><label>Size</label><select class="input" id="te-size"><option value="56"'+(t.size==56?' selected':'')+'>Small</option><option value="72"'+(t.size==72?' selected':'')+'>Medium</option><option value="96"'+(t.size==96?' selected':'')+'>Large</option></select></div>'+
-    '</div>'+
-    '<div class="modal-foot"><button class="btn btn-gold" onclick="saveTableEdit()">Save Table</button><button class="btn btn-danger" onclick="deleteTable()">Delete</button></div>'+
-  '</div>';
+function addResize(handle,node,o){
+  var sx,sy,ow,oh,rz=false;
+  function down(e){ e.preventDefault(); e.stopPropagation(); rz=true; var p=pt(e); sx=p.x;sy=p.y;ow=o.w;oh=o.h;
+    document.addEventListener('mousemove',move);document.addEventListener('mouseup',up);document.addEventListener('touchmove',move,{passive:false});document.addEventListener('touchend',up); }
+  function move(e){ if(!rz)return; e.preventDefault(); var p=pt(e); var dx=p.x-sx,dy=p.y-sy;
+    o.w=Math.max(24,Math.round((ow+dx)/10)*10); o.h=Math.max(24,Math.round((oh+dy)/10)*10);
+    node.style.width=o.w+'px'; node.style.height=o.h+'px'; }
+  function up(){ if(!rz)return; rz=false;
+    document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',up);document.removeEventListener('touchmove',move);document.removeEventListener('touchend',up);
+    saveFloor(); renderInspector(); }
+  handle.addEventListener('mousedown',down); handle.addEventListener('touchstart',down,{passive:false});
 }
-function addTable(){
-  var n=STATE.tables.length+1; var sec=FLOOR.section==='All'?STATE.sections[0]:FLOOR.section;
-  var t={id:'t'+Date.now(),name:''+n,shape:'round',seats:2,x:40,y:40,size:64,status:'open',section:sec};
-  STATE.tables.push(t); saveTables(); FLOOR.sel=t.id; render(); toast('Table added','success');
+
+/* ---- inspector (edit mode) / override (live mode) ---- */
+function renderInspector(){
+  var box=$('inspector'); if(!box)return;
+  var o=FLOOR.sel?findObj(FLOOR.sel):null;
+  if(FLOOR.mode==='live') return renderLiveInspector(box,o);
+  if(!o){ box.innerHTML='<h4>Properties</h4><div class="insp-empty">Select an object on the floor to edit it, or add one from the palette on the left.</div>'; return; }
+  var html='<h4>'+(SEATABLE[o.type]?'Table '+esc(o.num):objLabel(o.type))+'</h4>';
+  if(o.type==='table'){
+    html+=field('Table number','<input class="insp-input" value="'+esc(o.num)+'" onchange="upd(\''+o.id+'\',\'num\',this.value)">');
+    html+=field('Seats','<input class="insp-input" type="number" min="1" max="30" value="'+(o.seats||2)+'" onchange="upd(\''+o.id+'\',\'seats\',parseInt(this.value))">');
+    html+=field('Shape','<select class="insp-input" onchange="upd(\''+o.id+'\',\'shape\',this.value)">'+shapeOpt(o.shape)+'</select>');
+  } else if(SEATABLE[o.type]){
+    html+=field('Number / name','<input class="insp-input" value="'+esc(o.num||'')+'" onchange="upd(\''+o.id+'\',\'num\',this.value)">');
+    html+=field('Seats','<input class="insp-input" type="number" min="1" max="20" value="'+(o.seats||1)+'" onchange="upd(\''+o.id+'\',\'seats\',parseInt(this.value))">');
+  } else {
+    html+=field('Label','<input class="insp-input" value="'+esc(o.label||'')+'" onchange="upd(\''+o.id+'\',\'label\',this.value)">');
+  }
+  html+=field('Size (W \u00d7 H)','<div class="insp-row"><input class="insp-input" type="number" value="'+o.w+'" onchange="upd(\''+o.id+'\',\'w\',parseInt(this.value))"><input class="insp-input" type="number" value="'+o.h+'" onchange="upd(\''+o.id+'\',\'h\',parseInt(this.value))"></div>');
+  html+=field('Rotation','<select class="insp-input" onchange="upd(\''+o.id+'\',\'rot\',parseInt(this.value))">'+[0,45,90,135,180].map(function(d){return '<option value="'+d+'"'+((o.rot||0)==d?' selected':'')+'>'+d+'\u00b0</option>';}).join('')+'</select>');
+  html+='<div class="insp-btns"><button class="btn btn-ghost btn-sm" onclick="dupObj(\''+o.id+'\')">Duplicate</button>'+
+    '<button class="btn btn-danger btn-sm" onclick="delObj(\''+o.id+'\')">Delete</button></div>';
+  box.innerHTML=html;
 }
-function saveTableEdit(){
-  var t=STATE.tables.filter(function(x){return x.id===FLOOR.sel;})[0]; if(!t)return;
-  t.name=$('te-name').value||t.name; t.seats=parseInt($('te-seats').value)||t.seats; t.shape=$('te-shape').value;
-  t.section=$('te-section').value; t.status=$('te-status').value; t.size=parseInt($('te-size').value)||t.size;
-  saveTables(); render(); toast('Table saved','success');
+function renderLiveInspector(box,o){
+  if(!o||!SEATABLE[o.type]){ box.innerHTML='<h4>Table</h4><div class="insp-empty">Tap a table to set its status, assign a food master, or override an error.</div>'; return; }
+  var st=TABLE_STATUS[o.status||'open'];
+  var statusBtns=STATUS_ORDER.map(function(k){ var s=TABLE_STATUS[k]; var on=(o.status||'open')===k;
+    return '<button class="btn btn-sm" style="width:100%;margin-bottom:6px;justify-content:flex-start;text-align:left;'+
+      'background:'+(on?s.bg:'transparent')+';border:1px solid '+(on?s.border:'var(--border-soft)')+';color:'+(on?s.text:'var(--text-dim)')+'" '+
+      'onclick="setStatus(\''+o.id+'\',\''+k+'\')">'+s.label+'</button>';
+  }).join('');
+  var fmOpts='<option value="">— Unassigned —</option>'+posStaff().map(function(s){ return '<option value="'+s.id+'"'+(o.server===s.id?' selected':'')+'>'+esc(s.name)+' ('+((s.code||'')[0]==='5'?'Mgr':'FM')+')</option>'; }).join('');
+  box.innerHTML='<h4>Table '+esc(o.num)+'</h4>'+
+    '<div class="insp-field"><label>Current status</label>'+
+      '<div style="padding:8px 11px;border-radius:9px;background:'+st.bg+';border:1px solid '+st.border+';color:'+st.text+';font-weight:700;font-size:13px">'+st.label+'</div></div>'+
+    field('Food master','<select class="insp-input" onchange="setServer(\''+o.id+'\',this.value)">'+fmOpts+'</select>')+
+    '<div class="insp-field"><label>Set status</label>'+statusBtns+'</div>'+
+    '<div class="insp-btns"><button class="btn btn-ghost btn-sm" onclick="clearTable(\''+o.id+'\')">Clear / Reset table</button></div>'+
+    '<div class="mini-note" style="margin-top:10px">Manager override applies immediately to POS &amp; bar screens.</div>';
 }
-function deleteTable(){
-  STATE.tables=STATE.tables.filter(function(x){return x.id!==FLOOR.sel;}); FLOOR.sel=null; saveTables(); render(); toast('Table removed','success');
+function objLabel(t){ var map={wall:'Wall',bar:'Bar Counter',door:'Door',plant:'Plant',host:'Host Stand',station:'Server Station',label:'Text Label',curve:'Curved Wall',stage:'Stage',kitchen:'Kitchen',privateroom:'Private Dining',kiosk:'Kiosk',store:'Coffee Studio'}; return map[t]||t; }
+function field(label,inner){ return '<div class="insp-field"><label>'+label+'</label>'+inner+'</div>'; }
+function shapeOpt(sh){ return ['round','square','rect'].map(function(s){ return '<option value="'+s+'"'+(sh===s?' selected':'')+'>'+(s==='rect'?'Rectangle':s.charAt(0).toUpperCase()+s.slice(1))+'</option>'; }).join(''); }
+
+/* ---- edit ops ---- */
+function upd(id,key,val){ var o=findObj(id); if(!o)return; o[key]=val; saveFloor(); renderFloor(); }
+function nextTableNum(){ var n=0; allTables().forEach(function(o){ var v=parseInt(o.num); if(!isNaN(v)&&v>n)n=v; }); return n+1; }
+function addFloorObj(palType){
+  var defs={
+    'table-round':{type:'table',shape:'round',w:70,h:70,num:nextTableNum(),seats:2,status:'open',server:''},
+    'table-square':{type:'table',shape:'square',w:80,h:80,num:nextTableNum(),seats:4,status:'open',server:''},
+    'table-rect':{type:'table',shape:'rect',w:140,h:80,num:nextTableNum(),seats:6,status:'open',server:''},
+    'couch':{type:'couch',w:150,h:60,num:'Booth',seats:4,status:'open',server:''},
+    'stool':{type:'stool',w:40,h:40,num:'S',seats:1,status:'open',server:''},
+    'outdoor':{type:'outdoor',w:70,h:70,num:'P',seats:2,status:'open',server:''},
+    'bar':{type:'bar',w:220,h:80,label:'Bar Counter'},
+    'host':{type:'host',w:70,h:44,label:'Host'},
+    'station':{type:'station',w:80,h:60,label:'Station'},
+    'kiosk':{type:'kiosk',w:80,h:80,label:'Kiosk'},
+    'wall-h':{type:'wall',w:220,h:12,label:''},
+    'wall-v':{type:'wall',w:12,h:220,label:''},
+    'curve':{type:'curve',w:120,h:60,label:''},
+    'door':{type:'door',w:50,h:50,label:'Door'},
+    'plant':{type:'plant',w:44,h:44,label:''},
+    'stage':{type:'stage',w:200,h:100,label:'Orchestra'},
+    'kitchen':{type:'kitchen',w:220,h:150,label:'Kitchen'},
+    'privateroom':{type:'privateroom',w:180,h:150,label:'Private Dining'},
+    'store':{type:'store',w:180,h:140,label:'Coffee Studio'},
+    'label':{type:'label',w:120,h:34,label:'Label'}
+  };
+  var d=defs[palType]; if(!d)return;
+  var o=Object.assign({id:'o'+Date.now().toString(36)+Math.floor(Math.random()*1000),x:220,y:200,rot:0},d);
+  curObjs().push(o); FLOOR.sel=o.id; saveFloor(); renderFloor(); toast('Added — drag to position','success');
 }
-function addSection(){
-  openModal('New Section','<div class="field"><label>Section Name</label><input class="input" id="new-sec" placeholder="e.g. Terrace"></div>',
-    'Add Section',function(){ var v=($('new-sec').value||'').trim(); if(!v){toast('Enter a name','error');return false;} if(STATE.sections.indexOf(v)<0)STATE.sections.push(v); FLOOR.section=v; saveTables(); render(); toast('Section added','success'); return true; });
+function dupObj(id){ var o=findObj(id); if(!o)return; var c=JSON.parse(JSON.stringify(o)); c.id='o'+Date.now().toString(36)+Math.floor(Math.random()*1000); c.x=(o.x||0)+30; c.y=(o.y||0)+30; if(SEATABLE[c.type]&&c.type==='table')c.num=nextTableNum(); curObjs().push(c); FLOOR.sel=c.id; saveFloor(); renderFloor(); toast('Duplicated','success'); }
+function delObj(id){ STATE.roomObjs[FLOOR.room]=curObjs().filter(function(x){return x.id!==id;}); FLOOR.sel=null; saveFloor(); renderFloor(); toast('Removed','success'); }
+
+/* ---- live-service ops (manager override) ---- */
+function setStatus(id,k){ var o=findObj(id); if(!o)return; o.status=k; if(k==='open'){o.server='';} saveFloor(); renderFloor(); toast('Table '+o.num+' \u2192 '+TABLE_STATUS[k].label,'success'); }
+function setServer(id,sid){ var o=findObj(id); if(!o)return; o.server=sid; if(sid&&(o.status||'open')==='open')o.status='seated'; saveFloor(); renderFloor(); toast(sid?('Assigned to '+serverName(sid)):'Unassigned','success'); }
+function clearTable(id){ var o=findObj(id); if(!o)return; o.status='open'; o.server=''; saveFloor(); renderFloor(); toast('Table '+o.num+' cleared','success'); }
+
+/* ---- room ops ---- */
+function addRoom(){
+  openModal('New Room','<div class="field"><label>Room Name</label><input class="input" id="new-room" placeholder="e.g. Terrace"></div>',
+    'Add Room',function(){ var v=($('new-room').value||'').trim(); if(!v){toast('Enter a name','error');return false;}
+      var id=v.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+Date.now().toString(36).slice(-3);
+      STATE.rooms.push({id:id,name:v}); STATE.roomObjs[id]=[]; FLOOR.room=id; FLOOR.sel=null; saveFloor(); render(); toast('Room added','success'); return true; });
+}
+function delRoom(id){
+  if(STATE.rooms.length<=1){ toast('Keep at least one room','error'); return; }
+  var rm=STATE.rooms.filter(function(r){return r.id===id;})[0];
+  openModal('Delete Room','<div style="color:var(--text-dim);font-size:14px;line-height:1.6">Delete <b style="color:var(--text)">'+esc(rm?rm.name:id)+'</b> and everything in it? This cannot be undone.</div>',
+    'Delete Room',function(){ STATE.rooms=STATE.rooms.filter(function(r){return r.id!==id;}); delete STATE.roomObjs[id]; FLOOR.room=STATE.rooms[0].id; FLOOR.sel=null; saveFloor(); render(); toast('Room deleted','success'); return true; });
 }
 
 /* ============================================================
