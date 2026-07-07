@@ -309,6 +309,103 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .stub-row{display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border-soft);font-size:14px;}
 .stub-row.stub-sub{font-weight:700;color:var(--text);border-top:1px solid var(--border);margin-top:4px;}
 .stub-row.stub-total{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--green);border-bottom:none;border-top:2px solid var(--gold);margin-top:6px;padding-top:14px;}
+/* ============================================================
+   PRODUCT MODULE (Menu / Bar / Wine / Retail / Inventory / Reports)
+   ============================================================ */
+.prod-head{display:flex;justify-content:space-between;align-items:flex-end;gap:16px;flex-wrap:wrap;margin-bottom:20px;}
+.prod-h1{font-size:26px;}
+.prod-sub{color:var(--text-dim);font-size:13.5px;max-width:620px;margin-top:4px;line-height:1.5;}
+.prod-actions{display:flex;gap:8px;flex-wrap:wrap;}
+.cat-tabs{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;border-bottom:1px solid var(--border-soft);padding-bottom:2px;}
+.cat-tab{padding:9px 15px;border-radius:9px 9px 0 0;font-size:13px;font-weight:500;color:var(--text-dim);cursor:pointer;border:1px solid transparent;border-bottom:none;transition:all .16s var(--ease-out);}
+.cat-tab:hover{color:var(--text);background:var(--panel);}
+.cat-tab.active{color:var(--gold);background:var(--panel-2);border-color:var(--border);}
+.cat-tab.hidden-cat{opacity:.5;}
+
+/* menu grid */
+.menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+.menu-card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border-soft);border-radius:16px;padding:18px;cursor:pointer;transition:transform .16s var(--ease-out),border-color .16s var(--ease-out);}
+.menu-card:hover{transform:translateY(-3px);border-color:var(--border-strong);}
+.mc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.mc-code{font-size:12px;color:var(--gold-soft);letter-spacing:1px;font-weight:600;}
+.mc-verified{font-size:11px;color:var(--green);}
+.mc-unverified{font-size:11px;color:var(--amber);}
+.mc-name{font-size:20px;line-height:1.15;margin-bottom:4px;}
+.mc-desc{font-size:12.5px;color:var(--text-dim);line-height:1.45;margin-bottom:10px;min-height:34px;}
+.mc-meta{display:flex;align-items:center;gap:8px;font-size:13px;color:var(--text);font-weight:500;}
+.mc-dot{color:var(--text-faint);}
+.mc-cats{font-size:11.5px;color:var(--text-faint);margin-top:8px;letter-spacing:.3px;}
+.mc-chips{display:flex;flex-wrap:wrap;gap:5px;margin-top:9px;}
+.chip{display:inline-block;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:500;}
+.chip-al{background:rgba(224,122,107,0.14);color:var(--red);border:1px solid rgba(224,122,107,0.3);}
+.chip-diet{background:rgba(95,180,138,0.13);color:var(--green);border:1px solid rgba(95,180,138,0.3);}
+
+/* item editor form */
+.ff{margin-bottom:14px;}
+.ff label{display:block;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:var(--text-dim);margin-bottom:6px;}
+.ff-row{display:grid;gap:12px;}
+.ff-row.cols-2{grid-template-columns:1fr 1fr;}
+.ff-row.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.ff-row.cols-4{grid-template-columns:1fr 1fr 1fr 1fr;}
+.cbx{display:inline-flex;align-items:center;gap:7px;font-size:13px;color:var(--text);cursor:pointer;}
+.cbx input{width:16px;height:16px;accent-color:var(--gold);}
+.cbx-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;padding:10px;background:rgba(11,20,32,0.4);border-radius:10px;border:1px solid var(--border-soft);}
+.btn-analyze{width:100%;background:linear-gradient(180deg,#2b3f63,#1d3250);border:1px solid var(--border-strong);color:var(--gold);border-radius:12px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;transition:filter .16s var(--ease-out),transform .16s var(--ease-out);margin-top:4px;}
+.btn-analyze:hover{filter:brightness(1.12);}
+.btn-analyze:active{transform:scale(.98);}
+.analysis-box{margin-top:14px;padding:14px;background:rgba(11,20,32,0.5);border:1px solid var(--border-soft);border-radius:12px;}
+.an-block{margin-bottom:12px;}
+.an-label{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--text-faint);margin-bottom:6px;}
+.an-chips{display:flex;flex-wrap:wrap;gap:6px;}
+.an-none{font-size:12.5px;color:var(--text-dim);}
+.an-note{font-size:12px;color:var(--text-dim);font-style:italic;margin:8px 0;line-height:1.5;}
+.an-loading{color:var(--gold);font-size:13px;padding:10px 0;}
+.an-verify-row{margin-top:8px;padding-top:12px;border-top:1px solid var(--border-soft);font-size:12.5px;align-items:flex-start;line-height:1.45;}
+
+/* category / modifier managers */
+.cat-manager,.mod-manager,.cat-row{display:flex;flex-direction:column;gap:10px;}
+.cat-row{flex-direction:row;align-items:center;gap:10px;}
+.cat-row .cat-name{flex:1;}
+.hint-sm{font-size:12px;color:var(--text-faint);line-height:1.55;margin-top:10px;}
+.mod-group{background:rgba(11,20,32,0.4);border:1px solid var(--border-soft);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:8px;}
+.mod-g-name{font-weight:600;font-size:14px;}
+.mg-tag{font-size:10px;color:var(--text-faint);border:1px solid var(--border-soft);padding:1px 7px;border-radius:10px;margin-left:6px;text-transform:uppercase;letter-spacing:.5px;}
+.mod-opts{display:flex;flex-wrap:wrap;gap:6px;}
+.mod-opt{font-size:12.5px;color:var(--text-dim);background:var(--panel-2);padding:4px 10px;border-radius:8px;}
+.mod-opt .up{color:var(--gold-soft);}
+
+/* data tables */
+.table-wrap{overflow-x:auto;border:1px solid var(--border-soft);border-radius:14px;}
+.dt{width:100%;border-collapse:collapse;font-size:13.5px;min-width:640px;}
+.dt thead th{text-align:left;padding:12px 14px;font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--text-faint);background:var(--panel);border-bottom:1px solid var(--border-soft);}
+.dt tbody tr{border-bottom:1px solid var(--border-soft);cursor:pointer;transition:background .12s var(--ease-out);}
+.dt tbody tr:hover{background:var(--panel-2);}
+.dt td{padding:12px 14px;color:var(--text);}
+.dt .td-name{font-weight:600;}
+.dt .td-go{color:var(--gold-soft);font-size:12px;text-align:right;}
+.dt .stk{font-weight:600;}
+.dt .stk.low{color:var(--red);}
+.empty-note{text-align:center;color:var(--text-dim);padding:40px 20px;font-size:14px;}
+
+/* inventory alerts */
+.alert-box{background:rgba(224,122,107,0.1);border:1px solid rgba(224,122,107,0.32);border-radius:12px;padding:14px 16px;margin-bottom:18px;}
+.alert-box b{color:var(--red);font-size:13.5px;}
+.alert-list{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.alert-list span{font-size:12px;color:var(--text-dim);background:rgba(11,20,32,0.5);padding:4px 10px;border-radius:8px;}
+.ok-box{background:rgba(95,180,138,0.1);border:1px solid rgba(95,180,138,0.3);border-radius:12px;padding:12px 16px;margin-bottom:18px;color:var(--green);font-size:13.5px;}
+.inv-total{text-align:right;margin-top:14px;color:var(--text-dim);font-size:14px;}
+.inv-total b{color:var(--gold);}
+
+/* reports */
+.rep-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:14px;margin-bottom:20px;}
+.rep-card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border-soft);border-radius:16px;padding:18px;}
+.rc-label{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--text-faint);}
+.rc-val{font-size:28px;margin:6px 0 2px;color:var(--gold);}
+.rc-sub{font-size:12px;color:var(--text-dim);}
+.rep-charts{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:8px;}
+.chart-card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border-soft);border-radius:16px;padding:18px;}
+.chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;}
+@media(max-width:820px){.rep-charts{grid-template-columns:1fr;}.ff-row.cols-3,.ff-row.cols-4{grid-template-columns:1fr 1fr;}.menu-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -383,6 +480,112 @@ var REVIEW_CATS = ['Punctuality','Teamwork','Guest Service','Product Knowledge',
 var PAYROLL_DEFAULTS = { federalPct:10, statePct:5, ssPct:6.2, medicarePct:1.45, otherAmt:0, otMultiplier:1.5, otThreshold:40 };
 function payrollSettings(){ return lsGet('eh_payroll', JSON.parse(JSON.stringify(PAYROLL_DEFAULTS))); }
 function savePayrollSettings(p){ lsSet('eh_payroll',p); fbSetDoc('boh_shared','payroll_settings',{settings:p,updatedAt:Date.now()}); }
+
+/* ============================================================
+   MENU / BAR / WINE / RETAIL / INVENTORY — reference data
+   ============================================================ */
+/* Kitchen stations — orders route here; kitchen station screens read station. */
+var KITCHEN_STATIONS = ['Grill','Sauté','Fry','Cold / Garde Manger','Pastry','Expo'];
+
+/* Allergen keywords the AI/rule engine looks for (recognizable, front-and-center). */
+var ALLERGENS = ['Gluten','Dairy','Egg','Peanut','Tree Nut','Shellfish','Fish','Soy','Sesame','Sulfites'];
+/* Dietary flags derived by analysis. */
+var DIET_FLAGS = ['Gluten-Free','Dairy-Free','Vegan','Vegetarian','Nut-Free','Shellfish-Free','Egg-Free','Soy-Free','Sugar-Free / Diabetic'];
+
+/* Inventory units */
+var INV_UNITS = ['each','oz','lb','bottle','case','glass'];
+
+/* Default modifier groups for POS. Temperature is R/MR/M only per spec. */
+function seedModifierGroups(){
+  return [
+    {id:'mg_temp', name:'Temperature', required:false, multi:false, options:[
+      {id:'mo_r',name:'R (Rare)',up:0},{id:'mo_mr',name:'MR (Med-Rare)',up:0},{id:'mo_m',name:'M (Medium)',up:0}
+    ]},
+    {id:'mg_add', name:'Add-ons', required:false, multi:true, options:[
+      {id:'mo_chz',name:'Extra Cheese',up:1.5},{id:'mo_bac',name:'Bacon',up:2},{id:'mo_avo',name:'Avocado',up:2.5}
+    ]},
+    {id:'mg_side', name:'Side Choice', required:false, multi:false, options:[
+      {id:'mo_fry',name:'Fries',up:0},{id:'mo_sal',name:'Side Salad',up:0},{id:'mo_veg',name:'Seasonal Veg',up:0}
+    ]},
+    {id:'mg_drs', name:'Dressing', required:false, multi:false, options:[
+      {id:'mo_ran',name:'Ranch',up:0},{id:'mo_cae',name:'Caesar',up:0},{id:'mo_vin',name:'Vinaigrette',up:0}
+    ]},
+    {id:'mg_prep', name:'Prep Notes', required:false, multi:true, options:[
+      {id:'mo_nos',name:'No Salt',up:0},{id:'mo_sos',name:'Sauce on Side',up:0},{id:'mo_wel',name:'Well Cooked',up:0}
+    ]}
+  ];
+}
+
+/* Menu categories — fully user-managed, each with a visible toggle for POS/bar screens. */
+function seedMenuCats(){
+  return [
+    {id:'c_small', name:'Small Plates',    visible:true},
+    {id:'c_cev',   name:'Ceviche',         visible:true},
+    {id:'c_soup',  name:'Soups & Salads',  visible:true},
+    {id:'c_ent',   name:'Entrées',         visible:true},
+    {id:'c_side',  name:'Sides',           visible:true},
+    {id:'c_des',   name:'Desserts',        visible:true},
+    {id:'c_kid',   name:'Kids',            visible:true},
+    {id:'c_brunch',name:'Brunch',          visible:true}
+  ];
+}
+
+/* A menu item can belong to multiple categories (catIds[]). */
+function seedMenuItems(){
+  return [
+    {id:'m1', code:'101', name:'Peruvian Ceviche', desc:'Fresh sea bass cured in lime, red onion, cilantro, sweet potato, corn.',
+     price:18, cost:6.5, catIds:['c_cev','c_small'], cookMin:8, station:'Cold / Garde Manger',
+     ingredients:'sea bass, lime, red onion, cilantro, sweet potato, corn, chili',
+     allergens:['Fish'], diet:['Gluten-Free','Dairy-Free','Nut-Free'], verified:false, modGroupIds:['mg_prep'], active:true},
+    {id:'m2', code:'301', name:'Chocolate Studio Torte', desc:'70% dark chocolate flourless torte, cocoa nib crumble.',
+     price:12, cost:3, catIds:['c_des'], cookMin:4, station:'Pastry',
+     ingredients:'dark chocolate, eggs, butter, sugar, cocoa nibs',
+     allergens:['Egg','Dairy','Soy'], diet:['Gluten-Free','Vegetarian'], verified:false, modGroupIds:[], active:true}
+  ];
+}
+
+/* Bar: cocktails / beer / spirits — each carries price, cost, stock. */
+function seedBar(){
+  return [
+    {id:'b1', code:'C01', kind:'Cocktail', name:'Pisco Sour', desc:'Pisco, lime, egg white, bitters.', price:14, cost:3.2, stock:40, unit:'each', allergens:['Egg'], active:true},
+    {id:'b2', code:'B01', kind:'Beer', name:'Local Lager', desc:'Draft, 16oz.', price:8, cost:1.8, stock:120, unit:'glass', allergens:['Gluten'], active:true},
+    {id:'b3', code:'S01', kind:'Spirit', name:'Reposado Tequila', desc:'1.5oz pour.', price:12, cost:2.5, stock:60, unit:'oz', allergens:[], active:true}
+  ];
+}
+
+/* Wine: by bottle & by glass, with VIN number and stock. */
+function seedWines(){
+  return [
+    {id:'w1', vin:'VIN-0001', name:'Malbec Reserva', producer:'Bodega Andes', vintage:2021, region:'Mendoza, AR', varietal:'Malbec', bottlePrice:52, glassPrice:14, stock:24, active:true},
+    {id:'w2', vin:'VIN-0002', name:'Chardonnay', producer:'Casa Blanca', vintage:2022, region:'Casablanca, CL', varietal:'Chardonnay', bottlePrice:44, glassPrice:12, stock:18, active:true}
+  ];
+}
+
+/* Retail store: cakes by the slice, bonbons, coffee, chocolate, sandwiches. */
+function seedRetail(){
+  return [
+    {id:'r1', code:'RC01', name:'Chocolate Cake (slice)', category:'Cakes', price:9, cost:2.4, stock:20, unit:'each', active:true},
+    {id:'r2', code:'RB01', name:'Assorted Bonbons (6pc)', category:'Bonbons', price:16, cost:4, stock:30, unit:'each', active:true},
+    {id:'r3', code:'RK01', name:'House Blend Coffee (12oz bag)', category:'Coffee', price:15, cost:5, stock:25, unit:'each', active:true}
+  ];
+}
+
+/* Kitchen ingredient inventory. Recipes will draw down from here as sales occur. */
+function seedIngredients(){
+  return [
+    {id:'i1', name:'Sea Bass', unit:'lb', stock:20, cost:9, par:8},
+    {id:'i2', name:'Lime', unit:'each', stock:120, cost:0.25, par:40},
+    {id:'i3', name:'Dark Chocolate 70%', unit:'lb', stock:15, cost:8, par:6},
+    {id:'i4', name:'Eggs', unit:'each', stock:180, cost:0.22, par:60}
+  ];
+}
+
+/* Sales ledger — the POS will append here later; manual entry works now.
+   entry: {id, ts, refType:'menu|bar|wine|retail', refId, name, category, qty, price, cost, channel} */
+
+/* AI settings: optional OpenAI key stored only in the browser (localStorage). */
+function aiKey(){ return lsGet('eh_ai_key',''); }
+function saveAiKey(k){ lsSet('eh_ai_key',k); }
 
 /* ---------------- Seed data ---------------- */
 /* Rich employee record. Legacy records (name/code/wage) are auto-upgraded by normStaff(). */
@@ -470,7 +673,15 @@ var STATE = {
   punches: lsGet('eh_punches', []),
   guests:  lsGet('eh_guests',  []),
   rooms:   lsGet('eh_rooms', SEED_ROOMS.slice()),
-  roomObjs: loadRoomObjs()
+  roomObjs: loadRoomObjs(),
+  menuCats:   lsGet('eh_menu_cats',   seedMenuCats()),
+  menuItems:  lsGet('eh_menu_items',  seedMenuItems()),
+  modGroups:  lsGet('eh_mod_groups',  seedModifierGroups()),
+  bar:        lsGet('eh_bar',         seedBar()),
+  wines:      lsGet('eh_wines',       seedWines()),
+  retail:     lsGet('eh_retail',      seedRetail()),
+  ingredients:lsGet('eh_ingredients', seedIngredients()),
+  sales:      lsGet('eh_sales',       [])
 };
 var SESSION = { user:null }; // {name, role, perms, isOwner}
 
@@ -478,6 +689,12 @@ function saveStaff(){ lsSet('eh_staff',STATE.staff); fbSetDoc('boh_shared','staf
 function savePunches(){ lsSet('eh_punches',STATE.punches); fbSetDoc('boh_shared','punches',{list:STATE.punches.slice(-800),updatedAt:Date.now()}); }
 function saveFloor(){ lsSet('eh_rooms',STATE.rooms); lsSet('eh_rooms_objs',STATE.roomObjs); fbSetDoc('boh_shared','tables',{rooms:STATE.rooms,roomObjs:STATE.roomObjs,updatedAt:Date.now()}); }
 function saveGuests(){ lsSet('eh_guests',STATE.guests); fbSetDoc('boh_shared','guests',{list:STATE.guests,updatedAt:Date.now()}); }
+function saveMenu(){ lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups); fbSetDoc('boh_shared','menu',{cats:STATE.menuCats,items:STATE.menuItems,modGroups:STATE.modGroups,updatedAt:Date.now()}); }
+function saveBar(){ lsSet('eh_bar',STATE.bar); fbSetDoc('boh_shared','bar',{list:STATE.bar,updatedAt:Date.now()}); }
+function saveWines(){ lsSet('eh_wines',STATE.wines); fbSetDoc('boh_shared','wines',{list:STATE.wines,updatedAt:Date.now()}); }
+function saveRetail(){ lsSet('eh_retail',STATE.retail); fbSetDoc('boh_shared','retail',{list:STATE.retail,updatedAt:Date.now()}); }
+function saveIngredients(){ lsSet('eh_ingredients',STATE.ingredients); fbSetDoc('boh_shared','ingredients',{list:STATE.ingredients,updatedAt:Date.now()}); }
+function saveSales(){ lsSet('eh_sales',STATE.sales); fbSetDoc('boh_shared','sales',{list:STATE.sales.slice(-2000),updatedAt:Date.now()}); }
 
 function syncFromCloud(){
   if(!fbReady)return Promise.resolve();
@@ -485,7 +702,13 @@ function syncFromCloud(){
     fbGetDoc('boh_shared','staff_clock').then(function(d){ if(d&&d.list&&d.list.length){ STATE.staff=mergeStaff(STATE.staff,d.list); lsSet('eh_staff',STATE.staff); } }),
     fbGetDoc('boh_shared','punches').then(function(d){ if(d&&d.list){ STATE.punches=d.list; lsSet('eh_punches',STATE.punches); } }),
     fbGetDoc('boh_shared','tables').then(function(d){ if(d){ if(d.rooms&&d.rooms.length){STATE.rooms=d.rooms;lsSet('eh_rooms',STATE.rooms);} if(d.roomObjs){STATE.roomObjs=d.roomObjs;lsSet('eh_rooms_objs',STATE.roomObjs);} } }),
-    fbGetDoc('boh_shared','guests').then(function(d){ if(d&&d.list){ STATE.guests=d.list; lsSet('eh_guests',STATE.guests); } })
+    fbGetDoc('boh_shared','guests').then(function(d){ if(d&&d.list){ STATE.guests=d.list; lsSet('eh_guests',STATE.guests); } }),
+    fbGetDoc('boh_shared','menu').then(function(d){ if(d){ if(d.cats)STATE.menuCats=d.cats; if(d.items)STATE.menuItems=d.items; if(d.modGroups)STATE.modGroups=d.modGroups; lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups); } }),
+    fbGetDoc('boh_shared','bar').then(function(d){ if(d&&d.list){ STATE.bar=d.list; lsSet('eh_bar',STATE.bar); } }),
+    fbGetDoc('boh_shared','wines').then(function(d){ if(d&&d.list){ STATE.wines=d.list; lsSet('eh_wines',STATE.wines); } }),
+    fbGetDoc('boh_shared','retail').then(function(d){ if(d&&d.list){ STATE.retail=d.list; lsSet('eh_retail',STATE.retail); } }),
+    fbGetDoc('boh_shared','ingredients').then(function(d){ if(d&&d.list){ STATE.ingredients=d.list; lsSet('eh_ingredients',STATE.ingredients); } }),
+    fbGetDoc('boh_shared','sales').then(function(d){ if(d&&d.list){ STATE.sales=d.list; lsSet('eh_sales',STATE.sales); } })
   ]).catch(function(){});
 }
 /* preserve local faceprints (clock app writes them) while taking cloud's roster */
@@ -559,6 +782,14 @@ var NAV = [
     {r:'staff',    ico:'☰', label:'Employees', perm:'staff'},
     {r:'guests',   ico:'♛', label:'Guests', perm:'guests'},
     {r:'timecards',ico:'▤', label:'Time Cards', perm:'timecards'}
+  ]},
+  {group:'Product', items:[
+    {r:'menu',   ico:'🍽', label:'Food Menu',  perm:'menu'},
+    {r:'bar',    ico:'🍸', label:'Bar',        perm:'menu'},
+    {r:'wine',   ico:'🍷', label:'Wine',       perm:'menu'},
+    {r:'retail', ico:'🛍', label:'Retail Store',perm:'menu'},
+    {r:'inventory',ico:'📦', label:'Inventory', perm:'menu'},
+    {r:'reports',ico:'📊', label:'Reports',    perm:'menu'}
   ]}
 ];
 function sidebar(){
@@ -615,6 +846,12 @@ function pageFor(r){
     case 'payroll_settings': return PAGE_payroll_settings();
     case 'guests':    return PAGE_guests();
     case 'timecards': return PAGE_timecards();
+    case 'menu':      return PAGE_menu();
+    case 'bar':       return PAGE_bar();
+    case 'wine':      return PAGE_wine();
+    case 'retail':    return PAGE_retail();
+    case 'inventory': return PAGE_inventory();
+    case 'reports':   return PAGE_reports();
     default:          return PAGE_overview();
   }
 }
@@ -1527,6 +1764,459 @@ function openModal(title,bodyHTML,okLabel,onOk,afterRender,extraFootBtn){
   if(afterRender)afterRender();
 }
 function closeModal(){ $('modal-root').innerHTML=''; MODAL_OK=null; }
+
+/* ============================================================
+   PRODUCT MODULE — Menu / Bar / Wine / Retail / Inventory / Reports
+   Appended to app.js. Depends on helpers: $, el, esc, toast, openModal,
+   closeModal, go, render, STATE, save* functions, Chart (global).
+   ============================================================ */
+
+/* ---- shared helpers ---- */
+function uid(p){ return (p||'x')+Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
+function money(n){ n=Number(n)||0; return '$'+n.toFixed(2); }
+function catName(id){ var c=STATE.menuCats.filter(function(x){return x.id===id;})[0]; return c?c.name:''; }
+function sectionHead(title,sub,btns){
+  return '<div class="prod-head"><div><div class="prod-h1 serif">'+esc(title)+'</div><div class="prod-sub">'+esc(sub)+'</div></div><div class="prod-actions">'+(btns||'')+'</div></div>';
+}
+function fld(label,inner){ return '<div class="ff"><label>'+label+'</label>'+inner+'</div>'; }
+function opts(list,sel){ return list.map(function(o){ return '<option value="'+esc(o)+'"'+(o===sel?' selected':'')+'>'+esc(o)+'</option>'; }).join(''); }
+function chip(text,cls){ return '<span class="chip '+(cls||'')+'">'+esc(text)+'</span>'; }
+
+/* ============================================================
+   AI / RULE-BASED DIETARY & ALLERGEN ANALYSIS
+   Works with no key (keyword rules). If an OpenAI key is saved,
+   analyzeDietAI() upgrades to a real model call from the browser.
+   Results are ALWAYS chef-verify-required before an item goes live.
+   ============================================================ */
+var ALLERGEN_KEYWORDS = {
+  'Gluten':['wheat','flour','bread','pasta','breadcrumb','panko','barley','rye','malt','couscous','soy sauce','beer','cracker','crouton','tortilla','batter','roux'],
+  'Dairy':['milk','butter','cream','cheese','parmesan','mozzarella','yogurt','ghee','béchamel','bechamel','buttermilk','custard','ice cream','queso','crème','creme'],
+  'Egg':['egg','eggs','mayonnaise','mayo','aioli','meringue','custard','hollandaise','egg white','egg yolk'],
+  'Peanut':['peanut','peanuts','groundnut','peanut butter','satay'],
+  'Tree Nut':['almond','walnut','pecan','cashew','pistachio','hazelnut','macadamia','pine nut','praline','marzipan','nut'],
+  'Shellfish':['shrimp','prawn','crab','lobster','crawfish','crayfish','langoustine','scallop','clam','mussel','oyster','shellfish'],
+  'Fish':['fish','salmon','tuna','cod','bass','anchovy','sardine','trout','halibut','snapper','sea bass','fish sauce','worcestershire'],
+  'Soy':['soy','soybean','tofu','edamame','soy sauce','tempeh','miso','tamari'],
+  'Sesame':['sesame','tahini','sesame oil','za\'atar','hummus'],
+  'Sulfites':['wine','vinegar','dried fruit','sulfite','sulphite']
+};
+var MEAT_WORDS = ['beef','pork','chicken','turkey','lamb','veal','bacon','ham','duck','sausage','prosciutto','fish','salmon','tuna','shrimp','crab','lobster','anchovy','gelatin','sea bass','cod','bass'];
+var ANIMAL_WORDS = MEAT_WORDS.concat(['milk','butter','cream','cheese','egg','honey','yogurt','ghee','custard']);
+var SUGAR_WORDS = ['sugar','honey','syrup','caramel','chocolate','candied','molasses','agave','fondant','glaze','sweetened','simple syrup'];
+
+function analyzeDietRules(text){
+  var t=(' '+(text||'').toLowerCase()+' ');
+  var found=[];
+  for(var a in ALLERGEN_KEYWORDS){
+    var hit=ALLERGEN_KEYWORDS[a].some(function(k){ return t.indexOf(k)>-1; });
+    if(hit)found.push(a);
+  }
+  var hasMeat=MEAT_WORDS.some(function(k){return t.indexOf(k)>-1;});
+  var hasAnimal=ANIMAL_WORDS.some(function(k){return t.indexOf(k)>-1;});
+  var hasSugar=SUGAR_WORDS.some(function(k){return t.indexOf(k)>-1;});
+  var diet=[];
+  if(found.indexOf('Gluten')===-1)diet.push('Gluten-Free');
+  if(found.indexOf('Dairy')===-1)diet.push('Dairy-Free');
+  if(!hasAnimal)diet.push('Vegan');
+  if(!hasMeat)diet.push('Vegetarian');
+  if(found.indexOf('Peanut')===-1&&found.indexOf('Tree Nut')===-1)diet.push('Nut-Free');
+  if(found.indexOf('Shellfish')===-1)diet.push('Shellfish-Free');
+  if(found.indexOf('Egg')===-1)diet.push('Egg-Free');
+  if(found.indexOf('Soy')===-1)diet.push('Soy-Free');
+  if(!hasSugar)diet.push('Sugar-Free / Diabetic');
+  return {allergens:found, diet:diet, note:'Rule-based scan of ingredient keywords. Verify against actual prep and cross-contact.', source:'rules'};
+}
+
+/* Optional real-AI upgrade using the user's own key, stored only in browser. */
+function analyzeDietAI(text){
+  var key=aiKey();
+  if(!key) return Promise.resolve(null);
+  var sys='You are a food-safety assistant for a restaurant. Given a dish name and its ingredients, identify allergens and dietary flags. Respond ONLY with compact JSON.';
+  var schema='Allowed allergens: '+ALLERGENS.join(', ')+'. Allowed diet flags: '+DIET_FLAGS.join(', ')+'.';
+  var user='Dish + ingredients: "'+text+'". Return JSON: {"allergens":[...],"diet":[...],"note":"one short sentence"}. '+schema;
+  return fetch('https://api.openai.com/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},
+    body:JSON.stringify({model:'gpt-4o-mini',temperature:0,messages:[{role:'system',content:sys},{role:'user',content:user}],response_format:{type:'json_object'}})
+  }).then(function(r){ return r.json(); }).then(function(j){
+    try{ var c=JSON.parse(j.choices[0].message.content); c.source='ai'; if(!c.note)c.note='AI analysis.'; return c; }catch(e){ return null; }
+  }).catch(function(){ return null; });
+}
+
+/* ============================================================
+   FOOD MENU
+   ============================================================ */
+var MENU_CAT_FILTER='all';
+function PAGE_menu(){
+  return { title:'Food Menu', sub:STATE.menuItems.length+' items · '+STATE.menuCats.length+' categories', body:menuBody(), bind:null };
+}
+function menuBody(){
+  var btns='<button class="btn btn-ghost btn-sm" onclick="openModifierManager()">Modifiers</button>'+
+           '<button class="btn btn-ghost btn-sm" onclick="openAiSettings()">AI Settings</button>'+
+           '<button class="btn btn-ghost btn-sm" onclick="openCatManager()">Manage Categories</button>'+
+           '<button class="btn btn-gold btn-sm" onclick="openItemEditor(null)">+ New Item</button>';
+  var tabs='<div class="cat-tabs"><div class="cat-tab'+(MENU_CAT_FILTER==='all'?' active':'')+'" onclick="setMenuCat(\'all\')">All</div>';
+  STATE.menuCats.forEach(function(c){
+    tabs+='<div class="cat-tab'+(MENU_CAT_FILTER===c.id?' active':'')+(c.visible?'':' hidden-cat')+'" onclick="setMenuCat(\''+c.id+'\')">'+esc(c.name)+(c.visible?'':' <span title="Hidden from POS">🙈</span>')+'</div>';
+  });
+  tabs+='</div>';
+  var items=STATE.menuItems.filter(function(it){ return MENU_CAT_FILTER==='all'||(it.catIds||[]).indexOf(MENU_CAT_FILTER)>-1; });
+  var grid='';
+  if(!items.length){ grid='<div class="empty-note">No items here yet. Click <b>+ New Item</b> to add one.</div>'; }
+  else items.forEach(function(it){ grid+=menuCard(it); });
+  return sectionHead('Food Menu','Build the kitchen menu. Items can live in multiple categories; hide a category to keep it off the POS.',btns)+
+    tabs+'<div class="menu-grid">'+grid+'</div>';
+}
+function setMenuCat(id){ MENU_CAT_FILTER=id; $('content').innerHTML=menuBody(); }
+function menuCard(it){
+  var al=(it.allergens||[]).map(function(a){return chip(a,'chip-al');}).join('');
+  var dt=(it.diet||[]).slice(0,4).map(function(d){return chip(d,'chip-diet');}).join('');
+  var cats=(it.catIds||[]).map(function(c){return catName(c);}).filter(Boolean).join(' · ');
+  return '<div class="menu-card" onclick="openItemEditor(\''+it.id+'\')">'+
+    '<div class="mc-top"><span class="mc-code">#'+esc(it.code||'')+'</span>'+
+      (it.verified?'<span class="mc-verified" title="Chef verified">✓ Verified</span>':'<span class="mc-unverified" title="Needs chef verification">⚠ Unverified</span>')+'</div>'+
+    '<div class="mc-name serif">'+esc(it.name)+'</div>'+
+    '<div class="mc-desc">'+esc(it.desc||'')+'</div>'+
+    '<div class="mc-meta"><span>'+money(it.price)+'</span><span class="mc-dot">•</span><span>'+esc(it.station||'')+'</span><span class="mc-dot">•</span><span>'+(it.cookMin||0)+' min</span></div>'+
+    '<div class="mc-cats">'+esc(cats)+'</div>'+
+    (al?'<div class="mc-chips">'+al+'</div>':'')+
+    (dt?'<div class="mc-chips">'+dt+'</div>':'')+
+  '</div>';
+}
+
+function openItemEditor(id){
+  var it = id ? STATE.menuItems.filter(function(x){return x.id===id;})[0] : {id:uid('m'),code:'',name:'',desc:'',price:0,cost:0,catIds:[],cookMin:10,station:KITCHEN_STATIONS[0],ingredients:'',allergens:[],diet:[],verified:false,modGroupIds:[],active:true};
+  var isNew=!id;
+  var catChecks=STATE.menuCats.map(function(c){ return '<label class="cbx"><input type="checkbox" class="ie-cat" value="'+c.id+'"'+((it.catIds||[]).indexOf(c.id)>-1?' checked':'')+'> '+esc(c.name)+'</label>'; }).join('');
+  var modChecks=STATE.modGroups.map(function(g){ return '<label class="cbx"><input type="checkbox" class="ie-mod" value="'+g.id+'"'+((it.modGroupIds||[]).indexOf(g.id)>-1?' checked':'')+'> '+esc(g.name)+'</label>'; }).join('');
+  var body='<div class="ie-form">'+
+    '<div class="ff-row cols-3">'+fld('Item # (code)','<input class="input" id="ie-code" value="'+esc(it.code)+'" placeholder="e.g. 101">')+
+      fld('Price ($)','<input class="input" id="ie-price" type="number" step="0.01" value="'+it.price+'">')+
+      fld('Cost ($)','<input class="input" id="ie-cost" type="number" step="0.01" value="'+it.cost+'">')+'</div>'+
+    fld('Name','<input class="input" id="ie-name" value="'+esc(it.name)+'" placeholder="Dish name">')+
+    fld('Description','<textarea class="input" id="ie-desc" rows="2" placeholder="Menu description">'+esc(it.desc)+'</textarea>')+
+    '<div class="ff-row cols-2">'+fld('Cook time (minutes)','<input class="input" id="ie-cook" type="number" value="'+(it.cookMin||0)+'">')+
+      fld('Kitchen station','<select class="input" id="ie-station">'+opts(KITCHEN_STATIONS,it.station)+'</select>')+'</div>'+
+    fld('Categories (an item can be in several)','<div class="cbx-grid">'+catChecks+'</div>')+
+    fld('POS modifier groups','<div class="cbx-grid">'+modChecks+'</div>')+
+    fld('Ingredients (chef enters here → AI reads this)','<textarea class="input" id="ie-ing" rows="2" placeholder="e.g. sea bass, lime, red onion, cilantro">'+esc(it.ingredients||'')+'</textarea>')+
+    '<button class="btn btn-analyze" id="ie-analyze" type="button">✨ Analyze Allergens & Dietary</button>'+
+    '<div id="ie-analysis" class="analysis-box">'+renderAnalysis(it.allergens,it.diet,it.verified,'')+'</div>'+
+  '</div>';
+  openModal(isNew?'New Menu Item':'Edit Menu Item', body, isNew?'Add Item':'Save Item', function(){
+    var code=$('ie-code').value.trim(), name=$('ie-name').value.trim();
+    if(!name){ toast('Enter a name','error'); return false; }
+    it.code=code; it.name=name; it.desc=$('ie-desc').value.trim();
+    it.price=parseFloat($('ie-price').value)||0; it.cost=parseFloat($('ie-cost').value)||0;
+    it.cookMin=parseInt($('ie-cook').value)||0; it.station=$('ie-station').value;
+    it.ingredients=$('ie-ing').value.trim();
+    it.catIds=Array.prototype.slice.call(document.querySelectorAll('.ie-cat:checked')).map(function(x){return x.value;});
+    it.modGroupIds=Array.prototype.slice.call(document.querySelectorAll('.ie-mod:checked')).map(function(x){return x.value;});
+    // allergens/diet/verified come from the analysis box (data attributes)
+    var ab=$('ie-analysis');
+    it.allergens=(ab.getAttribute('data-al')||'').split('|').filter(Boolean);
+    it.diet=(ab.getAttribute('data-diet')||'').split('|').filter(Boolean);
+    it.verified=$('an-verify')?$('an-verify').checked:it.verified;
+    if(isNew)STATE.menuItems.push(it);
+    saveMenu(); toast('Item saved','success'); render();
+  }, function(){
+    $('ie-analyze').addEventListener('click',function(){ runAnalysis(it); });
+  }, id?'<button class="btn btn-danger" onclick="deleteMenuItem(\''+id+'\')">Delete</button>':'');
+}
+function runAnalysis(it){
+  var text=$('ie-name').value+' — '+$('ie-ing').value+' '+$('ie-desc').value;
+  var box=$('ie-analysis');
+  box.innerHTML='<div class="an-loading">Analyzing…</div>';
+  analyzeDietAI(text).then(function(ai){
+    var res=ai||analyzeDietRules(text);
+    box.setAttribute('data-al',(res.allergens||[]).join('|'));
+    box.setAttribute('data-diet',(res.diet||[]).join('|'));
+    box.innerHTML=renderAnalysis(res.allergens,res.diet,false,res.note+(res.source==='ai'?' (AI)':' (built-in rules)'));
+  });
+}
+function renderAnalysis(allergens,diet,verified,note){
+  allergens=allergens||[]; diet=diet||[];
+  var al=allergens.length?allergens.map(function(a){return chip('⚠ '+a,'chip-al');}).join(''):'<span class="an-none">No common allergens detected</span>';
+  var dt=diet.length?diet.map(function(d){return chip(d,'chip-diet');}).join(''):'<span class="an-none">—</span>';
+  return '<div class="an-block"><div class="an-label">Allergens present</div><div class="an-chips">'+al+'</div></div>'+
+    '<div class="an-block"><div class="an-label">Dietary suitability</div><div class="an-chips">'+dt+'</div></div>'+
+    (note?'<div class="an-note">'+esc(note)+'</div>':'')+
+    '<label class="cbx an-verify-row"><input type="checkbox" id="an-verify"'+(verified?' checked':'')+'> <b>Chef verified</b> — I confirm these allergen/dietary calls against actual prep and cross-contact.</label>';
+}
+function deleteMenuItem(id){ if(!confirm('Delete this item?'))return; STATE.menuItems=STATE.menuItems.filter(function(x){return x.id!==id;}); saveMenu(); closeModal(); render(); toast('Item deleted','success'); }
+
+/* ---- category manager ---- */
+function openCatManager(){
+  var rows=STATE.menuCats.map(function(c){
+    return '<div class="cat-row"><input class="input cat-name" data-id="'+c.id+'" value="'+esc(c.name)+'">'+
+      '<label class="cbx"><input type="checkbox" class="cat-vis" data-id="'+c.id+'"'+(c.visible?' checked':'')+'> Show on POS</label>'+
+      '<button class="btn btn-danger btn-sm" onclick="deleteCat(\''+c.id+'\')">✕</button></div>';
+  }).join('');
+  var body='<div class="cat-manager">'+rows+'<button class="btn btn-ghost btn-sm" id="cat-add" type="button">+ Add Category</button></div>'+
+    '<div class="hint-sm">Hidden categories still store items but do not appear on the POS or bar/manager screens.</div>';
+  openModal('Manage Categories', body, 'Save', function(){
+    document.querySelectorAll('.cat-name').forEach(function(inp){ var c=STATE.menuCats.filter(function(x){return x.id===inp.getAttribute('data-id');})[0]; if(c)c.name=inp.value.trim()||c.name; });
+    document.querySelectorAll('.cat-vis').forEach(function(cb){ var c=STATE.menuCats.filter(function(x){return x.id===cb.getAttribute('data-id');})[0]; if(c)c.visible=cb.checked; });
+    saveMenu(); toast('Categories saved','success'); render();
+  }, function(){
+    $('cat-add').addEventListener('click',function(){ STATE.menuCats.push({id:uid('c'),name:'New Category',visible:true}); openCatManager(); });
+  });
+}
+function deleteCat(id){ if(!confirm('Delete this category? Items stay but lose this tag.'))return; STATE.menuCats=STATE.menuCats.filter(function(x){return x.id!==id;}); STATE.menuItems.forEach(function(it){ it.catIds=(it.catIds||[]).filter(function(c){return c!==id;}); }); saveMenu(); openCatManager(); }
+
+/* ---- modifier manager ---- */
+function openModifierManager(){
+  var groups=STATE.modGroups.map(function(g){
+    var optRows=g.options.map(function(o){ return '<div class="mod-opt">'+esc(o.name)+(o.up?' <span class="up">+'+money(o.up)+'</span>':'')+'</div>'; }).join('');
+    return '<div class="mod-group"><div class="mod-g-name">'+esc(g.name)+(g.multi?' <span class="mg-tag">multi</span>':' <span class="mg-tag">single</span>')+'</div><div class="mod-opts">'+optRows+'</div>'+
+      '<button class="btn btn-ghost btn-sm" onclick="openModGroupEditor(\''+g.id+'\')">Edit</button></div>';
+  }).join('');
+  var body='<div class="mod-manager">'+groups+'<button class="btn btn-ghost btn-sm" onclick="openModGroupEditor(null)">+ Add Modifier Group</button></div>';
+  openModal('POS Modifier Groups', body, 'Done', function(){});
+}
+function openModGroupEditor(id){
+  var g=id?STATE.modGroups.filter(function(x){return x.id===id;})[0]:{id:uid('mg'),name:'',multi:false,required:false,options:[]};
+  var optRows=g.options.map(function(o,i){ return '<div class="ff-row cols-2 mopt-row"><input class="input mopt-name" data-i="'+i+'" value="'+esc(o.name)+'" placeholder="Option name"><input class="input mopt-up" data-i="'+i+'" type="number" step="0.01" value="'+(o.up||0)+'" placeholder="Upcharge"></div>'; }).join('');
+  var body='<div>'+fld('Group name','<input class="input" id="mg-name" value="'+esc(g.name)+'" placeholder="e.g. Temperature">')+
+    '<label class="cbx"><input type="checkbox" id="mg-multi"'+(g.multi?' checked':'')+'> Allow multiple selections</label>'+
+    '<div class="ff"><label>Options (name + optional upcharge)</label><div id="mg-opts">'+optRows+'</div>'+
+    '<button class="btn btn-ghost btn-sm" id="mg-addopt" type="button">+ Add Option</button></div></div>';
+  openModal(id?'Edit Modifier Group':'New Modifier Group', body, 'Save', function(){
+    g.name=$('mg-name').value.trim()||'Group'; g.multi=$('mg-multi').checked;
+    var names=document.querySelectorAll('.mopt-name'), ups=document.querySelectorAll('.mopt-up');
+    g.options=[]; for(var i=0;i<names.length;i++){ var nm=names[i].value.trim(); if(nm)g.options.push({id:uid('mo'),name:nm,up:parseFloat(ups[i].value)||0}); }
+    if(!id)STATE.modGroups.push(g);
+    saveMenu(); toast('Modifier group saved','success'); openModifierManager();
+  }, function(){
+    $('mg-addopt').addEventListener('click',function(){ g.options.push({id:uid('mo'),name:'',up:0}); openModGroupEditor(g.id||(STATE.modGroups.push(g),g.id)); });
+  }, id?'<button class="btn btn-danger" onclick="deleteModGroup(\''+id+'\')">Delete</button>':'');
+}
+function deleteModGroup(id){ if(!confirm('Delete this modifier group?'))return; STATE.modGroups=STATE.modGroups.filter(function(x){return x.id!==id;}); saveMenu(); openModifierManager(); }
+
+/* ---- AI settings ---- */
+function openAiSettings(){
+  var body=fld('OpenAI API key (optional)','<input class="input" id="ai-key" value="'+esc(aiKey())+'" placeholder="sk-... (stored only in this browser)">')+
+    '<div class="hint-sm">Leave blank to use the built-in rule-based analyzer (no key needed). If you paste your own key, the analyzer upgrades to full AI. Your key is stored only in this browser and is never sent to our servers.</div>';
+  openModal('AI Settings', body, 'Save', function(){ saveAiKey($('ai-key').value.trim()); toast('AI settings saved','success'); });
+}
+
+/* ============================================================
+   BAR — cocktails / beer / spirits
+   ============================================================ */
+var BAR_FILTER='All';
+function PAGE_bar(){ return { title:'Bar', sub:STATE.bar.length+' items', body:barBody(), bind:null }; }
+function barKinds(){ return ['All','Cocktail','Beer','Spirit']; }
+function barBody(){
+  var btns='<button class="btn btn-gold btn-sm" onclick="openBarEditor(null)">+ New Drink</button>';
+  var tabs='<div class="cat-tabs">'+barKinds().map(function(k){ return '<div class="cat-tab'+(BAR_FILTER===k?' active':'')+'" onclick="setBarFilter(\''+k+'\')">'+k+'</div>'; }).join('')+'</div>';
+  var list=STATE.bar.filter(function(b){ return BAR_FILTER==='All'||b.kind===BAR_FILTER; });
+  var rows=list.map(function(b){
+    var low=b.stock<=5?' low':'';
+    return '<tr onclick="openBarEditor(\''+b.id+'\')"><td>'+esc(b.code||'')+'</td><td class="td-name">'+esc(b.name)+'</td><td>'+esc(b.kind)+'</td><td>'+money(b.price)+'</td><td>'+money(b.cost)+'</td><td class="stk'+low+'">'+b.stock+' '+esc(b.unit||'')+'</td><td>'+(b.active?'Active':'Off')+'</td><td class="td-go">Edit →</td></tr>';
+  }).join('');
+  if(!list.length)rows='<tr><td colspan="8" class="empty-note">No drinks in this category yet.</td></tr>';
+  return sectionHead('Bar','Cocktails, beer, and spirits. Prices are easy to change; stock decrements as sales are recorded.',btns)+tabs+
+    '<div class="table-wrap"><table class="dt"><thead><tr><th>Code</th><th>Name</th><th>Type</th><th>Price</th><th>Cost</th><th>Stock</th><th>Status</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+function setBarFilter(k){ BAR_FILTER=k; $('content').innerHTML=barBody(); }
+function openBarEditor(id){
+  var b=id?STATE.bar.filter(function(x){return x.id===id;})[0]:{id:uid('b'),code:'',kind:'Cocktail',name:'',desc:'',price:0,cost:0,stock:0,unit:'each',allergens:[],active:true};
+  var body='<div class="ff-row cols-2">'+fld('Code','<input class="input" id="b-code" value="'+esc(b.code)+'">')+fld('Type','<select class="input" id="b-kind">'+opts(['Cocktail','Beer','Spirit'],b.kind)+'</select>')+'</div>'+
+    fld('Name','<input class="input" id="b-name" value="'+esc(b.name)+'">')+
+    fld('Description','<input class="input" id="b-desc" value="'+esc(b.desc||'')+'">')+
+    '<div class="ff-row cols-4">'+fld('Price','<input class="input" id="b-price" type="number" step="0.01" value="'+b.price+'">')+fld('Cost','<input class="input" id="b-cost" type="number" step="0.01" value="'+b.cost+'">')+fld('Stock','<input class="input" id="b-stock" type="number" value="'+b.stock+'">')+fld('Unit','<select class="input" id="b-unit">'+opts(INV_UNITS,b.unit)+'</select>')+'</div>';
+  openModal(id?'Edit Drink':'New Drink', body, 'Save', function(){
+    b.code=$('b-code').value.trim(); b.kind=$('b-kind').value; b.name=$('b-name').value.trim(); b.desc=$('b-desc').value.trim();
+    b.price=parseFloat($('b-price').value)||0; b.cost=parseFloat($('b-cost').value)||0; b.stock=parseInt($('b-stock').value)||0; b.unit=$('b-unit').value;
+    if(!b.name){ toast('Enter a name','error'); return false; }
+    if(!id)STATE.bar.push(b); saveBar(); toast('Saved','success'); render();
+  }, null, id?'<button class="btn btn-danger" onclick="deleteBar(\''+id+'\')">Delete</button>':'');
+}
+function deleteBar(id){ if(!confirm('Delete this drink?'))return; STATE.bar=STATE.bar.filter(function(x){return x.id!==id;}); saveBar(); closeModal(); render(); toast('Deleted','success'); }
+
+/* ============================================================
+   WINE — by bottle & by glass, VIN
+   ============================================================ */
+function PAGE_wine(){ return { title:'Wine', sub:STATE.wines.length+' labels', body:wineBody(), bind:null }; }
+function wineBody(){
+  var btns='<button class="btn btn-gold btn-sm" onclick="openWineEditor(null)">+ New Wine</button>';
+  var rows=STATE.wines.map(function(w){
+    var low=w.stock<=3?' low':'';
+    return '<tr onclick="openWineEditor(\''+w.id+'\')"><td>'+esc(w.vin||'')+'</td><td class="td-name">'+esc(w.name)+'</td><td>'+esc(w.producer||'')+'</td><td>'+esc(w.vintage||'')+'</td><td>'+esc(w.region||'')+'</td><td>'+money(w.bottlePrice)+'</td><td>'+money(w.glassPrice)+'</td><td class="stk'+low+'">'+w.stock+'</td><td class="td-go">Edit →</td></tr>';
+  }).join('');
+  if(!STATE.wines.length)rows='<tr><td colspan="9" class="empty-note">No wines yet.</td></tr>';
+  return sectionHead('Wine List','By the bottle and by the glass, each with a VIN number. Prices change easily and stock decrements on sales.',btns)+
+    '<div class="table-wrap"><table class="dt"><thead><tr><th>VIN</th><th>Name</th><th>Producer</th><th>Vintage</th><th>Region</th><th>Bottle</th><th>Glass</th><th>Stock</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+function openWineEditor(id){
+  var w=id?STATE.wines.filter(function(x){return x.id===id;})[0]:{id:uid('w'),vin:'',name:'',producer:'',vintage:'',region:'',varietal:'',bottlePrice:0,glassPrice:0,stock:0,active:true};
+  var body='<div class="ff-row cols-2">'+fld('VIN number','<input class="input" id="w-vin" value="'+esc(w.vin)+'">')+fld('Vintage','<input class="input" id="w-vintage" value="'+esc(w.vintage)+'">')+'</div>'+
+    fld('Name','<input class="input" id="w-name" value="'+esc(w.name)+'">')+
+    '<div class="ff-row cols-2">'+fld('Producer','<input class="input" id="w-prod" value="'+esc(w.producer||'')+'">')+fld('Varietal','<input class="input" id="w-var" value="'+esc(w.varietal||'')+'">')+'</div>'+
+    fld('Region','<input class="input" id="w-region" value="'+esc(w.region||'')+'">')+
+    '<div class="ff-row cols-3">'+fld('Bottle price','<input class="input" id="w-bp" type="number" step="0.01" value="'+w.bottlePrice+'">')+fld('Glass price','<input class="input" id="w-gp" type="number" step="0.01" value="'+w.glassPrice+'">')+fld('Bottles in stock','<input class="input" id="w-stock" type="number" value="'+w.stock+'">')+'</div>';
+  openModal(id?'Edit Wine':'New Wine', body, 'Save', function(){
+    w.vin=$('w-vin').value.trim(); w.name=$('w-name').value.trim(); w.producer=$('w-prod').value.trim(); w.varietal=$('w-var').value.trim();
+    w.vintage=$('w-vintage').value.trim(); w.region=$('w-region').value.trim();
+    w.bottlePrice=parseFloat($('w-bp').value)||0; w.glassPrice=parseFloat($('w-gp').value)||0; w.stock=parseInt($('w-stock').value)||0;
+    if(!w.name){ toast('Enter a name','error'); return false; }
+    if(!id)STATE.wines.push(w); saveWines(); toast('Saved','success'); render();
+  }, null, id?'<button class="btn btn-danger" onclick="deleteWine(\''+id+'\')">Delete</button>':'');
+}
+function deleteWine(id){ if(!confirm('Delete this wine?'))return; STATE.wines=STATE.wines.filter(function(x){return x.id!==id;}); saveWines(); closeModal(); render(); toast('Deleted','success'); }
+
+/* ============================================================
+   RETAIL STORE
+   ============================================================ */
+function PAGE_retail(){ return { title:'Retail Store', sub:STATE.retail.length+' products', body:retailBody(), bind:null }; }
+function retailBody(){
+  var btns='<button class="btn btn-gold btn-sm" onclick="openRetailEditor(null)">+ New Product</button>';
+  var rows=STATE.retail.map(function(p){
+    var low=p.stock<=5?' low':'';
+    return '<tr onclick="openRetailEditor(\''+p.id+'\')"><td>'+esc(p.code||'')+'</td><td class="td-name">'+esc(p.name)+'</td><td>'+esc(p.category||'')+'</td><td>'+money(p.price)+'</td><td>'+money(p.cost)+'</td><td class="stk'+low+'">'+p.stock+' '+esc(p.unit||'')+'</td><td class="td-go">Edit →</td></tr>';
+  }).join('');
+  if(!STATE.retail.length)rows='<tr><td colspan="7" class="empty-note">No retail products yet.</td></tr>';
+  return sectionHead('Retail Store','The case next door — cakes by the slice, bonbons, coffee, chocolate, sandwiches. Its own pricing and inventory, separate from the kitchen menu.',btns)+
+    '<div class="table-wrap"><table class="dt"><thead><tr><th>Code</th><th>Product</th><th>Category</th><th>Price</th><th>Cost</th><th>Stock</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+}
+function openRetailEditor(id){
+  var p=id?STATE.retail.filter(function(x){return x.id===id;})[0]:{id:uid('r'),code:'',name:'',category:'Cakes',price:0,cost:0,stock:0,unit:'each',active:true};
+  var body='<div class="ff-row cols-2">'+fld('Code','<input class="input" id="r-code" value="'+esc(p.code)+'">')+fld('Category','<input class="input" id="r-cat" value="'+esc(p.category||'')+'" placeholder="Cakes, Bonbons, Coffee…">')+'</div>'+
+    fld('Product name','<input class="input" id="r-name" value="'+esc(p.name)+'">')+
+    '<div class="ff-row cols-4">'+fld('Price','<input class="input" id="r-price" type="number" step="0.01" value="'+p.price+'">')+fld('Cost','<input class="input" id="r-cost" type="number" step="0.01" value="'+p.cost+'">')+fld('Stock','<input class="input" id="r-stock" type="number" value="'+p.stock+'">')+fld('Unit','<select class="input" id="r-unit">'+opts(INV_UNITS,p.unit)+'</select>')+'</div>';
+  openModal(id?'Edit Product':'New Product', body, 'Save', function(){
+    p.code=$('r-code').value.trim(); p.category=$('r-cat').value.trim(); p.name=$('r-name').value.trim();
+    p.price=parseFloat($('r-price').value)||0; p.cost=parseFloat($('r-cost').value)||0; p.stock=parseInt($('r-stock').value)||0; p.unit=$('r-unit').value;
+    if(!p.name){ toast('Enter a name','error'); return false; }
+    if(!id)STATE.retail.push(p); saveRetail(); toast('Saved','success'); render();
+  }, null, id?'<button class="btn btn-danger" onclick="deleteRetail(\''+id+'\')">Delete</button>':'');
+}
+function deleteRetail(id){ if(!confirm('Delete this product?'))return; STATE.retail=STATE.retail.filter(function(x){return x.id!==id;}); saveRetail(); closeModal(); render(); toast('Deleted','success'); }
+
+/* ============================================================
+   INVENTORY — kitchen ingredients + stock overview across all
+   ============================================================ */
+function PAGE_inventory(){ return { title:'Inventory', sub:'Ingredients & stock', body:inventoryBody(), bind:null }; }
+function inventoryBody(){
+  var btns='<button class="btn btn-gold btn-sm" onclick="openIngredientEditor(null)">+ New Ingredient</button>';
+  // low stock alerts across everything
+  var lowItems=[];
+  STATE.ingredients.forEach(function(i){ if(i.stock<=(i.par||0))lowItems.push('Ingredient: '+i.name+' ('+i.stock+' '+i.unit+')'); });
+  STATE.bar.forEach(function(b){ if(b.stock<=5)lowItems.push('Bar: '+b.name+' ('+b.stock+')'); });
+  STATE.wines.forEach(function(w){ if(w.stock<=3)lowItems.push('Wine: '+w.name+' ('+w.stock+')'); });
+  STATE.retail.forEach(function(p){ if(p.stock<=5)lowItems.push('Retail: '+p.name+' ('+p.stock+')'); });
+  var alerts=lowItems.length?'<div class="alert-box"><b>⚠ Low stock ('+lowItems.length+')</b><div class="alert-list">'+lowItems.map(function(x){return '<span>'+esc(x)+'</span>';}).join('')+'</div></div>':'<div class="ok-box">All stock above par levels.</div>';
+  var rows=STATE.ingredients.map(function(i){
+    var low=i.stock<=(i.par||0)?' low':'';
+    return '<tr onclick="openIngredientEditor(\''+i.id+'\')"><td class="td-name">'+esc(i.name)+'</td><td>'+esc(i.unit)+'</td><td class="stk'+low+'">'+i.stock+'</td><td>'+i.par+'</td><td>'+money(i.cost)+'</td><td>'+money((i.stock*i.cost))+'</td><td class="td-go">Edit →</td></tr>';
+  }).join('');
+  if(!STATE.ingredients.length)rows='<tr><td colspan="7" class="empty-note">No ingredients yet.</td></tr>';
+  var invValue=STATE.ingredients.reduce(function(s,i){return s+i.stock*i.cost;},0);
+  return sectionHead('Inventory Control','Kitchen ingredients with par levels and low-stock alerts. Recipes will draw these down automatically as the POS records sales.',btns)+
+    alerts+
+    '<div class="table-wrap"><table class="dt"><thead><tr><th>Ingredient</th><th>Unit</th><th>On hand</th><th>Par</th><th>Unit cost</th><th>Value</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<div class="inv-total">Ingredient inventory value: <b>'+money(invValue)+'</b></div>';
+}
+function openIngredientEditor(id){
+  var i=id?STATE.ingredients.filter(function(x){return x.id===id;})[0]:{id:uid('i'),name:'',unit:'each',stock:0,cost:0,par:0};
+  var body=fld('Name','<input class="input" id="i-name" value="'+esc(i.name)+'">')+
+    '<div class="ff-row cols-4">'+fld('Unit','<select class="input" id="i-unit">'+opts(INV_UNITS,i.unit)+'</select>')+fld('On hand','<input class="input" id="i-stock" type="number" step="0.01" value="'+i.stock+'">')+fld('Par level','<input class="input" id="i-par" type="number" step="0.01" value="'+i.par+'">')+fld('Unit cost','<input class="input" id="i-cost" type="number" step="0.01" value="'+i.cost+'">')+'</div>';
+  openModal(id?'Edit Ingredient':'New Ingredient', body, 'Save', function(){
+    i.name=$('i-name').value.trim(); i.unit=$('i-unit').value; i.stock=parseFloat($('i-stock').value)||0; i.par=parseFloat($('i-par').value)||0; i.cost=parseFloat($('i-cost').value)||0;
+    if(!i.name){ toast('Enter a name','error'); return false; }
+    if(!id)STATE.ingredients.push(i); saveIngredients(); toast('Saved','success'); render();
+  }, null, id?'<button class="btn btn-danger" onclick="deleteIngredient(\''+id+'\')">Delete</button>':'');
+}
+function deleteIngredient(id){ if(!confirm('Delete this ingredient?'))return; STATE.ingredients=STATE.ingredients.filter(function(x){return x.id!==id;}); saveIngredients(); closeModal(); render(); toast('Deleted','success'); }
+
+/* ============================================================
+   REPORTS — sales & profitability, daily / monthly / annual
+   ============================================================ */
+var REPORT_RANGE='monthly';
+function PAGE_reports(){
+  return { title:'Reports', sub:'Sales & profitability', body:reportsBody(), bind:drawReportCharts };
+}
+function saleChannels(){ return {menu:'Food',bar:'Bar',wine:'Wine',retail:'Retail'}; }
+function reportsBody(){
+  var btns='<button class="btn btn-ghost btn-sm" onclick="openRecordSale()">+ Record Sale</button>';
+  var totals=salesTotals();
+  var cards='<div class="rep-cards">'+
+    metricCard('Gross Sales',money(totals.sales),totals.count+' sales recorded')+
+    metricCard('Total Cost',money(totals.cost),'cost of goods')+
+    metricCard('Gross Profit',money(totals.profit),totals.margin+'% margin')+
+    metricCard('Avg Sale',money(totals.count?totals.sales/totals.count:0),'per transaction')+
+  '</div>';
+  var rangeSel='<div class="cat-tabs">'+['daily','monthly','annual'].map(function(r){ return '<div class="cat-tab'+(REPORT_RANGE===r?' active':'')+'" onclick="setReportRange(\''+r+'\')">'+r.charAt(0).toUpperCase()+r.slice(1)+'</div>'; }).join('')+'</div>';
+  var note = STATE.sales.length ? '' : '<div class="hint-sm">No sales recorded yet. The POS will feed sales here automatically once it is built; meanwhile use <b>+ Record Sale</b> to see the reports populate.</div>';
+  return sectionHead('Reports','Sales and profitability by category, across daily, monthly, and annual ranges. Profit = price − cost.',btns)+
+    cards+note+rangeSel+
+    '<div class="rep-charts"><div class="chart-card"><div class="chart-title">Sales & Profit over time</div><canvas id="repTrend" height="120"></canvas></div>'+
+    '<div class="chart-card"><div class="chart-title">Sales by Category</div><canvas id="repCat" height="120"></canvas></div></div>';
+}
+function metricCard(label,val,sub){ return '<div class="rep-card"><div class="rc-label">'+esc(label)+'</div><div class="rc-val serif">'+val+'</div><div class="rc-sub">'+esc(sub)+'</div></div>'; }
+function setReportRange(r){ REPORT_RANGE=r; $('content').innerHTML=reportsBody(); drawReportCharts(); }
+function salesTotals(){
+  var s=0,c=0; STATE.sales.forEach(function(x){ s+=x.price*x.qty; c+=x.cost*x.qty; });
+  var profit=s-c; return {sales:s,cost:c,profit:profit,count:STATE.sales.length,margin:s?Math.round(profit/s*100):0};
+}
+function bucketKey(ts,range){
+  var d=new Date(ts);
+  if(range==='daily')return d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+  if(range==='monthly')return d.toLocaleDateString('en-US',{month:'short',year:'2-digit'});
+  return ''+d.getFullYear();
+}
+var _repCharts=[];
+function drawReportCharts(){
+  _repCharts.forEach(function(c){ try{c.destroy();}catch(e){} }); _repCharts=[];
+  if(typeof Chart==='undefined')return;
+  // trend
+  var buckets={}, order=[];
+  STATE.sales.forEach(function(x){ var k=bucketKey(x.ts,REPORT_RANGE); if(!buckets[k]){buckets[k]={sales:0,profit:0};order.push(k);} buckets[k].sales+=x.price*x.qty; buckets[k].profit+=(x.price-x.cost)*x.qty; });
+  var t=$('repTrend');
+  if(t){ _repCharts.push(new Chart(t.getContext('2d'),{type:'bar',data:{labels:order,datasets:[
+    {label:'Sales',data:order.map(function(k){return buckets[k].sales;}),backgroundColor:'#C9A84C'},
+    {label:'Profit',data:order.map(function(k){return buckets[k].profit;}),backgroundColor:'#5FB48A'}
+  ]},options:reportChartOpts()})); }
+  // by category
+  var chan=saleChannels(); var byCat={}; Object.keys(chan).forEach(function(k){byCat[chan[k]]=0;});
+  STATE.sales.forEach(function(x){ var label=chan[x.refType]||x.category||'Other'; byCat[label]=(byCat[label]||0)+x.price*x.qty; });
+  var labels=Object.keys(byCat), vals=labels.map(function(l){return byCat[l];});
+  var cc=$('repCat');
+  if(cc){ _repCharts.push(new Chart(cc.getContext('2d'),{type:'doughnut',data:{labels:labels,datasets:[{data:vals,backgroundColor:['#C9A84C','#E07A6B','#9BC4E2','#5FB48A','#E0A36B','#b98cc4']}]},options:{plugins:{legend:{position:'right',labels:{color:'#d8cdb8'}}}}})); }
+}
+function reportChartOpts(){ return {scales:{x:{ticks:{color:'#a99'},grid:{display:false}},y:{ticks:{color:'#a99'},grid:{color:'rgba(255,255,255,.05)'}}},plugins:{legend:{labels:{color:'#d8cdb8'}}}}; }
+
+/* ---- manual record-sale (until POS is live) ---- */
+function openRecordSale(){
+  var menuOpts=STATE.menuItems.map(function(m){return '<option value="menu:'+m.id+'">Food · '+esc(m.name)+' ('+money(m.price)+')</option>';}).join('');
+  var barOpts=STATE.bar.map(function(b){return '<option value="bar:'+b.id+'">Bar · '+esc(b.name)+' ('+money(b.price)+')</option>';}).join('');
+  var wineOpts=STATE.wines.map(function(w){return '<option value="wine:'+w.id+'">Wine · '+esc(w.name)+' (btl '+money(w.bottlePrice)+')</option>';}).join('');
+  var retOpts=STATE.retail.map(function(p){return '<option value="retail:'+p.id+'">Retail · '+esc(p.name)+' ('+money(p.price)+')</option>';}).join('');
+  var body=fld('Item','<select class="input" id="rs-item">'+menuOpts+barOpts+wineOpts+retOpts+'</select>')+
+    '<div class="ff-row cols-2">'+fld('Quantity','<input class="input" id="rs-qty" type="number" value="1" min="1">')+fld('Date','<input class="input" id="rs-date" type="date" value="'+new Date().toISOString().slice(0,10)+'">')+'</div>'+
+    '<div class="hint-sm">This simulates a POS sale so you can see reports and stock updates now. Real sales will flow in automatically once the POS is connected.</div>';
+  openModal('Record Sale', body, 'Record', function(){
+    var v=$('rs-item').value; if(!v){ toast('Pick an item','error'); return false; }
+    var parts=v.split(':'), type=parts[0], rid=parts[1], qty=parseInt($('rs-qty').value)||1;
+    var ts=new Date($('rs-date').value+'T12:00:00').getTime();
+    var rec=resolveSale(type,rid); if(!rec){ toast('Item not found','error'); return false; }
+    STATE.sales.push({id:uid('sale'),ts:ts,refType:type,refId:rid,name:rec.name,category:rec.category,qty:qty,price:rec.price,cost:rec.cost,channel:'manual'});
+    decrementStock(type,rid,qty);
+    saveSales(); toast('Sale recorded','success'); render();
+  });
+}
+function resolveSale(type,rid){
+  if(type==='menu'){ var m=STATE.menuItems.filter(function(x){return x.id===rid;})[0]; return m?{name:m.name,price:m.price,cost:m.cost,category:'Food'}:null; }
+  if(type==='bar'){ var b=STATE.bar.filter(function(x){return x.id===rid;})[0]; return b?{name:b.name,price:b.price,cost:b.cost,category:b.kind}:null; }
+  if(type==='wine'){ var w=STATE.wines.filter(function(x){return x.id===rid;})[0]; return w?{name:w.name,price:w.bottlePrice,cost:0,category:'Wine'}:null; }
+  if(type==='retail'){ var p=STATE.retail.filter(function(x){return x.id===rid;})[0]; return p?{name:p.name,price:p.price,cost:p.cost,category:p.category}:null; }
+  return null;
+}
+function decrementStock(type,rid,qty){
+  if(type==='bar'){ var b=STATE.bar.filter(function(x){return x.id===rid;})[0]; if(b){b.stock=Math.max(0,b.stock-qty);saveBar();} }
+  else if(type==='wine'){ var w=STATE.wines.filter(function(x){return x.id===rid;})[0]; if(w){w.stock=Math.max(0,w.stock-qty);saveWines();} }
+  else if(type==='retail'){ var p=STATE.retail.filter(function(x){return x.id===rid;})[0]; if(p){p.stock=Math.max(0,p.stock-qty);saveRetail();} }
+}
 
 /* ============================================================
    BOOT
