@@ -406,6 +406,42 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .chart-card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border-soft);border-radius:16px;padding:18px;}
 .chart-title{font-size:13px;font-weight:600;color:var(--text);margin-bottom:14px;}
 @media(max-width:820px){.rep-charts{grid-template-columns:1fr;}.ff-row.cols-3,.ff-row.cols-4{grid-template-columns:1fr 1fr;}.menu-grid{grid-template-columns:1fr;}}
+/* ============================================================
+   TASTING & PRIX FIXE MODULE
+   ============================================================ */
+.section-label{font-size:18px;color:var(--text);margin-bottom:14px;}
+.tasting-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(380px,1fr));gap:16px;}
+.tasting-card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border-soft);border-radius:16px;padding:20px;cursor:pointer;transition:all .16s var(--ease-out);}
+.tasting-card:hover{border-color:var(--gold);transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,.3);}
+.tasting-card.inactive{opacity:.6;}
+.tc-header{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;}
+.tc-title{font-size:20px;color:var(--text);}
+.tc-price{font-size:22px;color:var(--gold);white-space:nowrap;}
+.tc-pp{font-size:11px;color:var(--text-dim);margin-left:4px;}
+.tc-sub{font-size:13px;color:var(--text-dim);margin-top:4px;}
+.tc-service{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap;}
+.chip-service{background:rgba(155,196,226,.15);color:#9BC4E2;}
+.chip-active{background:rgba(95,180,138,.15);color:#5FB48A;}
+.chip-inactive{background:rgba(224,122,107,.15);color:#E07A6B;}
+.chip-pairing{background:rgba(201,168,76,.12);color:var(--gold);}
+.tc-courses{margin-top:12px;border-top:1px solid var(--border-soft);padding-top:10px;}
+.tm-course-row{display:flex;align-items:center;gap:10px;padding:4px 0;font-size:13.5px;color:var(--text-dim);}
+.tm-num{width:22px;height:22px;border-radius:50%;background:var(--border-soft);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--text);flex-shrink:0;}
+.tm-more{font-size:12px;color:var(--text-faint);font-style:italic;margin-top:4px;}
+.tc-pairings{margin-top:10px;display:flex;gap:6px;flex-wrap:wrap;}
+.tc-foot{margin-top:12px;font-size:11.5px;color:var(--text-faint);}
+.pf-courses{margin-top:12px;border-top:1px solid var(--border-soft);padding-top:10px;}
+.pf-course-row{display:flex;justify-content:space-between;padding:5px 0;font-size:13.5px;}
+.pf-label{color:var(--text);font-weight:500;}
+.pf-opts{color:var(--text-dim);}
+/* Editor styles */
+.course-edit-row{display:grid;grid-template-columns:30px 1fr 1.5fr 140px 36px;gap:8px;align-items:center;margin-bottom:8px;}
+.course-num{width:26px;height:26px;border-radius:50%;background:var(--gold);color:#1a1a1a;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;}
+.pairing-edit-row{display:grid;grid-template-columns:1fr 1.5fr 90px 36px;gap:8px;align-items:center;margin-bottom:8px;}
+.pf-course-block{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:14px;margin-bottom:12px;}
+.pf-cb-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;}
+.pf-opt-row{display:grid;grid-template-columns:1fr 90px 36px;gap:8px;align-items:center;margin-bottom:6px;}
+@media(max-width:700px){.tasting-grid{grid-template-columns:1fr;}.course-edit-row{grid-template-columns:24px 1fr 1fr 100px 30px;}.pairing-edit-row{grid-template-columns:1fr 1fr 80px 30px;}}
 </style>
 </head>
 <body>
@@ -785,6 +821,7 @@ var NAV = [
   ]},
   {group:'Product', items:[
     {r:'menu',   ico:'🍽', label:'Food Menu',  perm:'menu'},
+    {r:'tasting',ico:'✦', label:'Tasting & Prix Fixe', perm:'menu'},
     {r:'bar',    ico:'🍸', label:'Bar',        perm:'menu'},
     {r:'wine',   ico:'🍷', label:'Wine',       perm:'menu'},
     {r:'retail', ico:'🛍', label:'Retail Store',perm:'menu'},
@@ -847,6 +884,7 @@ function pageFor(r){
     case 'guests':    return PAGE_guests();
     case 'timecards': return PAGE_timecards();
     case 'menu':      return PAGE_menu();
+    case 'tasting':   return PAGE_tasting();
     case 'bar':       return PAGE_bar();
     case 'wine':      return PAGE_wine();
     case 'retail':    return PAGE_retail();
@@ -1766,6 +1804,15 @@ function openModal(title,bodyHTML,okLabel,onOk,afterRender,extraFootBtn){
 function closeModal(){ $('modal-root').innerHTML=''; MODAL_OK=null; }
 
 /* ============================================================
+   BOOT
+   ============================================================ */
+function boot(){
+  var saved=sessionStorage.getItem('eh_boh_user'); if(saved){ try{ SESSION.user=JSON.parse(saved); }catch(e){} }
+  render();
+  syncFromCloud().then(function(){ if(SESSION.user)render(); });
+}
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot); else boot();
+/* ============================================================
    PRODUCT MODULE — Menu / Bar / Wine / Retail / Inventory / Reports
    Appended to app.js. Depends on helpers: $, el, esc, toast, openModal,
    closeModal, go, render, STATE, save* functions, Chart (global).
@@ -2217,17 +2264,424 @@ function decrementStock(type,rid,qty){
   else if(type==='wine'){ var w=STATE.wines.filter(function(x){return x.id===rid;})[0]; if(w){w.stock=Math.max(0,w.stock-qty);saveWines();} }
   else if(type==='retail'){ var p=STATE.retail.filter(function(x){return x.id===rid;})[0]; if(p){p.stock=Math.max(0,p.stock-qty);saveRetail();} }
 }
+/* ============================================================
+   TASTING & PRIX FIXE MODULE
+   Manages tasting menus (set courses, wine pairings) and
+   prix fixe menus (customer-chosen courses with upcharges).
+   Syncs to Firebase for POS, Kitchen, and iPad Menu apps.
+   ============================================================ */
+
+/* ---- STATE extensions ---- */
+if(!STATE.tastingMenus) STATE.tastingMenus = lsGet('eh_tasting_menus', seedTastingMenus());
+if(!STATE.prixFixeMenus) STATE.prixFixeMenus = lsGet('eh_prix_fixe_menus', seedPrixFixeMenus());
+
+function seedTastingMenus(){
+  return [
+    {
+      id:'tm_chef7', name:"Chef's Tasting", subtitle:'7-Course Seasonal Journey',
+      price:145, duration:'~3 hours', courses:[
+        {num:1, name:'Amuse-Bouche', desc:'Seasonal micro-bite from the chef', station:'Cold / Garde Manger'},
+        {num:2, name:'Ceviche Course', desc:'Corvina, leche de tigre, sweet potato crisp', station:'Cold / Garde Manger'},
+        {num:3, name:'Cold Plate', desc:'Tuna tartare, avocado mousse, sesame', station:'Cold / Garde Manger'},
+        {num:4, name:'Soup', desc:'Seasonal bisque, herb oil, crouton', station:'Sauté'},
+        {num:5, name:'Fish', desc:'Pan-seared salmon, beurre blanc, asparagus', station:'Sauté'},
+        {num:6, name:'Meat', desc:'Wagyu ribeye, chimichurri, roasted garlic', station:'Grill'},
+        {num:7, name:'Dessert', desc:'Chocolate torte, raspberry, gold leaf', station:'Pastry'}
+      ],
+      pairings:[
+        {id:'p1', name:'Wine Pairing', desc:'Sommelier-selected wines per course', price:85},
+        {id:'p2', name:'Premium Pairing', desc:'Reserve & rare selections', price:145}
+      ],
+      active:true, service:'dinner', createdAt:Date.now()
+    },
+    {
+      id:'tm_choc5', name:'Chocolate Experience', subtitle:'5-Course Cacao Journey',
+      price:95, duration:'~2 hours', courses:[
+        {num:1, name:'Cacao Amuse', desc:'White chocolate sphere, passion fruit', station:'Pastry'},
+        {num:2, name:'Savory Cacao', desc:'Cacao-rubbed short rib, mole negro', station:'Grill'},
+        {num:3, name:'Intermezzo', desc:'Dark chocolate sorbet, mint', station:'Pastry'},
+        {num:4, name:'Main', desc:'Duck breast, cacao jus, root vegetables', station:'Sauté'},
+        {num:5, name:'Grand Finale', desc:'Chocolate Studio signature torte, gold leaf', station:'Pastry'}
+      ],
+      pairings:[
+        {id:'p3', name:'Dessert Wine Pairing', desc:'Sweet wines & ports per course', price:65}
+      ],
+      active:true, service:'dinner', createdAt:Date.now()
+    }
+  ];
+}
+
+function seedPrixFixeMenus(){
+  return [
+    {
+      id:'pf_lunch', name:'Lunch Prix Fixe', subtitle:'Choose one from each course',
+      price:42, courses:[
+        {id:'pfc1', label:'Appetizer', options:[
+          {id:'pfo1', name:'Soup of the Day', upcharge:0},
+          {id:'pfo2', name:'Tuna Tartare', upcharge:0},
+          {id:'pfo3', name:'Peruvian Ceviche', upcharge:4}
+        ]},
+        {id:'pfc2', label:'Main Course', options:[
+          {id:'pfo4', name:'Pan-Seared Salmon', upcharge:0},
+          {id:'pfo5', name:'Grilled Chicken', upcharge:0},
+          {id:'pfo6', name:'Wagyu Ribeye', upcharge:18}
+        ]},
+        {id:'pfc3', label:'Dessert', options:[
+          {id:'pfo7', name:'Crème Brûlée', upcharge:0},
+          {id:'pfo8', name:'Chocolate Torte', upcharge:0},
+          {id:'pfo9', name:'Cheese Plate', upcharge:6}
+        ]}
+      ],
+      active:true, service:'lunch', createdAt:Date.now()
+    },
+    {
+      id:'pf_brunch', name:'Sunday Brunch Prix Fixe', subtitle:'Three courses with a welcome cocktail',
+      price:55, courses:[
+        {id:'pfc4', label:'Starter', options:[
+          {id:'pfo10', name:'Shrimp Ceviche', upcharge:0},
+          {id:'pfo11', name:'Avocado Toast', upcharge:0}
+        ]},
+        {id:'pfc5', label:'Main', options:[
+          {id:'pfo12', name:'Eggs Benedict', upcharge:0},
+          {id:'pfo13', name:'Steak & Eggs', upcharge:12},
+          {id:'pfo14', name:'Lobster Omelette', upcharge:15}
+        ]},
+        {id:'pfc6', label:'Dessert', options:[
+          {id:'pfo15', name:'French Toast', upcharge:0},
+          {id:'pfo16', name:'Chocolate Soufflé', upcharge:5}
+        ]}
+      ],
+      active:true, service:'brunch', createdAt:Date.now()
+    }
+  ];
+}
+
+/* ---- Save functions ---- */
+function saveTastingMenus(){
+  lsSet('eh_tasting_menus', STATE.tastingMenus);
+  fbSetDoc('boh_shared','tasting_menus',{list:STATE.tastingMenus, updatedAt:Date.now()});
+}
+function savePrixFixeMenus(){
+  lsSet('eh_prix_fixe_menus', STATE.prixFixeMenus);
+  fbSetDoc('boh_shared','prix_fixe_menus',{list:STATE.prixFixeMenus, updatedAt:Date.now()});
+}
+
+/* ---- Sync extensions ---- */
+var _origSync = syncFromCloud;
+syncFromCloud = function(){
+  return _origSync().then(function(){
+    if(!fbReady) return;
+    return Promise.all([
+      fbGetDoc('boh_shared','tasting_menus').then(function(d){ if(d&&d.list){ STATE.tastingMenus=d.list; lsSet('eh_tasting_menus',STATE.tastingMenus); } }),
+      fbGetDoc('boh_shared','prix_fixe_menus').then(function(d){ if(d&&d.list){ STATE.prixFixeMenus=d.list; lsSet('eh_prix_fixe_menus',STATE.prixFixeMenus); } })
+    ]);
+  });
+};
 
 /* ============================================================
-   BOOT
+   PAGE: TASTING MENUS
    ============================================================ */
-function boot(){
-  var saved=sessionStorage.getItem('eh_boh_user'); if(saved){ try{ SESSION.user=JSON.parse(saved); }catch(e){} }
-  render();
-  syncFromCloud().then(function(){ if(SESSION.user)render(); });
+function PAGE_tasting(){
+  var count = STATE.tastingMenus.length + STATE.prixFixeMenus.length;
+  return { title:'Tasting & Prix Fixe', sub:count+' menus configured', body:tastingBody(), bind:null };
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot); else boot();
 
+function tastingBody(){
+  var btns='<button class="btn btn-gold btn-sm" onclick="openTastingEditor(null)">+ New Tasting Menu</button>'+
+           '<button class="btn btn-ghost btn-sm" onclick="openPrixFixeEditor(null)">+ New Prix Fixe</button>';
+
+  /* Tasting menus section */
+  var tastingCards='';
+  if(!STATE.tastingMenus.length){
+    tastingCards='<div class="empty-note">No tasting menus yet. Click <b>+ New Tasting Menu</b> to create one.</div>';
+  } else {
+    STATE.tastingMenus.forEach(function(tm){
+      var courseList=tm.courses.slice(0,4).map(function(c,i){ return '<div class="tm-course-row"><span class="tm-num">'+(i+1)+'</span>'+esc(c.name)+'</div>'; }).join('');
+      var more=tm.courses.length>4?'<div class="tm-more">+ '+(tm.courses.length-4)+' more courses</div>':'';
+      var pairings=tm.pairings.map(function(p){ return '<span class="chip chip-pairing">🍷 '+esc(p.name)+' +'+money(p.price)+'</span>'; }).join('');
+      tastingCards+='<div class="tasting-card'+(tm.active?'':' inactive')+'" onclick="openTastingEditor(\''+tm.id+'\')">'+
+        '<div class="tc-header"><div class="tc-title serif">'+esc(tm.name)+'</div><div class="tc-price">'+money(tm.price)+'<span class="tc-pp">/ person</span></div></div>'+
+        '<div class="tc-sub">'+esc(tm.subtitle||'')+' · '+esc(tm.duration||'')+'</div>'+
+        '<div class="tc-service">'+chip(tm.service||'dinner','chip-service')+(tm.active?chip('Active','chip-active'):chip('Inactive','chip-inactive'))+'</div>'+
+        '<div class="tc-courses">'+courseList+more+'</div>'+
+        (pairings?'<div class="tc-pairings">'+pairings+'</div>':'')+
+        '<div class="tc-foot">'+tm.courses.length+' courses · Click to edit</div>'+
+      '</div>';
+    });
+  }
+
+  /* Prix fixe section */
+  var pfCards='';
+  if(!STATE.prixFixeMenus.length){
+    pfCards='<div class="empty-note">No prix fixe menus yet. Click <b>+ New Prix Fixe</b> to create one.</div>';
+  } else {
+    STATE.prixFixeMenus.forEach(function(pf){
+      var courseSum=pf.courses.map(function(c){
+        var optCount=c.options.length;
+        var upcharges=c.options.filter(function(o){return o.upcharge>0;}).length;
+        return '<div class="pf-course-row"><span class="pf-label">'+esc(c.label)+'</span><span class="pf-opts">'+optCount+' options'+(upcharges?' · '+upcharges+' with upcharge':'')+'</span></div>';
+      }).join('');
+      pfCards+='<div class="tasting-card'+(pf.active?'':' inactive')+'" onclick="openPrixFixeEditor(\''+pf.id+'\')">'+
+        '<div class="tc-header"><div class="tc-title serif">'+esc(pf.name)+'</div><div class="tc-price">'+money(pf.price)+'<span class="tc-pp">/ person</span></div></div>'+
+        '<div class="tc-sub">'+esc(pf.subtitle||'')+'</div>'+
+        '<div class="tc-service">'+chip(pf.service||'dinner','chip-service')+(pf.active?chip('Active','chip-active'):chip('Inactive','chip-inactive'))+'</div>'+
+        '<div class="pf-courses">'+courseSum+'</div>'+
+        '<div class="tc-foot">'+pf.courses.length+' courses · Click to edit</div>'+
+      '</div>';
+    });
+  }
+
+  return sectionHead('Tasting & Prix Fixe','Create multi-course experiences. Tasting menus have fixed courses; Prix Fixe lets guests choose from options per course.',btns)+
+    '<h3 class="section-label serif">Tasting Menus</h3>'+
+    '<div class="tasting-grid">'+tastingCards+'</div>'+
+    '<h3 class="section-label serif" style="margin-top:32px">Prix Fixe Menus</h3>'+
+    '<div class="tasting-grid">'+pfCards+'</div>';
+}
+
+/* ============================================================
+   TASTING MENU EDITOR
+   ============================================================ */
+function openTastingEditor(id){
+  var tm = id ? STATE.tastingMenus.filter(function(x){return x.id===id;})[0] : {
+    id:uid('tm'), name:'', subtitle:'', price:0, duration:'~2 hours',
+    courses:[], pairings:[], active:true, service:'dinner', createdAt:Date.now()
+  };
+  var isNew=!id;
+
+  var courseRows=tm.courses.map(function(c,i){
+    return '<div class="course-edit-row" data-i="'+i+'">'+
+      '<span class="course-num">'+(i+1)+'</span>'+
+      '<input class="input tm-c-name" placeholder="Course name" value="'+esc(c.name)+'">'+
+      '<input class="input tm-c-desc" placeholder="Description" value="'+esc(c.desc||'')+'">'+
+      '<select class="input tm-c-station">'+opts(KITCHEN_STATIONS,c.station)+'</select>'+
+      '<button class="btn btn-danger btn-sm tm-c-del" type="button" onclick="tmDelCourse(this)">✕</button>'+
+    '</div>';
+  }).join('');
+
+  var pairingRows=tm.pairings.map(function(p,i){
+    return '<div class="pairing-edit-row" data-i="'+i+'">'+
+      '<input class="input tm-p-name" placeholder="Pairing name" value="'+esc(p.name)+'">'+
+      '<input class="input tm-p-desc" placeholder="Description" value="'+esc(p.desc||'')+'">'+
+      '<input class="input tm-p-price" type="number" step="0.01" placeholder="Price" value="'+(p.price||0)+'">'+
+      '<button class="btn btn-danger btn-sm" type="button" onclick="tmDelPairing(this)">✕</button>'+
+    '</div>';
+  }).join('');
+
+  var body='<div class="ie-form">'+
+    '<div class="ff-row cols-2">'+
+      fld('Menu Name','<input class="input" id="tm-name" value="'+esc(tm.name)+'" placeholder="e.g. Chef\'s Tasting">')+
+      fld('Subtitle','<input class="input" id="tm-sub" value="'+esc(tm.subtitle||'')+'" placeholder="e.g. 7-Course Seasonal Journey">')+
+    '</div>'+
+    '<div class="ff-row cols-4">'+
+      fld('Price (per person)','<input class="input" id="tm-price" type="number" step="0.01" value="'+tm.price+'">')+
+      fld('Duration','<input class="input" id="tm-dur" value="'+esc(tm.duration||'')+'" placeholder="~3 hours">')+
+      fld('Service','<select class="input" id="tm-service">'+opts(['breakfast','brunch','lunch','dinner','all day'],tm.service||'dinner')+'</select>')+
+      fld('Status','<select class="input" id="tm-active">'+opts(['Active','Inactive'],tm.active?'Active':'Inactive')+'</select>')+
+    '</div>'+
+    '<div class="ff"><label>Courses (in order — these fire to kitchen course-by-course)</label>'+
+      '<div id="tm-courses">'+courseRows+'</div>'+
+      '<button class="btn btn-ghost btn-sm" id="tm-add-course" type="button">+ Add Course</button>'+
+    '</div>'+
+    '<div class="ff"><label>Wine Pairings (optional add-ons)</label>'+
+      '<div id="tm-pairings">'+pairingRows+'</div>'+
+      '<button class="btn btn-ghost btn-sm" id="tm-add-pairing" type="button">+ Add Pairing</button>'+
+    '</div>'+
+  '</div>';
+
+  openModal(isNew?'New Tasting Menu':'Edit Tasting Menu', body, isNew?'Create':'Save', function(){
+    tm.name=$('tm-name').value.trim();
+    if(!tm.name){ toast('Enter a name','error'); return false; }
+    tm.subtitle=$('tm-sub').value.trim();
+    tm.price=parseFloat($('tm-price').value)||0;
+    tm.duration=$('tm-dur').value.trim();
+    tm.service=$('tm-service').value;
+    tm.active=$('tm-active').value==='Active';
+
+    // Collect courses
+    var courseEls=document.querySelectorAll('.course-edit-row');
+    tm.courses=[];
+    courseEls.forEach(function(el,i){
+      var name=el.querySelector('.tm-c-name').value.trim();
+      if(name){
+        tm.courses.push({
+          num:i+1,
+          name:name,
+          desc:el.querySelector('.tm-c-desc').value.trim(),
+          station:el.querySelector('.tm-c-station').value
+        });
+      }
+    });
+
+    // Collect pairings
+    var pairEls=document.querySelectorAll('.pairing-edit-row');
+    tm.pairings=[];
+    pairEls.forEach(function(el){
+      var name=el.querySelector('.tm-p-name').value.trim();
+      if(name){
+        tm.pairings.push({
+          id:uid('p'),
+          name:name,
+          desc:el.querySelector('.tm-p-desc').value.trim(),
+          price:parseFloat(el.querySelector('.tm-p-price').value)||0
+        });
+      }
+    });
+
+    if(isNew) STATE.tastingMenus.push(tm);
+    saveTastingMenus(); toast('Tasting menu saved','success'); render();
+  }, function(){
+    $('tm-add-course').addEventListener('click', function(){
+      var container=$('tm-courses');
+      var idx=container.querySelectorAll('.course-edit-row').length;
+      var row=document.createElement('div');
+      row.className='course-edit-row';
+      row.setAttribute('data-i',idx);
+      row.innerHTML='<span class="course-num">'+(idx+1)+'</span>'+
+        '<input class="input tm-c-name" placeholder="Course name" value="">'+
+        '<input class="input tm-c-desc" placeholder="Description" value="">'+
+        '<select class="input tm-c-station">'+opts(KITCHEN_STATIONS,'Sauté')+'</select>'+
+        '<button class="btn btn-danger btn-sm tm-c-del" type="button" onclick="tmDelCourse(this)">✕</button>';
+      container.appendChild(row);
+    });
+    $('tm-add-pairing').addEventListener('click', function(){
+      var container=$('tm-pairings');
+      var row=document.createElement('div');
+      row.className='pairing-edit-row';
+      row.innerHTML='<input class="input tm-p-name" placeholder="Pairing name" value="">'+
+        '<input class="input tm-p-desc" placeholder="Description" value="">'+
+        '<input class="input tm-p-price" type="number" step="0.01" placeholder="Price" value="0">'+
+        '<button class="btn btn-danger btn-sm" type="button" onclick="tmDelPairing(this)">✕</button>';
+      container.appendChild(row);
+    });
+  }, id?'<button class="btn btn-danger" onclick="deleteTastingMenu(\''+id+'\')">Delete</button>':'');
+}
+
+function tmDelCourse(btn){ btn.closest('.course-edit-row').remove(); renumberCourses(); }
+function tmDelPairing(btn){ btn.closest('.pairing-edit-row').remove(); }
+function renumberCourses(){
+  document.querySelectorAll('.course-edit-row').forEach(function(el,i){
+    el.setAttribute('data-i',i);
+    el.querySelector('.course-num').textContent=(i+1);
+  });
+}
+function deleteTastingMenu(id){
+  if(!confirm('Delete this tasting menu?')) return;
+  STATE.tastingMenus=STATE.tastingMenus.filter(function(x){return x.id!==id;});
+  saveTastingMenus(); closeModal(); render(); toast('Tasting menu deleted','success');
+}
+
+/* ============================================================
+   PRIX FIXE EDITOR
+   ============================================================ */
+function openPrixFixeEditor(id){
+  var pf = id ? STATE.prixFixeMenus.filter(function(x){return x.id===id;})[0] : {
+    id:uid('pf'), name:'', subtitle:'', price:0,
+    courses:[], active:true, service:'dinner', createdAt:Date.now()
+  };
+  var isNew=!id;
+
+  var courseBlocks=pf.courses.map(function(c,ci){
+    var optRows=c.options.map(function(o,oi){
+      return '<div class="pf-opt-row" data-ci="'+ci+'" data-oi="'+oi+'">'+
+        '<input class="input pf-o-name" placeholder="Option name" value="'+esc(o.name)+'">'+
+        '<input class="input pf-o-up" type="number" step="0.01" placeholder="Upcharge" value="'+(o.upcharge||0)+'">'+
+        '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelOpt(this)">✕</button>'+
+      '</div>';
+    }).join('');
+    return '<div class="pf-course-block" data-ci="'+ci+'">'+
+      '<div class="pf-cb-head">'+
+        '<input class="input pf-c-label" placeholder="Course label (e.g. Appetizer)" value="'+esc(c.label)+'">'+
+        '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelCourse(this)">✕ Remove Course</button>'+
+      '</div>'+
+      '<div class="pf-opts-container" data-ci="'+ci+'">'+optRows+'</div>'+
+      '<button class="btn btn-ghost btn-sm pf-add-opt" type="button" onclick="pfAddOpt(this,'+ci+')">+ Add Option</button>'+
+    '</div>';
+  }).join('');
+
+  var body='<div class="ie-form">'+
+    '<div class="ff-row cols-2">'+
+      fld('Menu Name','<input class="input" id="pf-name" value="'+esc(pf.name)+'" placeholder="e.g. Lunch Prix Fixe">')+
+      fld('Subtitle','<input class="input" id="pf-sub" value="'+esc(pf.subtitle||'')+'" placeholder="e.g. Choose one from each course">')+
+    '</div>'+
+    '<div class="ff-row cols-3">'+
+      fld('Base Price (per person)','<input class="input" id="pf-price" type="number" step="0.01" value="'+pf.price+'">')+
+      fld('Service','<select class="input" id="pf-service">'+opts(['breakfast','brunch','lunch','dinner','all day'],pf.service||'dinner')+'</select>')+
+      fld('Status','<select class="input" id="pf-active">'+opts(['Active','Inactive'],pf.active?'Active':'Inactive')+'</select>')+
+    '</div>'+
+    '<div class="ff"><label>Courses (guests choose one option per course)</label>'+
+      '<div id="pf-courses">'+courseBlocks+'</div>'+
+      '<button class="btn btn-ghost btn-sm" id="pf-add-course" type="button">+ Add Course</button>'+
+    '</div>'+
+    '<div class="hint-sm">Set upcharge to $0 for included options. Items with upcharge &gt; $0 will show "+$X" on the menu.</div>'+
+  '</div>';
+
+  openModal(isNew?'New Prix Fixe Menu':'Edit Prix Fixe Menu', body, isNew?'Create':'Save', function(){
+    pf.name=$('pf-name').value.trim();
+    if(!pf.name){ toast('Enter a name','error'); return false; }
+    pf.subtitle=$('pf-sub').value.trim();
+    pf.price=parseFloat($('pf-price').value)||0;
+    pf.service=$('pf-service').value;
+    pf.active=$('pf-active').value==='Active';
+
+    // Collect courses and options
+    var courseBlocks=document.querySelectorAll('.pf-course-block');
+    pf.courses=[];
+    courseBlocks.forEach(function(block,ci){
+      var label=block.querySelector('.pf-c-label').value.trim();
+      if(!label) return;
+      var options=[];
+      block.querySelectorAll('.pf-opt-row').forEach(function(optEl){
+        var name=optEl.querySelector('.pf-o-name').value.trim();
+        if(name){
+          options.push({
+            id:uid('pfo'),
+            name:name,
+            upcharge:parseFloat(optEl.querySelector('.pf-o-up').value)||0
+          });
+        }
+      });
+      pf.courses.push({id:uid('pfc'), label:label, options:options});
+    });
+
+    if(isNew) STATE.prixFixeMenus.push(pf);
+    savePrixFixeMenus(); toast('Prix fixe menu saved','success'); render();
+  }, function(){
+    $('pf-add-course').addEventListener('click', function(){
+      var container=$('pf-courses');
+      var ci=container.querySelectorAll('.pf-course-block').length;
+      var block=document.createElement('div');
+      block.className='pf-course-block';
+      block.setAttribute('data-ci',ci);
+      block.innerHTML='<div class="pf-cb-head">'+
+        '<input class="input pf-c-label" placeholder="Course label (e.g. Appetizer)" value="">'+
+        '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelCourse(this)">✕ Remove Course</button>'+
+      '</div>'+
+      '<div class="pf-opts-container" data-ci="'+ci+'"></div>'+
+      '<button class="btn btn-ghost btn-sm pf-add-opt" type="button" onclick="pfAddOpt(this,'+ci+')">+ Add Option</button>';
+      container.appendChild(block);
+    });
+  }, id?'<button class="btn btn-danger" onclick="deletePrixFixeMenu(\''+id+'\')">Delete</button>':'');
+}
+
+function pfAddOpt(btn, ci){
+  var container=btn.previousElementSibling;
+  var oi=container.querySelectorAll('.pf-opt-row').length;
+  var row=document.createElement('div');
+  row.className='pf-opt-row';
+  row.setAttribute('data-ci',ci);
+  row.setAttribute('data-oi',oi);
+  row.innerHTML='<input class="input pf-o-name" placeholder="Option name" value="">'+
+    '<input class="input pf-o-up" type="number" step="0.01" placeholder="Upcharge" value="0">'+
+    '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelOpt(this)">✕</button>';
+  container.appendChild(row);
+}
+function pfDelOpt(btn){ btn.closest('.pf-opt-row').remove(); }
+function pfDelCourse(btn){ btn.closest('.pf-course-block').remove(); }
+function deletePrixFixeMenu(id){
+  if(!confirm('Delete this prix fixe menu?')) return;
+  STATE.prixFixeMenus=STATE.prixFixeMenus.filter(function(x){return x.id!==id;});
+  savePrixFixeMenus(); closeModal(); render(); toast('Prix fixe menu deleted','success');
+}
 </script>
 </body>
 </html>
