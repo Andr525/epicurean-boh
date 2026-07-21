@@ -441,7 +441,8 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .pairing-edit-row{display:grid;grid-template-columns:1fr 1.5fr 90px 36px;gap:8px;align-items:center;margin-bottom:8px;}
 .pf-course-block{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:14px;margin-bottom:12px;}
 .pf-cb-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;}
-.pf-opt-row{display:grid;grid-template-columns:1fr 90px 36px;gap:8px;align-items:center;margin-bottom:6px;}
+.pf-opt-row{display:grid;grid-template-columns:1fr 1fr 80px 1fr 36px;gap:8px;align-items:center;margin-bottom:6px;}
+.pf-opt-header{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--text-dim);margin-bottom:2px;padding:0 2px;}
 @media(max-width:700px){.tasting-grid{grid-template-columns:1fr;}.course-edit-row{grid-template-columns:24px 1fr 1fr 100px 30px;}.pairing-edit-row{grid-template-columns:1fr 1fr 80px 30px;}}
 </style>
 </head>
@@ -2601,11 +2602,12 @@ function openPrixFixeEditor(id){
         '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelOpt(this)">✕</button>'+
       '</div>';
     }).join('');
-    return '<div class="pf-course-block" data-ci="'+ci+'">'+
+    return '<div class="pf-course-block" data-ci="'+ci+'">'+ 
       '<div class="pf-cb-head">'+
-        '<input class="input pf-c-label" placeholder="Course label (e.g. Appetizer)" value="'+esc(c.label)+'">'+
+        '<input class="input pf-c-label" placeholder="Course label (e.g. Appetizer)" value="'+esc(c.label)+'">'+ 
         '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelCourse(this)">✕ Remove Course</button>'+
       '</div>'+
+      '<div class="pf-opt-row pf-opt-header"><span>Item Name</span><span>Description</span><span>Surcharge</span><span>Photo URL</span><span></span></div>'+
       '<div class="pf-opts-container" data-ci="'+ci+'">'+optRows+'</div>'+
       '<button class="btn btn-ghost btn-sm pf-add-opt" type="button" onclick="pfAddOpt(this,'+ci+')">+ Add Option</button>'+
     '</div>';
