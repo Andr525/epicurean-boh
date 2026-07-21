@@ -453,6 +453,7 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-storage-compat.js"></script>
 <script>
 var firebaseConfig = {
   apiKey: "AIzaSyAvg9x8kmKmZjcu62D2Jb4jpO57ArC657Y",
@@ -463,9 +464,56 @@ var firebaseConfig = {
   appId: "1:320703681087:web:04f7c9a17637388a039e8a"
 };
 var fbApp=null, fbDb=null, fbReady=false;
-try{ fbApp=firebase.initializeApp(firebaseConfig); fbDb=firebase.firestore(); fbReady=true; }
+var fbStorage=null;
+try{ fbApp=firebase.initializeApp(firebaseConfig); fbDb=firebase.firestore(); fbStorage=firebase.storage(); fbReady=true; }
 catch(e){ console.warn('Firebase init failed — local-only mode', e); fbReady=false; }
+/* --- Firebase Storage Upload Helper --- */
+var _uploadTarget=null;
+function uploadPhoto(inputEl){
+  _uploadTarget=inputEl;
+  document.getElementById('photo-file-input').click();
+}
+function handlePhotoUpload(fileInput){
+  var file=fileInput.files[0];
+  if(!file){return;}
+  if(!file.type.startsWith('image/')){toast('Please select an image file','error');fileInput.value='';return;}
+  if(file.size>10*1024*1024){toast('Image too large (max 10MB)','error');fileInput.value='';return;}
+  if(!fbStorage){toast('Firebase not connected — cannot upload','error');fileInput.value='';return;}
+  var ext=file.name.split('.').pop().toLowerCase();
+  var path='menu-photos/'+Date.now()+'_'+Math.random().toString(36).substr(2,6)+'.'+ext;
+  var ref=fbStorage.ref(path);
+  toast('Uploading photo...','');
+  ref.put(file).then(function(snapshot){
+    return snapshot.ref.getDownloadURL();
+  }).then(function(url){
+    if(_uploadTarget){
+      _uploadTarget.value=url;
+      /* Show preview if possible */
+      var preview=_uploadTarget.parentElement.querySelector('.upload-preview');
+      if(preview){preview.src=url;preview.style.display='block';}
+      else{
+        var img=document.createElement('img');
+        img.className='upload-preview';
+        img.src=url;
+        img.style.cssText='max-width:100px;max-height:70px;margin-top:4px;border-radius:6px;object-fit:cover;display:block;';
+        _uploadTarget.parentElement.appendChild(img);
+      }
+    }
+    toast('Photo uploaded!','success');
+    fileInput.value='';
+  }).catch(function(err){
+    console.error('Upload failed:',err);
+    toast('Upload failed: '+err.message,'error');
+    fileInput.value='';
+  });
+}
 </script>
+<input type="file" id="photo-file-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
+<script src="app.js?v=2"></script>
+<script src="product_module.js?v=2"></script>
+<script src="tasting_module.js?v=2"></script>
+</body>
+</html>
 <script>
 /* ============================================================
    EPICUREAN HOUSE @ THE CHOCOLATE STUDIO — BACK OF HOUSE
@@ -1945,7 +1993,7 @@ function openItemEditor(id){
       fld('Cost ($)','<input class="input" id="ie-cost" type="number" step="0.01" value="'+it.cost+'">')+'</div>'+
     fld('Name','<input class="input" id="ie-name" value="'+esc(it.name)+'" placeholder="Dish name">')+
     fld('Description (shown to customers on iPad menu & servers on POS)','<textarea class="input" id="ie-desc" rows="3" placeholder="Full description of the dish — ingredients, preparation, presentation">'+esc(it.desc)+'</textarea>')+
-    fld('Photo URL (optional — paste image URL for iPad menu display)','<input class="input" id="ie-photo" value="'+esc(it.photoUrl||'')+'" placeholder="https://... (leave blank for no photo)">'+(it.photoUrl?'<img src="'+esc(it.photoUrl)+'" style="max-width:120px;max-height:80px;margin-top:4px;border-radius:6px;object-fit:cover;">':''))+
+    fld('Photo','<div style="display:flex;gap:8px;align-items:center;"><input class="input" id="ie-photo" value="'+esc(it.photoUrl||'')+'" placeholder="Paste URL or click Upload" style="flex:1;"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(document.getElementById(\'ie-photo\'))">📷 Upload</button></div>'+(it.photoUrl?'<img src="'+esc(it.photoUrl)+'" class="upload-preview" style="max-width:120px;max-height:80px;margin-top:4px;border-radius:6px;object-fit:cover;">':''))+
     '<div class="ff-row cols-2">'+fld('Cook time (minutes)','<input class="input" id="ie-cook" type="number" value="'+(it.cookMin||0)+'">')+
       fld('Kitchen station','<select class="input" id="ie-station">'+opts(KITCHEN_STATIONS,it.station)+'</select>')+'</div>'+
     fld('Categories (an item can be in several)','<div class="cbx-grid">'+catChecks+'</div>')+
@@ -2461,7 +2509,7 @@ function openTastingEditor(id){
       '<input class="input tm-c-desc" placeholder="Description" value="'+esc(c.desc||'')+'">'+
       '<select class="input tm-c-station">'+opts(KITCHEN_STATIONS,c.station)+'</select>'+
       '<input class="input tm-c-upcharge" type="number" step="0.01" placeholder="+$ Upcharge" value="'+(c.upcharge||0)+'" title="Extra charge (0=included)">'+
-      '<input class="input tm-c-photo" placeholder="Photo URL" value="'+esc(c.photoUrl||'')+'" title="Optional photo for iPad menu">'+
+      '<span style="display:flex;gap:4px;align-items:center;"><input class="input tm-c-photo" placeholder="Photo URL" value="'+esc(c.photoUrl||'')+'" style="flex:1;"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="white-space:nowrap;padding:4px 8px;font-size:11px;">📷</button></span>'+
       '<button class="btn btn-danger btn-sm tm-c-del" type="button" onclick="tmDelCourse(this)">✕</button>'+
     '</div>';
   }).join('');
@@ -2551,7 +2599,7 @@ function openTastingEditor(id){
         '<input class="input tm-c-desc" placeholder="Description" value="">'+
         '<select class="input tm-c-station">'+opts(KITCHEN_STATIONS,'Sauté')+'</select>'+
         '<input class="input tm-c-upcharge" type="number" step="0.01" placeholder="+$ Upcharge" value="0" title="Extra charge (0=included)">'+
-        '<input class="input tm-c-photo" placeholder="Photo URL" value="" title="Optional photo for iPad menu">'+
+        '<span style="display:flex;gap:4px;align-items:center;"><input class="input tm-c-photo" placeholder="Photo URL" value="" style="flex:1;"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="white-space:nowrap;padding:4px 8px;font-size:11px;">📷</button></span>'+
         '<button class="btn btn-danger btn-sm tm-c-del" type="button" onclick="tmDelCourse(this)">✕</button>';
       container.appendChild(row);
     });
@@ -2598,7 +2646,7 @@ function openPrixFixeEditor(id){
         '<input class="input pf-o-name" placeholder="Option name" value="'+esc(o.name)+'">'+
         '<input class="input pf-o-desc" placeholder="Description" value="'+esc(o.desc||'')+'">'+
         '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$" value="'+(o.upcharge||0)+'">'+
-        '<input class="input pf-o-photo" placeholder="Photo URL" value="'+esc(o.photoUrl||'')+'">'+
+        '<span style="display:flex;gap:4px;align-items:center;"><input class="input pf-o-photo" placeholder="Photo URL" value="'+esc(o.photoUrl||'')+'" style="flex:1;"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:4px 6px;font-size:10px;">📷</button></span>'+
         '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelOpt(this)">✕</button>'+
       '</div>';
     }).join('');
@@ -2690,7 +2738,7 @@ function pfAddOpt(btn, ci){
   row.innerHTML='<input class="input pf-o-name" placeholder="Option name" value="">'+
     '<input class="input pf-o-desc" placeholder="Description" value="">'+
     '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$" value="0">'+
-    '<input class="input pf-o-photo" placeholder="Photo URL" value="">'+
+    '<span style="display:flex;gap:4px;align-items:center;"><input class="input pf-o-photo" placeholder="Photo URL" value="" style="flex:1;"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:4px 6px;font-size:10px;">📷</button></span>'+
     '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelOpt(this)">✕</button>';
   container.appendChild(row);
 }
