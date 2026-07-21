@@ -441,8 +441,13 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .pairing-edit-row{display:grid;grid-template-columns:1fr 1.5fr 90px 36px;gap:8px;align-items:center;margin-bottom:8px;}
 .pf-course-block{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:14px;margin-bottom:12px;}
 .pf-cb-head{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:10px;}
-.pf-opt-row{display:grid;grid-template-columns:1fr 1fr 80px 1fr 36px;gap:8px;align-items:center;margin-bottom:6px;}
-.pf-opt-header{font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:var(--text-dim);margin-bottom:2px;padding:0 2px;}
+.pf-opt-row{display:grid;grid-template-columns:1fr;gap:8px;padding:12px;margin-bottom:10px;background:rgba(11,20,32,0.5);border:1px solid var(--border-soft);border-radius:10px;position:relative;}
+.pf-opt-row .pf-opt-fields{display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:center;}
+.pf-opt-row textarea.pf-o-desc{width:100%;min-height:60px;resize:vertical;font-size:13px;padding:8px;border-radius:8px;background:var(--panel-1);border:1px solid var(--border-soft);color:var(--text);font-family:inherit;}
+.pf-opt-row .pf-opt-photo-row{display:flex;gap:8px;align-items:center;}
+.pf-opt-row .upload-preview{width:80px;height:56px;object-fit:cover;border-radius:6px;border:2px solid var(--gold-soft);display:block;}
+.pf-opt-row .btn-del-opt{position:absolute;top:8px;right:8px;}
+.pf-opt-header{display:none;}
 @media(max-width:700px){.tasting-grid{grid-template-columns:1fr;}.course-edit-row{grid-template-columns:24px 1fr 1fr 100px 30px;}.pairing-edit-row{grid-template-columns:1fr 1fr 80px 30px;}}
 </style>
 </head>
@@ -495,7 +500,7 @@ function handlePhotoUpload(fileInput){
         var img=document.createElement('img');
         img.className='upload-preview';
         img.src=url;
-        img.style.cssText='max-width:100px;max-height:70px;margin-top:4px;border-radius:6px;object-fit:cover;display:block;';
+        img.style.cssText='width:120px;height:80px;margin-top:6px;border-radius:8px;object-fit:cover;display:block;border:2px solid #c9a96e;';
         _uploadTarget.parentElement.appendChild(img);
       }
     }
@@ -2642,12 +2647,20 @@ function openPrixFixeEditor(id){
 
   var courseBlocks=pf.courses.map(function(c,ci){
     var optRows=c.options.map(function(o,oi){
+      var photoPreview=o.photoUrl?'<img class="upload-preview" src="'+esc(o.photoUrl)+'" style="width:80px;height:56px;object-fit:cover;border-radius:6px;border:2px solid var(--gold-soft);">':'';
       return '<div class="pf-opt-row" data-ci="'+ci+'" data-oi="'+oi+'">'+
-        '<input class="input pf-o-name" placeholder="Option name" value="'+esc(o.name)+'">'+
-        '<input class="input pf-o-desc" placeholder="Description" value="'+esc(o.desc||'')+'">'+
-        '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$" value="'+(o.upcharge||0)+'">'+
-        '<span style="display:flex;gap:4px;align-items:center;"><input class="input pf-o-photo" placeholder="Photo URL" value="'+esc(o.photoUrl||'')+'" style="flex:1;"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:4px 6px;font-size:10px;">📷</button></span>'+
-        '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelOpt(this)">✕</button>'+
+        '<button class="btn btn-danger btn-sm btn-del-opt" type="button" onclick="pfDelOpt(this)">✕</button>'+
+        '<div class="pf-opt-fields">'+
+          '<input class="input pf-o-name" placeholder="Dish name (e.g. Egg Yolk Ravioli with Black Truffles)" value="'+esc(o.name)+'">'+
+          '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$0" value="'+(o.upcharge||0)+'" title="Extra charge on top of base price">'+
+        '</div>'+
+        '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;">Description</label>'+
+        '<textarea class="input pf-o-desc" placeholder="Describe the dish — ingredients, preparation, etc. This shows on the iPad menu for guests.">'+esc(o.desc||'')+'</textarea>'+
+        '<div class="pf-opt-photo-row">'+
+          '<input class="input pf-o-photo" placeholder="Photo URL" value="'+esc(o.photoUrl||'')+'" style="flex:1;">'+
+          '<button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:6px 10px;font-size:12px;">📷 Upload</button>'+
+          photoPreview+
+        '</div>'+
       '</div>';
     }).join('');
     return '<div class="pf-course-block" data-ci="'+ci+'">'+ 
@@ -2735,11 +2748,17 @@ function pfAddOpt(btn, ci){
   row.className='pf-opt-row';
   row.setAttribute('data-ci',ci);
   row.setAttribute('data-oi',oi);
-  row.innerHTML='<input class="input pf-o-name" placeholder="Option name" value="">'+
-    '<input class="input pf-o-desc" placeholder="Description" value="">'+
-    '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$" value="0">'+
-    '<span style="display:flex;gap:4px;align-items:center;"><input class="input pf-o-photo" placeholder="Photo URL" value="" style="flex:1;"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:4px 6px;font-size:10px;">📷</button></span>'+
-    '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelOpt(this)">✕</button>';
+  row.innerHTML='<button class="btn btn-danger btn-sm btn-del-opt" type="button" onclick="pfDelOpt(this)">\u2715</button>'+
+    '<div class="pf-opt-fields">'+
+      '<input class="input pf-o-name" placeholder="Dish name (e.g. Egg Yolk Ravioli with Black Truffles)" value="">'+
+      '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$0" value="0" title="Extra charge on top of base price">'+
+    '</div>'+
+    '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;">Description</label>'+
+    '<textarea class="input pf-o-desc" placeholder="Describe the dish \u2014 ingredients, preparation, etc. This shows on the iPad menu for guests."></textarea>'+
+    '<div class="pf-opt-photo-row">'+
+      '<input class="input pf-o-photo" placeholder="Photo URL" value="" style="flex:1;">'+
+      '<button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:6px 10px;font-size:12px;">\ud83d\udcf7 Upload</button>'+
+    '</div>';
   container.appendChild(row);
 }
 function pfDelOpt(btn){ btn.closest('.pf-opt-row').remove(); }
