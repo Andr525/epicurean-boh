@@ -326,6 +326,7 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .menu-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
 .menu-card{background:linear-gradient(180deg,var(--panel),var(--panel-2));border:1px solid var(--border-soft);border-radius:16px;padding:18px;cursor:pointer;transition:transform .16s var(--ease-out),border-color .16s var(--ease-out);}
 .menu-card:hover{transform:translateY(-3px);border-color:var(--border-strong);}
+.mc-photo{width:100%;height:80px;object-fit:cover;border-radius:8px 8px 0 0;margin:-16px -16px 12px -16px;width:calc(100% + 32px);}
 .mc-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
 .mc-code{font-size:12px;color:var(--gold-soft);letter-spacing:1px;font-weight:600;}
 .mc-verified{font-size:11px;color:var(--green);}
@@ -1919,7 +1920,8 @@ function menuCard(it){
   var al=(it.allergens||[]).map(function(a){return chip(a,'chip-al');}).join('');
   var dt=(it.diet||[]).slice(0,4).map(function(d){return chip(d,'chip-diet');}).join('');
   var cats=(it.catIds||[]).map(function(c){return catName(c);}).filter(Boolean).join(' · ');
-  return '<div class="menu-card" onclick="openItemEditor(\''+it.id+'\')">'+
+  var photoThumb=it.photoUrl?'<img src="'+esc(it.photoUrl)+'" class="mc-photo">':'';
+  return '<div class="menu-card" onclick="openItemEditor(\''+it.id+'\')">'+photoThumb+
     '<div class="mc-top"><span class="mc-code">#'+esc(it.code||'')+'</span>'+
       (it.verified?'<span class="mc-verified" title="Chef verified">✓ Verified</span>':'<span class="mc-unverified" title="Needs chef verification">⚠ Unverified</span>')+'</div>'+
     '<div class="mc-name serif">'+esc(it.name)+'</div>'+
@@ -1941,7 +1943,8 @@ function openItemEditor(id){
       fld('Price ($)','<input class="input" id="ie-price" type="number" step="0.01" value="'+it.price+'">')+
       fld('Cost ($)','<input class="input" id="ie-cost" type="number" step="0.01" value="'+it.cost+'">')+'</div>'+
     fld('Name','<input class="input" id="ie-name" value="'+esc(it.name)+'" placeholder="Dish name">')+
-    fld('Description','<textarea class="input" id="ie-desc" rows="2" placeholder="Menu description">'+esc(it.desc)+'</textarea>')+
+    fld('Description (shown to customers on iPad menu & servers on POS)','<textarea class="input" id="ie-desc" rows="3" placeholder="Full description of the dish — ingredients, preparation, presentation">'+esc(it.desc)+'</textarea>')+
+    fld('Photo URL (optional — paste image URL for iPad menu display)','<input class="input" id="ie-photo" value="'+esc(it.photoUrl||'')+'" placeholder="https://... (leave blank for no photo)">'+(it.photoUrl?'<img src="'+esc(it.photoUrl)+'" style="max-width:120px;max-height:80px;margin-top:4px;border-radius:6px;object-fit:cover;">':''))+
     '<div class="ff-row cols-2">'+fld('Cook time (minutes)','<input class="input" id="ie-cook" type="number" value="'+(it.cookMin||0)+'">')+
       fld('Kitchen station','<select class="input" id="ie-station">'+opts(KITCHEN_STATIONS,it.station)+'</select>')+'</div>'+
     fld('Categories (an item can be in several)','<div class="cbx-grid">'+catChecks+'</div>')+
@@ -1954,6 +1957,7 @@ function openItemEditor(id){
     var code=$('ie-code').value.trim(), name=$('ie-name').value.trim();
     if(!name){ toast('Enter a name','error'); return false; }
     it.code=code; it.name=name; it.desc=$('ie-desc').value.trim();
+    it.photoUrl=$('ie-photo').value.trim();
     it.price=parseFloat($('ie-price').value)||0; it.cost=parseFloat($('ie-cost').value)||0;
     it.cookMin=parseInt($('ie-cook').value)||0; it.station=$('ie-station').value;
     it.ingredients=$('ie-ing').value.trim();
@@ -2388,7 +2392,8 @@ function PAGE_tasting(){
 
 function tastingBody(){
   var btns='<button class="btn btn-gold btn-sm" onclick="openTastingEditor(null)">+ New Tasting Menu</button>'+
-           '<button class="btn btn-ghost btn-sm" onclick="openPrixFixeEditor(null)">+ New Prix Fixe</button>';
+           '<button class="btn btn-ghost btn-sm" onclick="openPrixFixeEditor(null)">+ New Prix Fixe</button>'+
+           '<button class="btn btn-analyze btn-sm" onclick="scanAllAllergens()">\u2728 Scan All Allergens</button>';
 
   /* Tasting menus section */
   var tastingCards='';
@@ -2454,6 +2459,8 @@ function openTastingEditor(id){
       '<input class="input tm-c-name" placeholder="Course name" value="'+esc(c.name)+'">'+
       '<input class="input tm-c-desc" placeholder="Description" value="'+esc(c.desc||'')+'">'+
       '<select class="input tm-c-station">'+opts(KITCHEN_STATIONS,c.station)+'</select>'+
+      '<input class="input tm-c-upcharge" type="number" step="0.01" placeholder="+$ Upcharge" value="'+(c.upcharge||0)+'" title="Extra charge (0=included)">'+
+      '<input class="input tm-c-photo" placeholder="Photo URL" value="'+esc(c.photoUrl||'')+'" title="Optional photo for iPad menu">'+
       '<button class="btn btn-danger btn-sm tm-c-del" type="button" onclick="tmDelCourse(this)">✕</button>'+
     '</div>';
   }).join('');
@@ -2507,7 +2514,9 @@ function openTastingEditor(id){
           num:i+1,
           name:name,
           desc:el.querySelector('.tm-c-desc').value.trim(),
-          station:el.querySelector('.tm-c-station').value
+          station:el.querySelector('.tm-c-station').value,
+          upcharge:parseFloat(el.querySelector('.tm-c-upcharge').value)||0,
+          photoUrl:(el.querySelector('.tm-c-photo')?el.querySelector('.tm-c-photo').value.trim():'')
         });
       }
     });
@@ -2540,6 +2549,8 @@ function openTastingEditor(id){
         '<input class="input tm-c-name" placeholder="Course name" value="">'+
         '<input class="input tm-c-desc" placeholder="Description" value="">'+
         '<select class="input tm-c-station">'+opts(KITCHEN_STATIONS,'Sauté')+'</select>'+
+        '<input class="input tm-c-upcharge" type="number" step="0.01" placeholder="+$ Upcharge" value="0" title="Extra charge (0=included)">'+
+        '<input class="input tm-c-photo" placeholder="Photo URL" value="" title="Optional photo for iPad menu">'+
         '<button class="btn btn-danger btn-sm tm-c-del" type="button" onclick="tmDelCourse(this)">✕</button>';
       container.appendChild(row);
     });
@@ -2584,7 +2595,9 @@ function openPrixFixeEditor(id){
     var optRows=c.options.map(function(o,oi){
       return '<div class="pf-opt-row" data-ci="'+ci+'" data-oi="'+oi+'">'+
         '<input class="input pf-o-name" placeholder="Option name" value="'+esc(o.name)+'">'+
-        '<input class="input pf-o-up" type="number" step="0.01" placeholder="Upcharge" value="'+(o.upcharge||0)+'">'+
+        '<input class="input pf-o-desc" placeholder="Description" value="'+esc(o.desc||'')+'">'+
+        '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$" value="'+(o.upcharge||0)+'">'+
+        '<input class="input pf-o-photo" placeholder="Photo URL" value="'+esc(o.photoUrl||'')+'">'+
         '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelOpt(this)">✕</button>'+
       '</div>';
     }).join('');
@@ -2636,7 +2649,9 @@ function openPrixFixeEditor(id){
           options.push({
             id:uid('pfo'),
             name:name,
-            upcharge:parseFloat(optEl.querySelector('.pf-o-up').value)||0
+            desc:optEl.querySelector('.pf-o-desc')?optEl.querySelector('.pf-o-desc').value.trim():'',
+            upcharge:parseFloat(optEl.querySelector('.pf-o-up').value)||0,
+            photoUrl:optEl.querySelector('.pf-o-photo')?optEl.querySelector('.pf-o-photo').value.trim():''
           });
         }
       });
@@ -2671,7 +2686,9 @@ function pfAddOpt(btn, ci){
   row.setAttribute('data-ci',ci);
   row.setAttribute('data-oi',oi);
   row.innerHTML='<input class="input pf-o-name" placeholder="Option name" value="">'+
-    '<input class="input pf-o-up" type="number" step="0.01" placeholder="Upcharge" value="0">'+
+    '<input class="input pf-o-desc" placeholder="Description" value="">'+
+    '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$" value="0">'+
+    '<input class="input pf-o-photo" placeholder="Photo URL" value="">'+
     '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelOpt(this)">✕</button>';
   container.appendChild(row);
 }
@@ -2681,6 +2698,31 @@ function deletePrixFixeMenu(id){
   if(!confirm('Delete this prix fixe menu?')) return;
   STATE.prixFixeMenus=STATE.prixFixeMenus.filter(function(x){return x.id!==id;});
   savePrixFixeMenus(); closeModal(); render(); toast('Prix fixe menu deleted','success');
+}
+
+
+/* ============================================================
+   SCAN ALL ALLERGENS — runs AI/rules on all menu items at once
+   ============================================================ */
+function scanAllAllergens(){
+  var items = STATE.menuItems.filter(function(it){ return !it.verified; });
+  if(!items.length){ toast('All items are already chef-verified!','success'); return; }
+  toast('Scanning '+items.length+' unverified items...','info');
+  var done=0;
+  items.forEach(function(it){
+    var text = it.name+' — '+(it.ingredients||'')+' '+(it.desc||'');
+    analyzeDietAI(text).then(function(ai){
+      var res = ai || analyzeDietRules(text);
+      it.allergens = res.allergens || [];
+      it.diet = res.diet || [];
+      done++;
+      if(done>=items.length){
+        saveMenu();
+        toast('Allergen scan complete! '+done+' items analyzed.','success');
+        render();
+      }
+    });
+  });
 }
 </script>
 </body>
