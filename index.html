@@ -448,6 +448,30 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .pf-opt-row .upload-preview{width:80px;height:56px;object-fit:cover;border-radius:6px;border:2px solid var(--gold-soft);display:block;}
 .pf-opt-row .btn-del-opt{position:absolute;top:8px;right:8px;}
 .pf-opt-header{display:none;}
+/* Section manager */
+.pf-sections-mgr{margin-bottom:16px;background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:14px;}
+.pf-sections-mgr h4{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:var(--gold);margin-bottom:10px;}
+.pf-sec-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;}
+.pf-sec-row input{flex:1;}
+.pf-sec-row .pf-sec-order{display:flex;flex-direction:column;gap:2px;}
+.pf-sec-row .pf-sec-order button{background:none;border:1px solid var(--border-soft);color:var(--text-dim);border-radius:4px;width:22px;height:18px;cursor:pointer;font-size:10px;line-height:1;}
+.pf-sec-row .pf-sec-order button:hover{border-color:var(--gold);color:var(--gold);}
+/* Dish category select */
+.pf-o-category{width:100%;padding:8px;border-radius:8px;background:var(--panel);border:1px solid var(--border-soft);color:var(--text);font-size:13px;font-family:inherit;}
+/* Dish order buttons */
+.pf-dish-order{display:flex;gap:4px;align-items:center;}
+.pf-dish-order button{background:none;border:1px solid var(--border-soft);color:var(--text-dim);border-radius:4px;width:24px;height:24px;cursor:pointer;font-size:12px;}
+.pf-dish-order button:hover{border-color:var(--gold);color:var(--gold);}
+/* Preview panel */
+.pf-preview-panel{background:var(--bg);border:2px solid var(--gold);border-radius:16px;padding:24px;margin-top:16px;}
+.pf-preview-panel h3{font-family:'Cormorant Garamond',serif;font-size:24px;margin-bottom:4px;}
+.pf-preview-panel .pf-prev-sub{color:var(--text-dim);font-size:13px;margin-bottom:16px;}
+.pf-preview-panel .pf-prev-section{margin-bottom:14px;}
+.pf-preview-panel .pf-prev-section h4{font-size:11px;text-transform:uppercase;letter-spacing:1.5px;color:var(--gold);margin-bottom:8px;font-weight:600;}
+.pf-preview-panel .pf-prev-item{display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border-soft);}
+.pf-preview-panel .pf-prev-item:last-child{border-bottom:none;}
+.pf-preview-panel .pf-prev-item .name{font-size:14px;}
+.pf-preview-panel .pf-prev-item .up{color:var(--gold);font-size:13px;}
 @media(max-width:700px){.tasting-grid{grid-template-columns:1fr;}.course-edit-row{grid-template-columns:24px 1fr 1fr 100px 30px;}.pairing-edit-row{grid-template-columns:1fr 1fr 80px 30px;}}
 </style>
 </head>
@@ -486,36 +510,40 @@ function handlePhotoUpload(fileInput){
   var file=fileInput.files[0];
   if(!file){return;}
   if(!file.type.startsWith('image/')){toast('Please select an image file','error');fileInput.value='';return;}
-  if(file.size>10*1024*1024){toast('Image too large (max 10MB)','error');fileInput.value='';return;}
-  if(!fbStorage){toast('Firebase not connected — cannot upload','error');fileInput.value='';return;}
-  var ext=file.name.split('.').pop().toLowerCase();
-  var path='menu-photos/'+Date.now()+'_'+Math.random().toString(36).substr(2,6)+'.'+ext;
-  var ref=fbStorage.ref(path);
-  toast('Uploading photo...','');
-  /* Ensure user is signed in before upload */
-  var authReady = (fbAuth && !fbAuth.currentUser) ? fbAuth.signInAnonymously() : Promise.resolve();
-  authReady.then(function(){
-    return ref.put(file);
-  }).then(function(snapshot){
-    return snapshot.ref.getDownloadURL();
-  }).then(function(url){
-    if(_uploadTarget){
-      _uploadTarget.value=url;
-      showPhotoPreview(_uploadTarget, url);
-    }
-    toast('Photo uploaded!','success');
-    fileInput.value='';
-  }).catch(function(err){
-    console.error('Upload failed:',err);
-    toast('Upload failed: '+err.message,'error');
-    fileInput.value='';
-  });
+  if(file.size>5*1024*1024){toast('Image too large (max 5MB)','error');fileInput.value='';return;}
+  toast('Processing photo...','');
+  /* Resize image to max 800px wide then convert to data URL */
+  var reader=new FileReader();
+  reader.onload=function(e){
+    var img=new Image();
+    img.onload=function(){
+      var maxW=800, maxH=600;
+      var w=img.width, h=img.height;
+      if(w>maxW){h=Math.round(h*(maxW/w));w=maxW;}
+      if(h>maxH){w=Math.round(w*(maxH/h));h=maxH;}
+      var canvas=document.createElement('canvas');
+      canvas.width=w; canvas.height=h;
+      var ctx=canvas.getContext('2d');
+      ctx.drawImage(img,0,0,w,h);
+      var dataUrl=canvas.toDataURL('image/jpeg',0.82);
+      if(_uploadTarget){
+        _uploadTarget.value=dataUrl;
+        showPhotoPreview(_uploadTarget, dataUrl);
+      }
+      toast('Photo ready!','success');
+      fileInput.value='';
+    };
+    img.onerror=function(){toast('Could not read image','error');fileInput.value='';};
+    img.src=e.target.result;
+  };
+  reader.onerror=function(){toast('File read failed','error');fileInput.value='';};
+  reader.readAsDataURL(file);
 }
 /* Show/update photo preview next to any photo URL input */
 function showPhotoPreview(input, url){
   var container=input.closest('.pf-opt-photo-row') || input.closest('.mc-photo-row') || input.parentElement;
   var preview=container.querySelector('.upload-preview');
-  if(!url || !url.startsWith('http')){
+  if(!url || (!url.startsWith('http') && !url.startsWith('data:'))){
     if(preview) preview.style.display='none';
     return;
   }
@@ -2659,36 +2687,69 @@ function deleteTastingMenu(id){
 function openPrixFixeEditor(id){
   var pf = id ? STATE.prixFixeMenus.filter(function(x){return x.id===id;})[0] : {
     id:uid('pf'), name:'', subtitle:'', price:0,
-    courses:[], active:true, service:'dinner', createdAt:Date.now()
+    courses:[{id:uid('pfc'), label:'Appetizer', order:0},{id:uid('pfc'), label:'Main Course', order:1},{id:uid('pfc'), label:'Dessert', order:2}],
+    dishes:[], active:true, service:'dinner', createdAt:Date.now()
   };
   var isNew=!id;
 
-  var courseBlocks=pf.courses.map(function(c,ci){
-    var optRows=c.options.map(function(o,oi){
-      var photoPreview=o.photoUrl?'<img class="upload-preview" src="'+esc(o.photoUrl)+'" style="width:80px;height:56px;object-fit:cover;border-radius:6px;border:2px solid var(--gold-soft);">':'';
-      return '<div class="pf-opt-row" data-ci="'+ci+'" data-oi="'+oi+'">'+
-        '<button class="btn btn-danger btn-sm btn-del-opt" type="button" onclick="pfDelOpt(this)">✕</button>'+
-        '<div class="pf-opt-fields">'+
-          '<input class="input pf-o-name" placeholder="Dish name (e.g. Egg Yolk Ravioli with Black Truffles)" value="'+esc(o.name)+'">'+
-          '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$0" value="'+(o.upcharge||0)+'" title="Extra charge on top of base price">'+
-        '</div>'+
-        '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;">Description</label>'+
-        '<textarea class="input pf-o-desc" placeholder="Describe the dish — ingredients, preparation, etc. This shows on the iPad menu for guests.">'+esc(o.desc||'')+'</textarea>'+
-        '<div class="pf-opt-photo-row">'+
-          '<input class="input pf-o-photo" placeholder="Photo URL" value="'+esc(o.photoUrl||'')+'" style="flex:1;" oninput="showPhotoPreview(this,this.value)">'+
-          '<button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:6px 10px;font-size:12px;">📷 Upload</button>'+
-          photoPreview+
-        '</div>'+
-      '</div>';
-    }).join('');
-    return '<div class="pf-course-block" data-ci="'+ci+'">'+ 
-      '<div class="pf-cb-head">'+
-        '<input class="input pf-c-label" placeholder="Course label (e.g. Appetizer)" value="'+esc(c.label)+'">'+ 
-        '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelCourse(this)">✕ Remove Course</button>'+
+  /* Migrate old format: if pf has courses with options but no dishes array */
+  if(!pf.dishes && pf.courses && pf.courses.length && pf.courses[0].options){
+    pf.dishes=[];
+    pf.courses.forEach(function(c,ci){
+      (c.options||[]).forEach(function(o,oi){
+        pf.dishes.push({id:o.id||uid('pfd'), name:o.name, desc:o.desc||'', upcharge:o.upcharge||0, photoUrl:o.photoUrl||'', course:c.label, order:oi});
+      });
+    });
+    /* Convert courses to just labels */
+    pf.courses=pf.courses.map(function(c,i){return {id:c.id||uid('pfc'), label:c.label, order:i};});
+  }
+  if(!pf.dishes) pf.dishes=[];
+  /* Ensure courses have order */
+  pf.courses.forEach(function(c,i){if(c.order===undefined) c.order=i;});
+
+  /* Build sections manager */
+  var sectionsHtml=pf.courses.sort(function(a,b){return a.order-b.order;}).map(function(c,i){
+    return '<div class="pf-sec-row" data-sec-id="'+c.id+'">'+
+      '<div class="pf-sec-order">'+
+        '<button type="button" onclick="pfSecMove(this,-1)" title="Move up">▲</button>'+
+        '<button type="button" onclick="pfSecMove(this,1)" title="Move down">▼</button>'+
       '</div>'+
-      '<div class="pf-opt-row pf-opt-header"><span>Item Name</span><span>Description</span><span>Surcharge</span><span>Photo URL</span><span></span></div>'+
-      '<div class="pf-opts-container" data-ci="'+ci+'">'+optRows+'</div>'+
-      '<button class="btn btn-ghost btn-sm pf-add-opt" type="button" onclick="pfAddOpt(this,'+ci+')">+ Add Option</button>'+
+      '<span style="font-size:12px;color:var(--text-dim);min-width:20px;text-align:center;">'+(i+1)+'</span>'+
+      '<input class="input pf-sec-name" value="'+esc(c.label)+'" placeholder="Section name (e.g. Appetizer, Aperitivo)">'+
+      '<button type="button" class="btn btn-danger btn-sm" onclick="pfDelSection(this)" style="padding:4px 8px;font-size:11px;">✕</button>'+
+    '</div>';
+  }).join('');
+
+  /* Build dish rows */
+  var dishRows=pf.dishes.sort(function(a,b){
+    var ca=pf.courses.find(function(c){return c.label===a.course;});
+    var cb=pf.courses.find(function(c){return c.label===b.course;});
+    var oa=ca?ca.order:99, ob=cb?cb.order:99;
+    if(oa!==ob) return oa-ob;
+    return (a.order||0)-(b.order||0);
+  }).map(function(d,i){
+    var courseOpts=pf.courses.map(function(c){return '<option value="'+esc(c.label)+'"'+(d.course===c.label?' selected':'')+'>'+esc(c.label)+'</option>';}).join('');
+    var photoPreview=d.photoUrl?'<img class="upload-preview" src="'+esc(d.photoUrl)+'" style="width:80px;height:56px;object-fit:cover;border-radius:6px;border:2px solid var(--gold-soft);">':'';
+    return '<div class="pf-opt-row" data-dish-id="'+d.id+'">'+
+      '<button class="btn btn-danger btn-sm btn-del-opt" type="button" onclick="pfDelOpt(this)">✕</button>'+
+      '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'+
+        '<div class="pf-dish-order">'+
+          '<button type="button" onclick="pfDishMove(this,-1)" title="Move up">▲</button>'+
+          '<button type="button" onclick="pfDishMove(this,1)" title="Move down">▼</button>'+
+        '</div>'+
+        '<select class="pf-o-category" onchange="pfUpdatePreview()">'+courseOpts+'</select>'+
+      '</div>'+
+      '<div class="pf-opt-fields">'+
+        '<input class="input pf-o-name" placeholder="Dish name (e.g. Egg Yolk Ravioli with Black Truffles)" value="'+esc(d.name)+'">'+
+        '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$0" value="'+(d.upcharge||0)+'" title="Extra charge on top of base price">'+
+      '</div>'+
+      '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;">Description</label>'+
+      '<textarea class="input pf-o-desc" placeholder="Describe the dish — ingredients, preparation, etc. This shows on the iPad menu for guests.">'+esc(d.desc||'')+'</textarea>'+
+      '<div class="pf-opt-photo-row">'+
+        '<input class="input pf-o-photo" placeholder="Photo URL" value="'+esc(d.photoUrl||'')+'" style="flex:1;" oninput="showPhotoPreview(this,this.value)">'+
+        '<button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:6px 10px;font-size:12px;">📷 Upload</button>'+
+        photoPreview+
+      '</div>'+
     '</div>';
   }).join('');
 
@@ -2702,10 +2763,17 @@ function openPrixFixeEditor(id){
       fld('Service','<select class="input" id="pf-service">'+opts(['breakfast','brunch','lunch','dinner','all day'],pf.service||'dinner')+'</select>')+
       fld('Status','<select class="input" id="pf-active">'+opts(['Active','Inactive'],pf.active?'Active':'Inactive')+'</select>')+
     '</div>'+
-    '<div class="ff"><label>Courses (guests choose one option per course)</label>'+
-      '<div id="pf-courses">'+courseBlocks+'</div>'+
-      '<button class="btn btn-ghost btn-sm" id="pf-add-course" type="button">+ Add Course</button>'+
+    '<div class="pf-sections-mgr">'+
+      '<h4>Course Sections (name &amp; order as shown to customer)</h4>'+
+      '<div id="pf-sections">'+sectionsHtml+'</div>'+
+      '<button class="btn btn-ghost btn-sm" type="button" id="pf-add-section" style="margin-top:8px;">+ Add Section</button>'+
     '</div>'+
+    '<div class="ff"><label>Dishes (assign each to a section above)</label>'+
+      '<div id="pf-dishes">'+dishRows+'</div>'+
+      '<button class="btn btn-ghost btn-sm" id="pf-add-dish" type="button">+ Add Dish</button>'+
+    '</div>'+
+    '<button class="btn btn-gold btn-sm" type="button" id="pf-preview-btn" style="margin-top:12px;">👁 Preview as Customer</button>'+
+    '<div id="pf-preview-area"></div>'+
     '<div class="hint-sm">Set upcharge to $0 for included options. Items with upcharge &gt; $0 will show "+$X" on the menu.</div>'+
   '</div>';
 
@@ -2717,68 +2785,192 @@ function openPrixFixeEditor(id){
     pf.service=$('pf-service').value;
     pf.active=$('pf-active').value==='Active';
 
-    // Collect courses and options
-    var courseBlocks=document.querySelectorAll('.pf-course-block');
+    /* Collect sections */
+    var secRows=document.querySelectorAll('.pf-sec-row');
     pf.courses=[];
-    courseBlocks.forEach(function(block,ci){
-      var label=block.querySelector('.pf-c-label').value.trim();
-      if(!label) return;
-      var options=[];
-      block.querySelectorAll('.pf-opt-row').forEach(function(optEl){
-        var name=optEl.querySelector('.pf-o-name').value.trim();
-        if(name){
-          options.push({
-            id:uid('pfo'),
-            name:name,
-            desc:optEl.querySelector('.pf-o-desc')?optEl.querySelector('.pf-o-desc').value.trim():'',
-            upcharge:parseFloat(optEl.querySelector('.pf-o-up').value)||0,
-            photoUrl:optEl.querySelector('.pf-o-photo')?optEl.querySelector('.pf-o-photo').value.trim():''
-          });
-        }
+    secRows.forEach(function(row,i){
+      var label=row.querySelector('.pf-sec-name').value.trim();
+      if(label) pf.courses.push({id:row.getAttribute('data-sec-id')||uid('pfc'), label:label, order:i});
+    });
+
+    /* Collect dishes */
+    var dishEls=document.querySelectorAll('#pf-dishes .pf-opt-row');
+    pf.dishes=[];
+    dishEls.forEach(function(el,i){
+      var name=el.querySelector('.pf-o-name').value.trim();
+      if(!name) return;
+      pf.dishes.push({
+        id:el.getAttribute('data-dish-id')||uid('pfd'),
+        name:name,
+        course:el.querySelector('.pf-o-category').value,
+        desc:el.querySelector('.pf-o-desc')?el.querySelector('.pf-o-desc').value.trim():'',
+        upcharge:parseFloat(el.querySelector('.pf-o-up').value)||0,
+        photoUrl:el.querySelector('.pf-o-photo')?el.querySelector('.pf-o-photo').value.trim():'',
+        order:i
       });
-      pf.courses.push({id:uid('pfc'), label:label, options:options});
+    });
+
+    /* Also rebuild legacy courses format for POS/iPad/Kitchen compatibility */
+    pf.courses.forEach(function(c){
+      c.options=pf.dishes.filter(function(d){return d.course===c.label;}).sort(function(a,b){return a.order-b.order;}).map(function(d){
+        return {id:d.id, name:d.name, desc:d.desc, upcharge:d.upcharge, photoUrl:d.photoUrl};
+      });
     });
 
     if(isNew) STATE.prixFixeMenus.push(pf);
     savePrixFixeMenus(); toast('Prix fixe menu saved','success'); render();
   }, function(){
-    $('pf-add-course').addEventListener('click', function(){
-      var container=$('pf-courses');
-      var ci=container.querySelectorAll('.pf-course-block').length;
-      var block=document.createElement('div');
-      block.className='pf-course-block';
-      block.setAttribute('data-ci',ci);
-      block.innerHTML='<div class="pf-cb-head">'+
-        '<input class="input pf-c-label" placeholder="Course label (e.g. Appetizer)" value="">'+
-        '<button class="btn btn-danger btn-sm" type="button" onclick="pfDelCourse(this)">✕ Remove Course</button>'+
+    /* Bind add section */
+    $('pf-add-section').addEventListener('click', function(){
+      var container=$('pf-sections');
+      var row=document.createElement('div');
+      row.className='pf-sec-row';
+      row.setAttribute('data-sec-id',uid('pfc'));
+      var idx=container.querySelectorAll('.pf-sec-row').length;
+      row.innerHTML='<div class="pf-sec-order">'+
+        '<button type="button" onclick="pfSecMove(this,-1)" title="Move up">▲</button>'+
+        '<button type="button" onclick="pfSecMove(this,1)" title="Move down">▼</button>'+
       '</div>'+
-      '<div class="pf-opts-container" data-ci="'+ci+'"></div>'+
-      '<button class="btn btn-ghost btn-sm pf-add-opt" type="button" onclick="pfAddOpt(this,'+ci+')">+ Add Option</button>';
-      container.appendChild(block);
+      '<span style="font-size:12px;color:var(--text-dim);min-width:20px;text-align:center;">'+(idx+1)+'</span>'+
+      '<input class="input pf-sec-name" value="" placeholder="Section name (e.g. Appetizer, Aperitivo)">'+
+      '<button type="button" class="btn btn-danger btn-sm" onclick="pfDelSection(this)" style="padding:4px 8px;font-size:11px;">✕</button>';
+      container.appendChild(row);
+      pfRefreshCategoryDropdowns();
+    });
+    /* Bind add dish */
+    $('pf-add-dish').addEventListener('click', function(){
+      pfAddDish();
+    });
+    /* Bind preview */
+    $('pf-preview-btn').addEventListener('click', function(){
+      pfUpdatePreview();
     });
   }, id?'<button class="btn btn-danger" onclick="deletePrixFixeMenu(\''+id+'\')">Delete</button>':'');
 }
 
-function pfAddOpt(btn, ci){
-  var container=btn.previousElementSibling;
-  var oi=container.querySelectorAll('.pf-opt-row').length;
+/* Add a new dish row */
+function pfAddDish(){
+  var container=$('pf-dishes');
   var row=document.createElement('div');
   row.className='pf-opt-row';
-  row.setAttribute('data-ci',ci);
-  row.setAttribute('data-oi',oi);
-  row.innerHTML='<button class="btn btn-danger btn-sm btn-del-opt" type="button" onclick="pfDelOpt(this)">\u2715</button>'+
+  row.setAttribute('data-dish-id',uid('pfd'));
+  /* Get current sections for dropdown */
+  var secNames=[];
+  document.querySelectorAll('.pf-sec-name').forEach(function(el){var v=el.value.trim();if(v)secNames.push(v);});
+  var courseOpts=secNames.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join('');
+  if(!courseOpts) courseOpts='<option value="">— add a section first —</option>';
+  row.innerHTML='<button class="btn btn-danger btn-sm btn-del-opt" type="button" onclick="pfDelOpt(this)">✕</button>'+
+    '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'+
+      '<div class="pf-dish-order">'+
+        '<button type="button" onclick="pfDishMove(this,-1)" title="Move up">▲</button>'+
+        '<button type="button" onclick="pfDishMove(this,1)" title="Move down">▼</button>'+
+      '</div>'+
+      '<select class="pf-o-category" onchange="pfUpdatePreview()">'+courseOpts+'</select>'+
+    '</div>'+
     '<div class="pf-opt-fields">'+
       '<input class="input pf-o-name" placeholder="Dish name (e.g. Egg Yolk Ravioli with Black Truffles)" value="">'+
       '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$0" value="0" title="Extra charge on top of base price">'+
     '</div>'+
     '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;">Description</label>'+
-    '<textarea class="input pf-o-desc" placeholder="Describe the dish \u2014 ingredients, preparation, etc. This shows on the iPad menu for guests."></textarea>'+
+    '<textarea class="input pf-o-desc" placeholder="Describe the dish — ingredients, preparation, etc. This shows on the iPad menu for guests."></textarea>'+
     '<div class="pf-opt-photo-row">'+
       '<input class="input pf-o-photo" placeholder="Photo URL" value="" style="flex:1;" oninput="showPhotoPreview(this,this.value)">'+
-      '<button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:6px 10px;font-size:12px;">\ud83d\udcf7 Upload</button>'+
+      '<button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:6px 10px;font-size:12px;">📷 Upload</button>'+
     '</div>';
   container.appendChild(row);
 }
+
+/* Move dish up/down */
+function pfDishMove(btn, dir){
+  var row=btn.closest('.pf-opt-row');
+  var container=row.parentElement;
+  var rows=Array.from(container.querySelectorAll('.pf-opt-row'));
+  var idx=rows.indexOf(row);
+  var target=idx+dir;
+  if(target<0||target>=rows.length) return;
+  if(dir===-1) container.insertBefore(row,rows[target]);
+  else container.insertBefore(rows[target],row);
+}
+
+/* Move section up/down */
+function pfSecMove(btn, dir){
+  var row=btn.closest('.pf-sec-row');
+  var container=row.parentElement;
+  var rows=Array.from(container.querySelectorAll('.pf-sec-row'));
+  var idx=rows.indexOf(row);
+  var target=idx+dir;
+  if(target<0||target>=rows.length) return;
+  if(dir===-1) container.insertBefore(row,rows[target]);
+  else container.insertBefore(rows[target],row);
+  /* Update numbering */
+  container.querySelectorAll('.pf-sec-row').forEach(function(r,i){
+    r.querySelector('span').textContent=(i+1);
+  });
+}
+
+/* Delete section */
+function pfDelSection(btn){
+  btn.closest('.pf-sec-row').remove();
+  pfRefreshCategoryDropdowns();
+  /* Renumber */
+  document.querySelectorAll('#pf-sections .pf-sec-row').forEach(function(r,i){
+    r.querySelector('span').textContent=(i+1);
+  });
+}
+
+/* Refresh all category dropdowns when sections change */
+function pfRefreshCategoryDropdowns(){
+  var secNames=[];
+  document.querySelectorAll('.pf-sec-name').forEach(function(el){var v=el.value.trim();if(v)secNames.push(v);});
+  document.querySelectorAll('.pf-o-category').forEach(function(sel){
+    var cur=sel.value;
+    sel.innerHTML=secNames.map(function(s){return '<option value="'+esc(s)+'"'+(s===cur?' selected':'')+'>'+esc(s)+'</option>';}).join('');
+    if(!secNames.length) sel.innerHTML='<option value="">— add a section first —</option>';
+  });
+}
+
+/* Live preview */
+function pfUpdatePreview(){
+  var area=$('pf-preview-area');
+  if(!area) return;
+  var menuName=$('pf-name')?$('pf-name').value.trim():'Prix Fixe';
+  var subtitle=$('pf-sub')?$('pf-sub').value.trim():'';
+  var price=$('pf-price')?$('pf-price').value:'';
+  /* Gather sections in order */
+  var sections=[];
+  document.querySelectorAll('#pf-sections .pf-sec-row').forEach(function(r,i){
+    var label=r.querySelector('.pf-sec-name').value.trim();
+    if(label) sections.push({label:label, order:i, dishes:[]});
+  });
+  /* Gather dishes */
+  document.querySelectorAll('#pf-dishes .pf-opt-row').forEach(function(el,i){
+    var name=el.querySelector('.pf-o-name').value.trim();
+    if(!name) return;
+    var cat=el.querySelector('.pf-o-category').value;
+    var up=parseFloat(el.querySelector('.pf-o-up').value)||0;
+    var sec=sections.find(function(s){return s.label===cat;});
+    if(sec) sec.dishes.push({name:name, upcharge:up});
+  });
+  /* Render preview */
+  var html='<div class="pf-preview-panel">';
+  html+='<h3>'+esc(menuName||'Prix Fixe')+'</h3>';
+  if(subtitle) html+='<div class="pf-prev-sub">'+esc(subtitle)+'</div>';
+  if(price) html+='<div style="font-size:13px;color:var(--gold);margin-bottom:12px;">$'+parseFloat(price).toFixed(2)+' per person</div>';
+  sections.forEach(function(sec){
+    html+='<div class="pf-prev-section">';
+    html+='<h4>'+esc(sec.label)+' — choose 1</h4>';
+    if(!sec.dishes.length) html+='<div style="color:var(--text-faint);font-size:12px;font-style:italic;">No dishes assigned</div>';
+    sec.dishes.forEach(function(d){
+      html+='<div class="pf-prev-item"><span class="name">'+esc(d.name)+'</span>';
+      if(d.upcharge>0) html+='<span class="up">+$'+d.upcharge.toFixed(0)+'</span>';
+      html+='</div>';
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+  area.innerHTML=html;
+}
+
 function pfDelOpt(btn){ btn.closest('.pf-opt-row').remove(); }
 function pfDelCourse(btn){ btn.closest('.pf-course-block').remove(); }
 function deletePrixFixeMenu(id){
