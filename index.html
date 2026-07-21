@@ -444,7 +444,7 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .pf-opt-row{display:grid;grid-template-columns:1fr;gap:8px;padding:12px;margin-bottom:10px;background:rgba(11,20,32,0.5);border:1px solid var(--border-soft);border-radius:10px;position:relative;}
 .pf-opt-row .pf-opt-fields{display:grid;grid-template-columns:1fr 80px;gap:8px;align-items:center;}
 .pf-opt-row textarea.pf-o-desc{width:100%;min-height:60px;resize:vertical;font-size:13px;padding:8px;border-radius:8px;background:var(--panel-1);border:1px solid var(--border-soft);color:var(--text);font-family:inherit;}
-.pf-opt-row .pf-opt-photo-row{display:flex;gap:8px;align-items:center;}
+.pf-opt-row .pf-opt-photo-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .pf-opt-row .upload-preview{width:80px;height:56px;object-fit:cover;border-radius:6px;border:2px solid var(--gold-soft);display:block;}
 .pf-opt-row .btn-del-opt{position:absolute;top:8px;right:8px;}
 .pf-opt-header{display:none;}
@@ -457,6 +457,7 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 <div id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-storage-compat.js"></script>
 <script>
@@ -469,8 +470,11 @@ var firebaseConfig = {
   appId: "1:320703681087:web:04f7c9a17637388a039e8a"
 };
 var fbApp=null, fbDb=null, fbReady=false;
-var fbStorage=null;
-try{ fbApp=firebase.initializeApp(firebaseConfig); fbDb=firebase.firestore(); fbStorage=firebase.storage(); fbReady=true; }
+var fbStorage=null, fbAuth=null;
+try{ fbApp=firebase.initializeApp(firebaseConfig); fbDb=firebase.firestore(); fbStorage=firebase.storage(); fbAuth=firebase.auth(); fbReady=true;
+  /* Sign in anonymously so Firebase Storage uploads work */
+  fbAuth.signInAnonymously().catch(function(e){ console.warn('Anonymous auth failed:',e); });
+}
 catch(e){ console.warn('Firebase init failed — local-only mode', e); fbReady=false; }
 /* --- Firebase Storage Upload Helper --- */
 var _uploadTarget=null;
@@ -488,21 +492,16 @@ function handlePhotoUpload(fileInput){
   var path='menu-photos/'+Date.now()+'_'+Math.random().toString(36).substr(2,6)+'.'+ext;
   var ref=fbStorage.ref(path);
   toast('Uploading photo...','');
-  ref.put(file).then(function(snapshot){
+  /* Ensure user is signed in before upload */
+  var authReady = (fbAuth && !fbAuth.currentUser) ? fbAuth.signInAnonymously() : Promise.resolve();
+  authReady.then(function(){
+    return ref.put(file);
+  }).then(function(snapshot){
     return snapshot.ref.getDownloadURL();
   }).then(function(url){
     if(_uploadTarget){
       _uploadTarget.value=url;
-      /* Show preview if possible */
-      var preview=_uploadTarget.parentElement.querySelector('.upload-preview');
-      if(preview){preview.src=url;preview.style.display='block';}
-      else{
-        var img=document.createElement('img');
-        img.className='upload-preview';
-        img.src=url;
-        img.style.cssText='width:120px;height:80px;margin-top:6px;border-radius:8px;object-fit:cover;display:block;border:2px solid #c9a96e;';
-        _uploadTarget.parentElement.appendChild(img);
-      }
+      showPhotoPreview(_uploadTarget, url);
     }
     toast('Photo uploaded!','success');
     fileInput.value='';
@@ -511,6 +510,25 @@ function handlePhotoUpload(fileInput){
     toast('Upload failed: '+err.message,'error');
     fileInput.value='';
   });
+}
+/* Show/update photo preview next to any photo URL input */
+function showPhotoPreview(input, url){
+  var container=input.closest('.pf-opt-photo-row') || input.closest('.mc-photo-row') || input.parentElement;
+  var preview=container.querySelector('.upload-preview');
+  if(!url || !url.startsWith('http')){
+    if(preview) preview.style.display='none';
+    return;
+  }
+  if(preview){
+    preview.src=url;
+    preview.style.display='block';
+  } else {
+    var img=document.createElement('img');
+    img.className='upload-preview';
+    img.src=url;
+    img.style.cssText='width:80px;height:56px;margin-top:0;border-radius:6px;object-fit:cover;display:block;border:2px solid var(--gold-soft);flex-shrink:0;';
+    container.appendChild(img);
+  }
 }
 </script>
 <input type="file" id="photo-file-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
@@ -1998,7 +2016,7 @@ function openItemEditor(id){
       fld('Cost ($)','<input class="input" id="ie-cost" type="number" step="0.01" value="'+it.cost+'">')+'</div>'+
     fld('Name','<input class="input" id="ie-name" value="'+esc(it.name)+'" placeholder="Dish name">')+
     fld('Description (shown to customers on iPad menu & servers on POS)','<textarea class="input" id="ie-desc" rows="3" placeholder="Full description of the dish — ingredients, preparation, presentation">'+esc(it.desc)+'</textarea>')+
-    fld('Photo','<div style="display:flex;gap:8px;align-items:center;"><input class="input" id="ie-photo" value="'+esc(it.photoUrl||'')+'" placeholder="Paste URL or click Upload" style="flex:1;"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(document.getElementById(\'ie-photo\'))">📷 Upload</button></div>'+(it.photoUrl?'<img src="'+esc(it.photoUrl)+'" class="upload-preview" style="max-width:120px;max-height:80px;margin-top:4px;border-radius:6px;object-fit:cover;">':''))+
+    fld('Photo','<div class="mc-photo-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input class="input" id="ie-photo" value="'+esc(it.photoUrl||'')+'" placeholder="Paste URL or click Upload" style="flex:1;" oninput="showPhotoPreview(this,this.value)"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(document.getElementById(\'ie-photo\'))">📷 Upload</button>'+(it.photoUrl?'<img src="'+esc(it.photoUrl)+'" class="upload-preview" style="width:80px;height:56px;object-fit:cover;border-radius:6px;border:2px solid var(--gold-soft);">':'')+'</div>')+
     '<div class="ff-row cols-2">'+fld('Cook time (minutes)','<input class="input" id="ie-cook" type="number" value="'+(it.cookMin||0)+'">')+
       fld('Kitchen station','<select class="input" id="ie-station">'+opts(KITCHEN_STATIONS,it.station)+'</select>')+'</div>'+
     fld('Categories (an item can be in several)','<div class="cbx-grid">'+catChecks+'</div>')+
@@ -2514,7 +2532,7 @@ function openTastingEditor(id){
       '<input class="input tm-c-desc" placeholder="Description" value="'+esc(c.desc||'')+'">'+
       '<select class="input tm-c-station">'+opts(KITCHEN_STATIONS,c.station)+'</select>'+
       '<input class="input tm-c-upcharge" type="number" step="0.01" placeholder="+$ Upcharge" value="'+(c.upcharge||0)+'" title="Extra charge (0=included)">'+
-      '<span style="display:flex;gap:4px;align-items:center;"><input class="input tm-c-photo" placeholder="Photo URL" value="'+esc(c.photoUrl||'')+'" style="flex:1;"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="white-space:nowrap;padding:4px 8px;font-size:11px;">📷</button></span>'+
+      '<span style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;"><input class="input tm-c-photo" placeholder="Photo URL" value="'+esc(c.photoUrl||'')+'" style="flex:1;" oninput="showPhotoPreview(this,this.value)"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="white-space:nowrap;padding:4px 8px;font-size:11px;">📷</button>'+(c.photoUrl?'<img class="upload-preview" src="'+esc(c.photoUrl)+'" style="width:60px;height:40px;object-fit:cover;border-radius:4px;border:1px solid var(--gold-soft);">':'')+'</span>'+
       '<button class="btn btn-danger btn-sm tm-c-del" type="button" onclick="tmDelCourse(this)">✕</button>'+
     '</div>';
   }).join('');
@@ -2604,7 +2622,7 @@ function openTastingEditor(id){
         '<input class="input tm-c-desc" placeholder="Description" value="">'+
         '<select class="input tm-c-station">'+opts(KITCHEN_STATIONS,'Sauté')+'</select>'+
         '<input class="input tm-c-upcharge" type="number" step="0.01" placeholder="+$ Upcharge" value="0" title="Extra charge (0=included)">'+
-        '<span style="display:flex;gap:4px;align-items:center;"><input class="input tm-c-photo" placeholder="Photo URL" value="" style="flex:1;"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="white-space:nowrap;padding:4px 8px;font-size:11px;">📷</button></span>'+
+        '<span style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;"><input class="input tm-c-photo" placeholder="Photo URL" value="" style="flex:1;" oninput="showPhotoPreview(this,this.value)"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="white-space:nowrap;padding:4px 8px;font-size:11px;">📷</button></span>'+
         '<button class="btn btn-danger btn-sm tm-c-del" type="button" onclick="tmDelCourse(this)">✕</button>';
       container.appendChild(row);
     });
@@ -2657,7 +2675,7 @@ function openPrixFixeEditor(id){
         '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;">Description</label>'+
         '<textarea class="input pf-o-desc" placeholder="Describe the dish — ingredients, preparation, etc. This shows on the iPad menu for guests.">'+esc(o.desc||'')+'</textarea>'+
         '<div class="pf-opt-photo-row">'+
-          '<input class="input pf-o-photo" placeholder="Photo URL" value="'+esc(o.photoUrl||'')+'" style="flex:1;">'+
+          '<input class="input pf-o-photo" placeholder="Photo URL" value="'+esc(o.photoUrl||'')+'" style="flex:1;" oninput="showPhotoPreview(this,this.value)">'+
           '<button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:6px 10px;font-size:12px;">📷 Upload</button>'+
           photoPreview+
         '</div>'+
@@ -2756,7 +2774,7 @@ function pfAddOpt(btn, ci){
     '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;">Description</label>'+
     '<textarea class="input pf-o-desc" placeholder="Describe the dish \u2014 ingredients, preparation, etc. This shows on the iPad menu for guests."></textarea>'+
     '<div class="pf-opt-photo-row">'+
-      '<input class="input pf-o-photo" placeholder="Photo URL" value="" style="flex:1;">'+
+      '<input class="input pf-o-photo" placeholder="Photo URL" value="" style="flex:1;" oninput="showPhotoPreview(this,this.value)">'+
       '<button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:6px 10px;font-size:12px;">\ud83d\udcf7 Upload</button>'+
     '</div>';
   container.appendChild(row);
