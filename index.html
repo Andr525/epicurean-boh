@@ -2900,6 +2900,8 @@ function openPrixFixeEditor(id){
   }).map(function(d,i){
     var courseOpts=pf.courses.map(function(c){return '<option value="'+esc(c.label)+'"'+(d.course===c.label?' selected':'')+'>'+esc(c.label)+'</option>';}).join('');
     var photoPreview=d.photoUrl?'<img class="upload-preview" src="'+esc(d.photoUrl)+'" style="width:80px;height:56px;object-fit:cover;border-radius:6px;border:2px solid var(--gold-soft);">':'';
+    var glassWines=(STATE.wines||[]).map(function(w){ return w.name+' ('+w.varietal+', $'+(w.glassPrice||12)+'/glass)'; });
+    var wineOpts='<option value="">— Select Wine Pairing (Manual or AI) —</option>'+glassWines.map(function(w){ return '<option value="'+esc(w)+'"'+(d.pairing===w?' selected':'')+'>'+esc(w)+'</option>'; }).join('');
     return '<div class="pf-opt-row" data-dish-id="'+d.id+'">'+
       '<button class="btn btn-danger btn-sm btn-del-opt" type="button" onclick="pfDelOpt(this)">✕</button>'+
       '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'+
@@ -2907,15 +2909,22 @@ function openPrixFixeEditor(id){
           '<button type="button" onclick="pfDishMove(this,-1)" title="Move up">▲</button>'+
           '<button type="button" onclick="pfDishMove(this,1)" title="Move down">▼</button>'+
         '</div>'+
-        '<select class="pf-o-category" onchange="pfUpdatePreview()">'+courseOpts+'</select>'+
+        '<select class="pf-o-category" onchange="pfUpdatePreview()" title="Assign dish course (Appetizer, Main, Dessert, etc.)">'+courseOpts+'</select>'+
       '</div>'+
       '<div class="pf-opt-fields">'+
-        '<input class="input pf-o-name" placeholder="Dish name (e.g. Egg Yolk Ravioli with Black Truffles)" value="'+esc(d.name)+'">'+
-        '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$0" value="'+(d.upcharge||0)+'" title="Extra charge on top of base price">'+
+        '<input class="input pf-o-name" placeholder="Dish name (e.g. Seared Scallops)" value="'+esc(d.name)+'">'+
+        '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$0 Extra Charge" value="'+(d.upcharge||0)+'" title="Extra charge on top of base prix fixe price">'+
       '</div>'+
       '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;">Description</label>'+
-      '<textarea class="input pf-o-desc" placeholder="Describe the dish — ingredients, preparation, etc. This shows on the iPad menu for guests.">'+esc(d.desc||'')+'</textarea>'+
-      '<div class="pf-opt-photo-row">'+
+      '<textarea class="input pf-o-desc" placeholder="Describe ingredients, preparation, and flavor profile for guests...">'+esc(d.desc||'')+'</textarea>'+
+      '<div style="margin-top:8px;">'+
+        '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'+
+          '<label style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.4px;">Wine Pairing (Glass)</label>'+
+          '<button type="button" class="btn btn-ghost btn-sm" onclick="aiSuggestWinePairing(this)" style="padding:2px 8px;font-size:11px;">✨ AI Suggest Pairing</button>'+
+        '</div>'+
+        '<select class="input pf-o-pairing">'+wineOpts+'</select>'+
+      '</div>'+
+      '<div class="pf-opt-photo-row" style="margin-top:8px;">'+
         '<input class="input pf-o-photo" placeholder="Photo URL" value="'+esc(d.photoUrl||'')+'" style="flex:1;" oninput="showPhotoPreview(this,this.value)">'+
         '<button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:6px 10px;font-size:12px;">📷 Upload</button>'+
         photoPreview+
@@ -2975,6 +2984,7 @@ function openPrixFixeEditor(id){
         course:el.querySelector('.pf-o-category').value,
         desc:el.querySelector('.pf-o-desc')?el.querySelector('.pf-o-desc').value.trim():'',
         upcharge:parseFloat(el.querySelector('.pf-o-up').value)||0,
+        pairing:el.querySelector('.pf-o-pairing')?el.querySelector('.pf-o-pairing').value:'',
         photoUrl:el.querySelector('.pf-o-photo')?el.querySelector('.pf-o-photo').value.trim():'',
         order:i
       });
@@ -2983,7 +2993,7 @@ function openPrixFixeEditor(id){
     /* Also rebuild legacy courses format for POS/iPad/Kitchen compatibility */
     pf.courses.forEach(function(c){
       c.options=pf.dishes.filter(function(d){return d.course===c.label;}).sort(function(a,b){return a.order-b.order;}).map(function(d){
-        return {id:d.id, name:d.name, desc:d.desc, upcharge:d.upcharge, photoUrl:d.photoUrl};
+        return {id:d.id, name:d.name, desc:d.desc, upcharge:d.upcharge, pairing:d.pairing, photoUrl:d.photoUrl};
       });
     });
 
@@ -3039,21 +3049,30 @@ function pfAddDish(){
   document.querySelectorAll('.pf-sec-name').forEach(function(el){var v=el.value.trim();if(v)secNames.push(v);});
   var courseOpts=secNames.map(function(s){return '<option value="'+esc(s)+'">'+esc(s)+'</option>';}).join('');
   if(!courseOpts) courseOpts='<option value="">— add a section first —</option>';
+  var glassWines=(STATE.wines||[]).map(function(w){ return w.name+' ('+w.varietal+', $'+(w.glassPrice||12)+'/glass)'; });
+  var wineOpts='<option value="">— Select Wine Pairing (Manual or AI) —</option>'+glassWines.map(function(w){ return '<option value="'+esc(w)+'">'+esc(w)+'</option>'; }).join('');
   row.innerHTML='<button class="btn btn-danger btn-sm btn-del-opt" type="button" onclick="pfDelOpt(this)">✕</button>'+
     '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'+
       '<div class="pf-dish-order">'+
         '<button type="button" onclick="pfDishMove(this,-1)" title="Move up">▲</button>'+
         '<button type="button" onclick="pfDishMove(this,1)" title="Move down">▼</button>'+
       '</div>'+
-      '<select class="pf-o-category" onchange="pfUpdatePreview()">'+courseOpts+'</select>'+
+      '<select class="pf-o-category" onchange="pfUpdatePreview()" title="Assign dish course">'+courseOpts+'</select>'+
     '</div>'+
     '<div class="pf-opt-fields">'+
-      '<input class="input pf-o-name" placeholder="Dish name (e.g. Egg Yolk Ravioli with Black Truffles)" value="">'+
-      '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$0" value="0" title="Extra charge on top of base price">'+
+      '<input class="input pf-o-name" placeholder="Dish name (e.g. Seared Scallops)" value="">'+
+      '<input class="input pf-o-up" type="number" step="0.01" placeholder="+$0 Extra Charge" value="0" title="Extra charge on top of base prix fixe price">'+
     '</div>'+
     '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;">Description</label>'+
-    '<textarea class="input pf-o-desc" placeholder="Describe the dish — ingredients, preparation, etc. This shows on the iPad menu for guests."></textarea>'+
-    '<div class="pf-opt-photo-row">'+
+    '<textarea class="input pf-o-desc" placeholder="Describe ingredients, preparation, and flavor profile for guests..."></textarea>'+
+    '<div style="margin-top:8px;">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'+
+        '<label style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.4px;">Wine Pairing (Glass)</label>'+
+        '<button type="button" class="btn btn-ghost btn-sm" onclick="aiSuggestWinePairing(this)" style="padding:2px 8px;font-size:11px;">✨ AI Suggest Pairing</button>'+
+      '</div>'+
+      '<select class="input pf-o-pairing">'+wineOpts+'</select>'+
+    '</div>'+
+    '<div class="pf-opt-photo-row" style="margin-top:8px;">'+
       '<input class="input pf-o-photo" placeholder="Photo URL" value="" style="flex:1;" oninput="showPhotoPreview(this,this.value)">'+
       '<button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(this.previousElementSibling)" style="padding:6px 10px;font-size:12px;">📷 Upload</button>'+
     '</div>';
@@ -3183,6 +3202,41 @@ function scanAllAllergens(){
     });
   });
 }
+
+/* AI Wine Pairing Suggester for Prix Fixe Dishes (with manual override) */
+function aiSuggestWinePairing(btn){
+  var row = btn.closest('.pf-opt-row');
+  var name = (row.querySelector('.pf-o-name').value||'').toLowerCase();
+  var desc = (row.querySelector('.pf-o-desc').value||'').toLowerCase();
+  var category = (row.querySelector('.pf-o-category').value||'').toLowerCase();
+  var select = row.querySelector('.pf-o-pairing');
+  if(!select) return;
+
+  var wines = STATE.wines || [];
+  if(!wines.length){ toast('No wines available in inventory','error'); return; }
+
+  /* Intelligent wine matching based on ingredient/dish profile */
+  var bestWine = wines[0];
+  var combined = name + ' ' + desc;
+  if(combined.indexOf('chocolate')>=0 || combined.indexOf('dessert')>=0 || category.indexOf('dessert')>=0){
+    bestWine = wines.filter(function(w){return (w.varietal||'').toLowerCase().indexOf('port')>=0 || (w.varietal||'').toLowerCase().indexOf('chardonnay')>=0;})[0] || wines[0];
+  } else if(combined.indexOf('steak')>=0 || combined.indexOf('beef')>=0 || combined.indexOf('lamb')>=0 || combined.indexOf('ribeye')>=0 || combined.indexOf('duck')>=0){
+    bestWine = wines.filter(function(w){return (w.varietal||'').toLowerCase().indexOf('malbec')>=0 || (w.varietal||'').toLowerCase().indexOf('cabernet')>=0;})[0] || wines[0];
+  } else if(combined.indexOf('fish')>=0 || combined.indexOf('salmon')>=0 || combined.indexOf('ceviche')>=0 || combined.indexOf('scallop')>=0 || combined.indexOf('lobster')>=0){
+    bestWine = wines.filter(function(w){return (w.varietal||'').toLowerCase().indexOf('chardonnay')>=0 || (w.varietal||'').toLowerCase().indexOf('sauvignon')>=0;})[0] || wines[1] || wines[0];
+  }
+
+  for(var i=0; i<select.options.length; i++){
+    if(select.options[i].value.indexOf(bestWine.name)>=0){
+      select.selectedIndex = i;
+      toast('✨ AI Suggested Pairing: '+bestWine.name+' (Manager can override anytime)','success');
+      return;
+    }
+  }
+  toast('✨ AI Suggested: '+bestWine.name,'success');
+}
 </script>
 </body>
 </html>
+
+
