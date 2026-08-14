@@ -253,8 +253,10 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .modal-backdrop{position:fixed;inset:0;background:rgba(5,9,15,0.7);backdrop-filter:blur(4px);z-index:100;
   display:flex;align-items:center;justify-content:center;padding:24px;animation:fade .2s var(--ease-out);}
 @keyframes fade{from{opacity:0;}to{opacity:1;}}
-.modal{width:100%;max-width:560px;max-height:88vh;overflow-y:auto;background:linear-gradient(180deg,var(--panel),var(--bg-2));
-  border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);padding:28px;animation:rise .3s var(--ease-out);}
+.modal{width:100%;max-width:640px;max-height:92vh;overflow-y:auto;background:linear-gradient(180deg,var(--panel),var(--bg-2));
+  border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow);padding:28px;animation:rise .3s var(--ease-out);scrollbar-width:thin;scrollbar-color:var(--gold) var(--panel);}
+.modal::-webkit-scrollbar{width:6px;}
+.modal::-webkit-scrollbar-thumb{background:var(--gold-soft);border-radius:3px;}
 .modal-title{font-family:'Cormorant Garamond',serif;font-size:25px;margin-bottom:18px;}
 .modal-foot{display:flex;gap:12px;margin-top:24px;}
 .modal-foot .btn{flex:1;}
@@ -2046,11 +2048,11 @@ function deleteGuest(id){ STATE.guests=STATE.guests.filter(function(x){return x.
 var MODAL_OK=null;
 function openModal(title,bodyHTML,okLabel,onOk,afterRender,extraFootBtn){
   MODAL_OK=onOk;
-  $('modal-root').innerHTML='<div class="modal-backdrop" id="mb"><div class="modal"><div class="modal-title serif">'+title+'</div>'+bodyHTML+
+  $('modal-root').innerHTML='<div class="modal-backdrop" id="mb"><div class="modal"><div class="modal-title serif">'+title+'</div><div style="max-height:68vh;overflow-y:auto;padding-right:4px;scrollbar-width:thin;">'+bodyHTML+'</div>'+
     '<div class="modal-foot">'+(extraFootBtn||'')+'<button class="btn btn-ghost" onclick="closeModal()">Cancel</button><button class="btn btn-gold" id="modal-ok">'+okLabel+'</button></div></div></div>';
   $('modal-ok').addEventListener('click',function(){ if(MODAL_OK){ var keep=MODAL_OK(); if(keep!==false)closeModal(); } else closeModal(); });
   $('mb').addEventListener('click',function(e){ if(e.target.id==='mb')closeModal(); });
-  if(afterRender)afterRender();
+  if(typeof afterRender==='function') afterRender();
 }
 function closeModal(){ $('modal-root').innerHTML=''; MODAL_OK=null; }
 
