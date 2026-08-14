@@ -2653,6 +2653,29 @@ syncFromCloud = function(){
   });
 };
 
+function showDishPhotoModal(photoUrl, title, desc) {
+  let modal = document.getElementById('dish-photo-lightbox');
+  if (!modal) {
+    modal = document.createElement('div');
+    modal.id = 'dish-photo-lightbox';
+    modal.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.85);z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:2rem;';
+    document.body.appendChild(modal);
+  }
+  modal.innerHTML = `
+    <div style="background:#13233A;border:1px solid rgba(201,168,76,0.4);border-radius:16px;max-width:550px;width:100%;padding:1.5rem;position:relative;box-shadow:0 25px 50px -12px rgba(0,0,0,0.7);">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem;border-bottom:1px solid rgba(255,255,255,0.08);padding-bottom:0.75rem;">
+        <h3 class="serif" style="color:#F3ECDC;font-size:1.375rem;margin:0;">${title || 'Dish Photo'}</h3>
+        <button onclick="document.getElementById('dish-photo-lightbox').style.display='none'" style="background:transparent;border:none;color:rgba(243,236,220,0.7);font-size:1.5rem;cursor:pointer;padding:0 0.5rem;">&times;</button>
+      </div>
+      <div style="text-align:center;">
+        <img src="${photoUrl}" alt="${title}" style="max-height:360px;max-width:100%;border-radius:10px;object-fit:cover;border:1px solid rgba(201,168,76,0.2);" />
+        ${desc ? `<p style="color:rgba(243,236,220,0.75);font-size:0.9rem;margin-top:1rem;line-height:1.5;">${desc}</p>` : ''}
+      </div>
+    </div>
+  `;
+  modal.style.display = 'flex';
+}
+
 /* ============================================================
    PAGE: TASTING MENUS
    ============================================================ */
@@ -2698,12 +2721,35 @@ function tastingBody(){
         var upcharges=c.options.filter(function(o){return o.upcharge>0;}).length;
         return '<div class="pf-course-row"><span class="pf-label">'+esc(c.label)+'</span><span class="pf-opts">'+optCount+' options'+(upcharges?' · '+upcharges+' with upcharge':'')+'</span></div>';
       }).join('');
+      var dishesHtml='';
+      if(pf.dishes && pf.dishes.length){
+        dishesHtml='<div style="display:flex;flex-direction:column;gap:0.5rem;margin:1rem 0;">';
+        pf.dishes.forEach(function(d){
+          dishesHtml+='<div style="display:flex;align-items:center;justify-content:space-between;background:rgba(15,27,45,0.7);padding:0.5rem 0.75rem;border-radius:6px;border:1px solid rgba(255,255,255,0.06);gap:0.75rem;">'+
+            '<div style="display:flex;align-items:center;gap:0.6rem;min-width:0;">'+
+              (d.photoUrl?'<img src="'+esc(d.photoUrl)+'" onclick="event.stopPropagation(); showDishPhotoModal(\''+esc(d.photoUrl)+'\', \''+esc(d.name.replace(/'/g,"\\'") )+'\', \''+esc((d.desc||'').replace(/'/g,"\\'"))+'\')" alt="'+esc(d.name)+'" style="width:38px;height:38px;border-radius:4px;object-fit:cover;cursor:pointer;border:1px solid var(--gold-soft);flex-shrink:0;" title="Click to view photo">':'<div style="width:38px;height:38px;border-radius:4px;background:#1d3250;display:flex;align-items:center;justify-content:center;color:var(--text-faint);font-size:0.6rem;flex-shrink:0;">No Pic</div>')+
+              '<div style="min-width:0;">'+
+                '<div style="color:var(--text);font-size:0.875rem;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">'+esc(d.name)+'</div>'+
+                '<div style="color:var(--text-dim);font-size:0.7rem;display:flex;gap:0.4rem;"><span>'+esc(d.course)+'</span></div>'+
+              '</div>'+
+            '</div>'+
+            '<div style="text-align:right;flex-shrink:0;">'+
+              '<div style="color:var(--green);font-size:0.8125rem;font-weight:600;">'+(d.upcharge>0?'+$'+d.upcharge:'Included')+'</div>'+
+              (d.pairing?'<div style="color:var(--gold);font-size:0.68rem;max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">🍷 '+esc(d.pairing)+'</div>':'')+
+            '</div>'+
+          '</div>';
+        });
+        dishesHtml+='</div>';
+      } else {
+        dishesHtml='<div class="pf-courses">'+courseSum+'</div>';
+      }
+
       pfCards+='<div class="tasting-card'+(pf.active?'':' inactive')+'" onclick="openPrixFixeEditor(\''+pf.id+'\')">'+
         '<div class="tc-header"><div class="tc-title serif">'+esc(pf.name)+'</div><div class="tc-price">'+money(pf.price)+'<span class="tc-pp">/ person</span></div></div>'+
         '<div class="tc-sub">'+esc(pf.subtitle||'')+'</div>'+
         '<div class="tc-service">'+chip(pf.service||'dinner','chip-service')+(pf.active?chip('Active','chip-active'):chip('Inactive','chip-inactive'))+'</div>'+
-        '<div class="pf-courses">'+courseSum+'</div>'+
-        '<div class="tc-foot">'+pf.courses.length+' courses · Click to edit</div>'+
+        dishesHtml+
+        '<div class="tc-foot">'+pf.courses.length+' courses · '+(pf.dishes?pf.dishes.length:0)+' dishes · Click to edit</div>'+
       '</div>';
     });
   }
@@ -2901,6 +2947,7 @@ function openPrixFixeEditor(id){
     return (a.order||0)-(b.order||0);
   }).map(function(d,i){
     var courseOpts=pf.courses.map(function(c){return '<option value="'+esc(c.label)+'"'+(d.course===c.label?' selected':'')+'>'+esc(c.label)+'</option>';}).join('');
+    var stationOpts=opts(['Garde Manger','Grill','Sauté','Pastry','Bar'], d.station||'Garde Manger');
     var photoPreview=d.photoUrl?'<img class="upload-preview" src="'+esc(d.photoUrl)+'" style="width:80px;height:56px;object-fit:cover;border-radius:6px;border:2px solid var(--gold-soft);">':'';
     var glassWines=(STATE.wines||[]).map(function(w){ return w.name+' ('+w.varietal+', $'+(w.glassPrice||12)+'/glass)'; });
     var wineOpts='<option value="">— Select Wine Pairing (Manual or AI) —</option>'+glassWines.map(function(w){ return '<option value="'+esc(w)+'"'+(d.pairing===w?' selected':'')+'>'+esc(w)+'</option>'; }).join('');
@@ -2911,7 +2958,8 @@ function openPrixFixeEditor(id){
           '<button type="button" onclick="pfDishMove(this,-1)" title="Move up">▲</button>'+
           '<button type="button" onclick="pfDishMove(this,1)" title="Move down">▼</button>'+
         '</div>'+
-        '<select class="pf-o-category" onchange="pfUpdatePreview()" title="Assign dish course (Appetizer, Main, Dessert, etc.)">'+courseOpts+'</select>'+
+        '<select class="pf-o-category" onchange="pfUpdatePreview()" title="Assign dish course">'+courseOpts+'</select>'+
+        '<select class="input pf-o-station" title="Kitchen station routing">'+stationOpts+'</select>'+
       '</div>'+
       '<div class="pf-opt-fields">'+
         '<input class="input pf-o-name" placeholder="Dish name (e.g. Seared Scallops)" value="'+esc(d.name)+'">'+
@@ -2984,6 +3032,7 @@ function openPrixFixeEditor(id){
         id:el.getAttribute('data-dish-id')||uid('pfd'),
         name:name,
         course:el.querySelector('.pf-o-category').value,
+        station:el.querySelector('.pf-o-station')?el.querySelector('.pf-o-station').value:'Garde Manger',
         desc:el.querySelector('.pf-o-desc')?el.querySelector('.pf-o-desc').value.trim():'',
         upcharge:parseFloat(el.querySelector('.pf-o-up').value)||0,
         pairing:el.querySelector('.pf-o-pairing')?el.querySelector('.pf-o-pairing').value:'',
@@ -2995,7 +3044,7 @@ function openPrixFixeEditor(id){
     /* Also rebuild legacy courses format for POS/iPad/Kitchen compatibility */
     pf.courses.forEach(function(c){
       c.options=pf.dishes.filter(function(d){return d.course===c.label;}).sort(function(a,b){return a.order-b.order;}).map(function(d){
-        return {id:d.id, name:d.name, desc:d.desc, upcharge:d.upcharge, pairing:d.pairing, photoUrl:d.photoUrl};
+        return {id:d.id, name:d.name, desc:d.desc, station:d.station, upcharge:d.upcharge, pairing:d.pairing, photoUrl:d.photoUrl};
       });
     });
 
@@ -3053,6 +3102,7 @@ function pfAddDish(){
   if(!courseOpts) courseOpts='<option value="">— add a section first —</option>';
   var glassWines=(STATE.wines||[]).map(function(w){ return w.name+' ('+w.varietal+', $'+(w.glassPrice||12)+'/glass)'; });
   var wineOpts='<option value="">— Select Wine Pairing (Manual or AI) —</option>'+glassWines.map(function(w){ return '<option value="'+esc(w)+'">'+esc(w)+'</option>'; }).join('');
+  var stationOpts=opts(['Garde Manger','Grill','Sauté','Pastry','Bar'],'Garde Manger');
   row.innerHTML='<button class="btn btn-danger btn-sm btn-del-opt" type="button" onclick="pfDelOpt(this)">✕</button>'+
     '<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px;">'+
       '<div class="pf-dish-order">'+
@@ -3060,6 +3110,7 @@ function pfAddDish(){
         '<button type="button" onclick="pfDishMove(this,1)" title="Move down">▼</button>'+
       '</div>'+
       '<select class="pf-o-category" onchange="pfUpdatePreview()" title="Assign dish course">'+courseOpts+'</select>'+
+      '<select class="input pf-o-station" title="Kitchen station routing">'+stationOpts+'</select>'+
     '</div>'+
     '<div class="pf-opt-fields">'+
       '<input class="input pf-o-name" placeholder="Dish name (e.g. Seared Scallops)" value="">'+
