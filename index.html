@@ -1314,6 +1314,7 @@ function PAGE_floor(){
       '<div class="room-tabs" id="room-tabs">'+roomTabs+
         (FLOOR.mode==='edit'?'<button class="btn btn-ghost btn-sm" onclick="addRoom()">+ Room</button>':'')+
       '</div>'+
+      <button class="btn btn-gold btn-sm" onclick="saveFloor(); toast('Layout saved & synced to POS!','success');" style="margin-right:12px;">💾 Save Layout</button>
       '<div style="flex:1"></div>'+
       '<div class="seg" id="mode-seg">'+
         '<button class="'+(FLOOR.mode==='edit'?'on':'')+'" data-mode="edit">Edit Layout</button>'+
