@@ -637,13 +637,23 @@ function uploadPhoto(inputEl){
   _uploadTarget=inputEl;
   document.getElementById('photo-file-input').click();
 }
+function uploadMenuPhotoBlob(blob){
+  if(!fbReady || !fbStorage) return Promise.reject(new Error('Storage unavailable'));
+  function put(){
+    var path='menu-photos/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.jpg';
+    return fbStorage.ref(path).put(blob,{contentType:'image/jpeg'}).then(function(snap){ return snap.ref.getDownloadURL(); });
+  }
+  if(fbAuth && !fbAuth.currentUser){
+    return fbAuth.signInAnonymously().then(put);
+  }
+  return put();
+}
 function handlePhotoUpload(fileInput){
   var file=fileInput.files[0];
   if(!file){return;}
   if(!file.type.startsWith('image/')){toast('Please select an image file','error');fileInput.value='';return;}
   if(file.size>5*1024*1024){toast('Image too large (max 5MB)','error');fileInput.value='';return;}
-  toast('Processing photo...','');
-  /* Resize image to max 800px wide then convert to data URL */
+  toast('Uploading photo...','');
   var reader=new FileReader();
   reader.onload=function(e){
     var img=new Image();
@@ -656,13 +666,27 @@ function handlePhotoUpload(fileInput){
       canvas.width=w; canvas.height=h;
       var ctx=canvas.getContext('2d');
       ctx.drawImage(img,0,0,w,h);
-      var dataUrl=canvas.toDataURL('image/jpeg',0.82);
-      if(_uploadTarget){
-        _uploadTarget.value=dataUrl;
-        showPhotoPreview(_uploadTarget, dataUrl);
+      function applyUrl(url, msg){
+        if(_uploadTarget){
+          _uploadTarget.value=url;
+          showPhotoPreview(_uploadTarget, url);
+        }
+        toast(msg||'Photo ready','success');
+        fileInput.value='';
       }
-      toast('Photo ready!','success');
-      fileInput.value='';
+      if(canvas.toBlob){
+        canvas.toBlob(function(blob){
+          if(!blob){ applyUrl(canvas.toDataURL('image/jpeg',0.82),'Photo ready locally'); return; }
+          uploadMenuPhotoBlob(blob).then(function(url){
+            applyUrl(url,'Photo uploaded — save the item to send it to POS and iPad');
+          }).catch(function(err){
+            console.warn('Storage upload failed',err);
+            applyUrl(canvas.toDataURL('image/jpeg',0.72),'Photo saved locally — cloud upload failed. Menu text will still sync.');
+          });
+        },'image/jpeg',0.82);
+      } else {
+        applyUrl(canvas.toDataURL('image/jpeg',0.82),'Photo ready locally');
+      }
     };
     img.onerror=function(){toast('Could not read image','error');fileInput.value='';};
     img.src=e.target.result;
@@ -691,11 +715,6 @@ function showPhotoPreview(input, url){
 }
 </script>
 <input type="file" id="photo-file-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
-<script src="app.js?v=2"></script>
-<script src="product_module.js?v=2"></script>
-<script src="tasting_module.js?v=2"></script>
-</body>
-</html>
 <script>
 /* ============================================================
    EPICUREAN HOUSE @ THE CHOCOLATE STUDIO — BACK OF HOUSE
@@ -978,7 +997,44 @@ function saveStaff(){ lsSet('eh_staff',STATE.staff); fbSetDoc('boh_shared','staf
 function savePunches(){ lsSet('eh_punches',STATE.punches); fbSetDoc('boh_shared','punches',{list:STATE.punches.slice(-800),updatedAt:Date.now()}); }
 function saveFloor(){ lsSet('eh_rooms',STATE.rooms); lsSet('eh_rooms_objs',STATE.roomObjs); fbSetDoc('boh_shared','tables',{rooms:STATE.rooms,roomObjs:STATE.roomObjs,updatedAt:Date.now()}); }
 function saveGuests(){ lsSet('eh_guests',STATE.guests); fbSetDoc('boh_shared','guests',{list:STATE.guests,updatedAt:Date.now()}); }
-function saveMenu(){ lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups); fbSetDoc('boh_shared','menu',{cats:STATE.menuCats,items:STATE.menuItems,modGroups:STATE.modGroups,updatedAt:Date.now()}); }
+function withoutEmbeddedPhotos(value){
+  if(value==null || typeof value!=='object') return value;
+  if(Array.isArray(value)) return value.map(withoutEmbeddedPhotos);
+  var out={};
+  Object.keys(value).forEach(function(key){
+    var v=value[key];
+    if((key==='photoUrl'||key==='photo') && typeof v==='string' && v.indexOf('data:')===0){
+      out[key]='';
+    } else if(v && typeof v==='object'){
+      out[key]=withoutEmbeddedPhotos(v);
+    } else {
+      out[key]=v;
+    }
+  });
+  return out;
+}
+function saveMenu(){
+  lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups);
+  return fbSetDoc('boh_shared','menu',{
+    cats:STATE.menuCats,
+    items:withoutEmbeddedPhotos(STATE.menuItems),
+    modGroups:STATE.modGroups,
+    updatedAt:Date.now()
+  });
+}
+function publishMenusToFrontOfHouse(){
+  toast('Sending menus to POS and iPad...','');
+  return Promise.all([
+    saveMenu(),
+    saveTastingMenus(),
+    savePrixFixeMenus()
+  ]).then(function(results){
+    var ok=results.every(function(r){ return r!==false; });
+    if(ok) toast('Menus sent to POS and iPad','success');
+    else toast('Some menu data could not be saved to the cloud','error');
+    return ok;
+  });
+}
 function saveBar(){ lsSet('eh_bar',STATE.bar); fbSetDoc('boh_shared','bar',{list:STATE.bar,updatedAt:Date.now()}); }
 function saveWines(){ lsSet('eh_wines',STATE.wines); fbSetDoc('boh_shared','wines',{list:STATE.wines,updatedAt:Date.now()}); }
 function saveRetail(){ lsSet('eh_retail',STATE.retail); fbSetDoc('boh_shared','retail',{list:STATE.retail,updatedAt:Date.now()}); }
@@ -2155,6 +2211,7 @@ function menuBody(){
   var btns='<button class="btn btn-ghost btn-sm" onclick="openModifierManager()">Modifiers</button>'+
            '<button class="btn btn-ghost btn-sm" onclick="openAiSettings()">AI Settings</button>'+
            '<button class="btn btn-ghost btn-sm" onclick="openCatManager()">Manage Categories</button>'+
+           '<button class="btn btn-gold btn-sm" onclick="publishMenusToFrontOfHouse()">Send to POS &amp; iPad</button>'+
            '<button class="btn btn-gold btn-sm" onclick="openItemEditor(null)">+ New Item</button>';
   var tabs='<div class="cat-tabs"><div class="cat-tab'+(MENU_CAT_FILTER==='all'?' active':'')+'" onclick="setMenuCat(\'all\')">All</div>';
   STATE.menuCats.forEach(function(c){
@@ -2616,11 +2673,11 @@ function seedPrixFixeMenus(){
 /* ---- Save functions ---- */
 function saveTastingMenus(){
   lsSet('eh_tasting_menus', STATE.tastingMenus);
-  fbSetDoc('boh_shared','tasting_menus',{list:STATE.tastingMenus, updatedAt:Date.now()});
+  return fbSetDoc('boh_shared','tasting_menus',{list:withoutEmbeddedPhotos(STATE.tastingMenus), updatedAt:Date.now()});
 }
 function savePrixFixeMenus(){
   lsSet('eh_prix_fixe_menus', STATE.prixFixeMenus);
-  return fbSetDoc('boh_shared','prix_fixe_menus',{list:STATE.prixFixeMenus, updatedAt:Date.now()});
+  return fbSetDoc('boh_shared','prix_fixe_menus',{list:withoutEmbeddedPhotos(STATE.prixFixeMenus), updatedAt:Date.now()});
 }
 
 /* ---- Sync extensions ---- */
@@ -2688,6 +2745,7 @@ function PAGE_tasting(){
 function tastingBody(){
   var btns='<button class="btn btn-gold btn-sm" onclick="openTastingEditor(null)">+ New Tasting Menu</button>'+
            '<button class="btn btn-ghost btn-sm" onclick="openPrixFixeEditor(null)">+ New Prix Fixe</button>'+
+           '<button class="btn btn-gold btn-sm" onclick="publishMenusToFrontOfHouse()">Send to POS &amp; iPad</button>'+
            '<button class="btn btn-analyze btn-sm" onclick="scanAllAllergens()">\u2728 Scan All Allergens</button>';
 
   /* Tasting menus section */
