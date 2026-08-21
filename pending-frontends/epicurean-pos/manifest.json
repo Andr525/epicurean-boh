@@ -1,0 +1,17 @@
+{
+  "name": "Epicurean POS",
+  "short_name": "POS",
+  "description": "Server POS — The Epicurean House @ The Chocolate Studio",
+  "start_url": "/epicurean-pos/",
+  "scope": "/epicurean-pos/",
+  "display": "standalone",
+  "background_color": "#3B2314",
+  "theme_color": "#B87333",
+  "orientation": "portrait",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "maskable" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
