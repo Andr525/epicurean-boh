@@ -195,6 +195,10 @@ tbody tr:hover{background:rgba(24,43,69,0.4);}
   display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.06em;}
 .f-station{width:100%;height:100%;background:rgba(155,196,226,0.12);border:2px dashed var(--blue);border-radius:8px;
   display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--blue);text-align:center;padding:4px;gap:2px;}
+.f-waiterstation{width:100%;height:100%;border:2px dashed var(--gold);border-radius:10px;
+  background:rgba(201,168,76,0.07);position:relative;box-shadow:inset 0 0 30px rgba(201,168,76,0.05);}
+.f-waiterstation .ws-tag{position:absolute;top:6px;left:8px;font-size:10px;font-weight:700;letter-spacing:.04em;
+  color:var(--gold);background:rgba(11,20,32,0.72);border:1px solid var(--border-strong);border-radius:6px;padding:2px 7px;white-space:nowrap;}
 .f-label{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;
   color:var(--text-dim);letter-spacing:.05em;text-transform:uppercase;}
 .f-couch{width:100%;height:100%;background:#5a4126;border-radius:18px 18px 6px 6px;border:2px solid #3f2d18;
@@ -982,6 +986,7 @@ var STATE = {
   guests:  lsGet('eh_guests',  []),
   rooms:   lsGet('eh_rooms', SEED_ROOMS.slice()),
   roomObjs: loadRoomObjs(),
+  stations: lsGet('eh_stations', []),
   menuCats:   lsGet('eh_menu_cats',   seedMenuCats()),
   menuItems:  lsGet('eh_menu_items',  seedMenuItems()),
   modGroups:  lsGet('eh_mod_groups',  seedModifierGroups()),
@@ -995,7 +1000,38 @@ var SESSION = { user:null }; // {name, role, perms, isOwner}
 
 function saveStaff(){ lsSet('eh_staff',STATE.staff); fbSetDoc('boh_shared','staff_clock',{list:STATE.staff,updatedAt:Date.now()}); }
 function savePunches(){ lsSet('eh_punches',STATE.punches); fbSetDoc('boh_shared','punches',{list:STATE.punches.slice(-800),updatedAt:Date.now()}); }
-function saveFloor(){ lsSet('eh_rooms',STATE.rooms); lsSet('eh_rooms_objs',STATE.roomObjs); fbSetDoc('boh_shared','tables',{rooms:STATE.rooms,roomObjs:STATE.roomObjs,updatedAt:Date.now()}); }
+/* Derive waiter stations from the floor objects: each station box exports its
+   number, room, geometry, assigned waiter, and the ids of tables whose centers
+   fall inside the box. POS reads boh_shared/tables.stations. */
+function computeStations(){
+  var out=[];
+  for(var r in STATE.roomObjs){
+    var arr=STATE.roomObjs[r]||[];
+    arr.forEach(function(o){
+      if(o.type!=='waiterstation')return;
+      var x0=o.x, y0=o.y, x1=o.x+(o.w||0), y1=o.y+(o.h||0);
+      var tableIds=[];
+      arr.forEach(function(t){
+        if(!SEATABLE[t.type])return;
+        var cx=t.x+(t.w||0)/2, cy=t.y+(t.h||0)/2;
+        if(cx>=x0&&cx<=x1&&cy>=y0&&cy<=y1) tableIds.push(t.id);
+      });
+      var num=parseInt(o.num,10); if(isNaN(num)) num=(o.num===''||o.num===undefined?null:o.num);
+      var s=STATE.staff.filter(function(p){return p.id===o.server;})[0];
+      out.push({
+        id:o.id,
+        number:num,
+        room:r,
+        x:o.x, y:o.y, w:o.w, h:o.h,
+        server: s?s.name:'',
+        serverCode: s?(s.code||''):'',
+        tableIds:tableIds
+      });
+    });
+  }
+  return out;
+}
+function saveFloor(){ lsSet('eh_rooms',STATE.rooms); lsSet('eh_rooms_objs',STATE.roomObjs); var stations=computeStations(); STATE.stations=stations; lsSet('eh_stations',stations); fbSetDoc('boh_shared','tables',{rooms:STATE.rooms,roomObjs:STATE.roomObjs,stations:stations,updatedAt:Date.now()}); }
 function saveGuests(){ lsSet('eh_guests',STATE.guests); fbSetDoc('boh_shared','guests',{list:STATE.guests,updatedAt:Date.now()}); }
 function withoutEmbeddedPhotos(value){
   if(value==null || typeof value!=='object') return value;
@@ -1046,7 +1082,7 @@ function syncFromCloud(){
   return Promise.all([
     fbGetDoc('boh_shared','staff_clock').then(function(d){ if(d&&d.list&&d.list.length){ STATE.staff=mergeStaff(STATE.staff,d.list); lsSet('eh_staff',STATE.staff); } }),
     fbGetDoc('boh_shared','punches').then(function(d){ if(d&&d.list){ STATE.punches=d.list; lsSet('eh_punches',STATE.punches); } }),
-    fbGetDoc('boh_shared','tables').then(function(d){ if(d){ if(d.rooms&&d.rooms.length){STATE.rooms=d.rooms;lsSet('eh_rooms',STATE.rooms);} if(d.roomObjs){STATE.roomObjs=d.roomObjs;lsSet('eh_rooms_objs',STATE.roomObjs);} } }),
+    fbGetDoc('boh_shared','tables').then(function(d){ if(d){ if(d.rooms&&d.rooms.length){STATE.rooms=d.rooms;lsSet('eh_rooms',STATE.rooms);} if(d.roomObjs){STATE.roomObjs=d.roomObjs;lsSet('eh_rooms_objs',STATE.roomObjs);} if(d.stations){STATE.stations=d.stations;lsSet('eh_stations',STATE.stations);} } }),
     fbGetDoc('boh_shared','guests').then(function(d){ if(d&&d.list){ STATE.guests=d.list; lsSet('eh_guests',STATE.guests); } }),
     fbGetDoc('boh_shared','menu').then(function(d){ if(d){ if(d.cats)STATE.menuCats=d.cats; if(d.items)STATE.menuItems=d.items; if(d.modGroups)STATE.modGroups=d.modGroups; lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups); } }),
     fbGetDoc('boh_shared','bar').then(function(d){ if(d&&d.list){ STATE.bar=d.list; lsSet('eh_bar',STATE.bar); } }),
@@ -1322,6 +1358,8 @@ function allTables(){ var out=[]; for(var r in STATE.roomObjs){ (STATE.roomObjs[
 function findObj(id){ var o=curObjs().filter(function(x){return x.id===id;})[0]; return o||null; }
 function serverName(id){ var s=STATE.staff.filter(function(x){return x.id===id;})[0]; return s?s.name:''; }
 function posStaff(){ return STATE.staff.filter(function(s){ var r=(s.code||'')[0]; return r==='3'||r==='5'; }); }
+function waiterStaff(){ return STATE.staff.filter(function(s){ var r=(s.code||'')[0]; return r==='3'||r==='4'||r==='5'; }); }
+function waiterRoleShort(code){ var r=(code||'')[0]; return r==='3'?'FM':r==='4'?'FOH':r==='5'?'Mgr':'Staff'; }
 
 /* palette definition */
 var PALETTE=[
@@ -1349,6 +1387,7 @@ var PALETTE=[
     {t:'plant',   i:'\uD83C\uDF3F', l:'Plant / divider'}
   ]},
   {group:'Zones', items:[
+    {t:'waiterstation',i:'\uD83E\uDDCD', l:'Waiter station'},
     {t:'stage',   i:'\uD83C\uDFBC', l:'Stage / orchestra'},
     {t:'kitchen', i:'\uD83D\uDD25', l:'Kitchen'},
     {t:'privateroom',i:'\uD83C\uDFDB', l:'Private dining'},
@@ -1424,7 +1463,9 @@ function bindFloor(){
 
 function renderFloor(){
   var canvas=$('floor-canvas'); if(!canvas)return; canvas.innerHTML='';
-  curObjs().forEach(function(o){ drawObj(canvas,o); });
+  var objs=curObjs();
+  objs.forEach(function(o){ if(o.type==='waiterstation') drawObj(canvas,o); });
+  objs.forEach(function(o){ if(o.type!=='waiterstation') drawObj(canvas,o); });
   renderInspector();
 }
 
@@ -1459,6 +1500,10 @@ function drawObj(canvas,o){
     node.innerHTML='<div class="f-host">'+esc(o.label||'HOST')+'</div>';
   } else if(o.type==='station'){
     node.innerHTML='<div class="f-station"><span style="font-size:14px">\uD83D\uDCE6</span>'+esc(o.label||'Station')+'</div>';
+  } else if(o.type==='waiterstation'){
+    var wsNum=(o.num!==undefined&&o.num!==null&&o.num!=='')?o.num:'\u2014';
+    var wsName=o.server?serverName(o.server):'';
+    node.innerHTML='<div class="f-waiterstation"><span class="ws-tag">Station '+esc(wsNum)+(wsName?' \u00b7 '+esc(wsName):'')+'</span></div>';
   } else if(o.type==='label'){
     node.innerHTML='<div class="f-label">'+esc(o.label||'Label')+'</div>';
   } else if(o.type==='curve'){
@@ -1527,11 +1572,17 @@ function renderInspector(){
   } else if(SEATABLE[o.type]){
     html+=field('Number / name','<input class="insp-input" value="'+esc(o.num||'')+'" onchange="upd(\''+o.id+'\',\'num\',this.value)">');
     html+=field('Seats','<input class="insp-input" type="number" min="1" max="20" value="'+(o.seats||1)+'" onchange="upd(\''+o.id+'\',\'seats\',parseInt(this.value))">');
+  } else if(o.type==='waiterstation'){
+    html+=field('Station number','<input class="insp-input" type="number" step="1" min="0" value="'+esc((o.num!==undefined&&o.num!==null)?o.num:'')+'" onchange="upd(\''+o.id+'\',\'num\',this.value===\'\'?\'\':parseInt(this.value,10))">');
+    var wOpts='<option value="">\u2014 Unassigned \u2014</option>'+waiterStaff().map(function(s){ return '<option value="'+s.id+'"'+(o.server===s.id?' selected':'')+'>'+esc(s.name)+' ('+waiterRoleShort(s.code)+')</option>'; }).join('');
+    html+=field('Assigned waiter','<select class="insp-input" onchange="upd(\''+o.id+'\',\'server\',this.value)">'+wOpts+'</select>');
   } else {
     html+=field('Label','<input class="insp-input" value="'+esc(o.label||'')+'" onchange="upd(\''+o.id+'\',\'label\',this.value)">');
   }
   html+=field('Size (W \u00d7 H)','<div class="insp-row"><input class="insp-input" type="number" value="'+o.w+'" onchange="upd(\''+o.id+'\',\'w\',parseInt(this.value))"><input class="insp-input" type="number" value="'+o.h+'" onchange="upd(\''+o.id+'\',\'h\',parseInt(this.value))"></div>');
-  html+=field('Rotation','<select class="insp-input" onchange="upd(\''+o.id+'\',\'rot\',parseInt(this.value))">'+[0,45,90,135,180].map(function(d){return '<option value="'+d+'"'+((o.rot||0)==d?' selected':'')+'>'+d+'\u00b0</option>';}).join('')+'</select>');
+  if(o.type!=='waiterstation'){
+    html+=field('Rotation','<select class="insp-input" onchange="upd(\''+o.id+'\',\'rot\',parseInt(this.value))">'+[0,45,90,135,180].map(function(d){return '<option value="'+d+'"'+((o.rot||0)==d?' selected':'')+'>'+d+'\u00b0</option>';}).join('')+'</select>');
+  }
   html+='<div class="insp-btns"><button class="btn btn-ghost btn-sm" onclick="dupObj(\''+o.id+'\')">Duplicate</button>'+
     '<button class="btn btn-danger btn-sm" onclick="delObj(\''+o.id+'\')">Delete</button></div>';
   box.innerHTML=html;
@@ -1553,13 +1604,14 @@ function renderLiveInspector(box,o){
     '<div class="insp-btns"><button class="btn btn-ghost btn-sm" onclick="clearTable(\''+o.id+'\')">Clear / Reset table</button></div>'+
     '<div class="mini-note" style="margin-top:10px">Manager override applies immediately to POS &amp; bar screens.</div>';
 }
-function objLabel(t){ var map={wall:'Wall',bar:'Bar Counter',door:'Door',plant:'Plant',host:'Host Stand',station:'Server Station',label:'Text Label',curve:'Curved Wall',stage:'Stage',kitchen:'Kitchen',privateroom:'Private Dining',kiosk:'Kiosk',store:'Coffee Studio'}; return map[t]||t; }
+function objLabel(t){ var map={wall:'Wall',bar:'Bar Counter',door:'Door',plant:'Plant',host:'Host Stand',station:'Server Station',waiterstation:'Waiter Station',label:'Text Label',curve:'Curved Wall',stage:'Stage',kitchen:'Kitchen',privateroom:'Private Dining',kiosk:'Kiosk',store:'Coffee Studio'}; return map[t]||t; }
 function field(label,inner){ return '<div class="insp-field"><label>'+label+'</label>'+inner+'</div>'; }
 function shapeOpt(sh){ return ['round','square','rect'].map(function(s){ return '<option value="'+s+'"'+(sh===s?' selected':'')+'>'+(s==='rect'?'Rectangle':s.charAt(0).toUpperCase()+s.slice(1))+'</option>'; }).join(''); }
 
 /* ---- edit ops ---- */
 function upd(id,key,val){ var o=findObj(id); if(!o)return; o[key]=val; saveFloor(); renderFloor(); }
 function nextTableNum(){ var n=0; allTables().forEach(function(o){ var v=parseInt(o.num); if(!isNaN(v)&&v>n)n=v; }); return n+1; }
+function nextStationNum(){ var n=0; for(var r in STATE.roomObjs){ (STATE.roomObjs[r]||[]).forEach(function(o){ if(o.type==='waiterstation'){ var v=parseInt(o.num,10); if(!isNaN(v)&&v>n)n=v; } }); } return n+1; }
 function addFloorObj(palType){
   var defs={
     'table-round':{type:'table',shape:'round',w:70,h:70,num:nextTableNum(),seats:2,status:'open',server:''},
@@ -1571,6 +1623,7 @@ function addFloorObj(palType){
     'bar':{type:'bar',w:220,h:80,label:'Bar Counter'},
     'host':{type:'host',w:70,h:44,label:'Host'},
     'station':{type:'station',w:80,h:60,label:'Station'},
+    'waiterstation':{type:'waiterstation',w:220,h:180,num:nextStationNum(),server:''},
     'kiosk':{type:'kiosk',w:80,h:80,label:'Kiosk'},
     'wall-h':{type:'wall',w:220,h:12,label:''},
     'wall-v':{type:'wall',w:12,h:220,label:''},
