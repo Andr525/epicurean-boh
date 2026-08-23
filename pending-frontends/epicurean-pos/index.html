@@ -289,6 +289,10 @@ body { font-family:var(--font); color:var(--text); background:var(--bg); -webkit
 .floor-tnum { font-size:0.85rem; font-weight:700; color:#F3ECDC; line-height:1.1; }
 .floor-tsub { font-size:0.62rem; color:rgba(243,236,220,0.7); }
 .floor-tstat { font-size:0.62rem; font-weight:600; margin-top:1px; }
+.floor-station { position:absolute; box-sizing:border-box; border-radius:10px; pointer-events:none; z-index:0; }
+.floor-station-tag { position:absolute; top:4px; left:6px; font-size:0.6rem; font-weight:800; color:#1a1306; padding:1px 6px; border-radius:5px; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.35); }
+.floor-obj.seatable { z-index:2; }
+.floor-tstation { position:absolute; top:2px; right:2px; font-size:0.55rem; font-weight:800; color:#1a1306; padding:0 4px; border-radius:4px; line-height:1.35; }
 .floor-legend { display:flex; flex-wrap:wrap; gap:0.7rem; margin-top:0.7rem; font-size:0.7rem; color:var(--text-muted); }
 .floor-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:4px; }
 .item-thumb { width:42px; height:42px; border-radius:8px; object-fit:cover; margin-right:0.6rem; flex-shrink:0; border:1px solid var(--border); }
@@ -549,6 +553,7 @@ var STATE = {
   guestCount: 2,
   rooms: [],
   roomObjs: [],
+  stations: [],
   menuItems: [],
   menuCategories: [],
   tastingMenus: [],
@@ -703,6 +708,7 @@ function loadData() {
       var d = doc.data();
       if (d.rooms) STATE.rooms = d.rooms;
       if (d.roomObjs) STATE.roomObjs = d.roomObjs;
+      STATE.stations = Array.isArray(d.stations) ? d.stations : [];
       if (!STATE.floorRoom && STATE.rooms && STATE.rooms.length) STATE.floorRoom = STATE.rooms[0].id;
       if (STATE.activeTab==='tables') renderTables();
     }
@@ -854,7 +860,23 @@ function renderTables() {
     var scale = Math.min(1, availW / maxX);
     html+='<div class="floor-stage" style="height:'+Math.round(maxY*scale)+'px">';
     html+='<div class="floor-canvas" style="width:'+maxX+'px;height:'+maxY+'px;transform:scale('+scale+');transform-origin:top left;">';
+    // Waiter stations from BOH: draw each station zone behind the tables and map every table to its station.
+    var STATION_COLORS=['#C9A84C','#9BC4E2','#5FB48A','#E0A36B','#B98AD8','#E07A6B'];
+    var roomStations=(STATE.stations||[]).filter(function(s){ return String(s.room)===String(roomId); });
+    var tableStation={};
+    roomStations.forEach(function(s,si){
+      s._color=STATION_COLORS[si%STATION_COLORS.length];
+      (s.tableIds||[]).forEach(function(tid){ tableStation[String(tid)]=s; });
+    });
+    roomStations.forEach(function(s){
+      var sl=s.x||0, stp=s.y||0, sw=s.w||120, sh=s.h||120, col=s._color;
+      var numTxt=(s.number!=null&&s.number!=='')?String(s.number):'';
+      var lbl='Station'+(numTxt?' '+numTxt:'')+(s.server?' \u00b7 '+s.server:'');
+      html+='<div class="floor-station" style="left:'+sl+'px;top:'+stp+'px;width:'+sw+'px;height:'+sh+'px;border:2px dashed '+col+';background:'+col+'14;">'+
+        '<span class="floor-station-tag" style="background:'+col+';">'+lbl+'</span></div>';
+    });
     objs.forEach(function(o){
+      if (o.type==='waiterstation') return;
       var left=o.x||20, top=o.y||20, width=o.w||70, height=o.h||70, rot=o.rot||0;
       var style='left:'+left+'px;top:'+top+'px;width:'+width+'px;height:'+height+'px;transform:rotate('+rot+'deg);';
       var tNum=tableKey(o);
@@ -866,7 +888,12 @@ function renderTables() {
         var radius=o.shape==='round'||o.type==='stool'?'50%':(o.type==='outdoor'?'10px':'12px');
         var status=hasCall?'CALL':hasOrder?'Active':(o.status&&o.status!=='open'?o.status:'Open');
         var statusColor=hasCall?'#E65050':hasOrder?'#DCA532':'#5FB48A';
-        html+='<div class="floor-obj seatable" onclick="selectTable('+JSON.stringify(String(tNum))+')" style="'+style+'border-radius:'+radius+';background:'+bg+';border:2px solid '+border+';">'+
+        var stn=tableStation[String(o.id)]||tableStation[String(tNum)];
+        var tBorder=stn?stn._color:border;
+        var stnGlow=stn?'box-shadow:0 0 0 2px '+stn._color+'66, 0 4px 12px rgba(0,0,0,0.4);':'';
+        var stnBadge=stn?'<div class="floor-tstation" style="background:'+stn._color+';">S'+((stn.number!=null&&stn.number!=='')?stn.number:'')+'</div>':'';
+        html+='<div class="floor-obj seatable" onclick="selectTable('+JSON.stringify(String(tNum))+')" style="'+style+'border-radius:'+radius+';background:'+bg+';border:2px solid '+tBorder+';'+stnGlow+'">'+
+          stnBadge+
           '<div class="floor-tnum">'+tNum+'</div>'+
           '<div class="floor-tsub">'+(o.seats||(o.type==='stool'?1:4))+' seats</div>'+
           '<div class="floor-tstat" style="color:'+statusColor+'">'+status+'</div>'+
