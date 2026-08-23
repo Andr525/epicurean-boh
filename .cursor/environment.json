@@ -1,6 +1,10 @@
 {
   "name": "epicurean-boh",
   "install": "python3 --version",
+  "repositoryDependencies": [
+    "github.com/Andr525/epicurean-pos",
+    "github.com/Andr525/epicurean-names"
+  ],
   "terminals": [
     {
       "name": "static-server",
