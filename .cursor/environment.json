@@ -1,6 +1,6 @@
 {
   "name": "epicurean-boh",
-  "install": "python3 --version && test -f index.html",
+  "install": "python3 --version",
   "repositoryDependencies": [
     "github.com/Andr525/epicurean-pos",
     "github.com/Andr525/epicurean-names"
