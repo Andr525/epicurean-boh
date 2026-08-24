@@ -1,0 +1,15 @@
+{
+  "name": "epicurean-boh",
+  "install": "python3 --version",
+  "repositoryDependencies": [
+    "github.com/Andr525/epicurean-pos",
+    "github.com/Andr525/epicurean-names"
+  ],
+  "terminals": [
+    {
+      "name": "static-server",
+      "command": "python3 -m http.server 8000 --bind 0.0.0.0"
+    }
+  ],
+  "ports": [8000]
+}

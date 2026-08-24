@@ -1,0 +1,1631 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Epicurean POS">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#3B2314">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="180x180" href="icon-192.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
+<link rel="icon" type="image/png" sizes="512x512" href="icon-512.png">
+<title>Epicurean POS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+<script async src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
+<style>
+:root {
+  --bg: #0f0f14;
+  --surface: #1a1a24;
+  --surface-2: #24243a;
+  --border: #2a2a40;
+  --primary: #B87333;
+  --primary-light: #D4956A;
+  --primary-glow: rgba(184,115,51,0.15);
+  --success: #4ade80;
+  --warning: #fb923c;
+  --danger: #f87171;
+  --info: #60a5fa;
+  --text: #f1f5f9;
+  --text-secondary: #94a3b8;
+  --text-muted: #64748b;
+  --radius: 12px;
+  --radius-sm: 8px;
+  --shadow: 0 4px 20px rgba(0,0,0,0.3);
+  --font: 'Inter', -apple-system, sans-serif;
+  --ease: cubic-bezier(0.23, 1, 0.32, 1);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { height:100%; overflow:hidden; }
+body { font-family:var(--font); color:var(--text); background:var(--bg); -webkit-font-smoothing:antialiased; }
+
+/* Screens */
+.screen { display:none; height:100vh; flex-direction:column; }
+.screen.active { display:flex; }
+
+/* LOGIN */
+#login-screen {
+  align-items:center; justify-content:center; text-align:center; padding:2rem;
+  background:linear-gradient(160deg, #1a1020 0%, var(--bg) 100%);
+}
+#login-screen h1 { font-size:1.6rem; font-weight:700; margin-bottom:0.3rem; }
+#login-screen .subtitle { color:var(--primary-light); font-size:0.85rem; margin-bottom:2rem; }
+.pin-display { display:flex; gap:12px; justify-content:center; margin-bottom:2rem; }
+.pin-dot { width:16px; height:16px; border-radius:50%; background:var(--border); transition:all 0.16s var(--ease); }
+.pin-dot.filled { background:var(--primary); box-shadow:0 0 8px rgba(184,115,51,0.5); }
+.numpad { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; max-width:260px; }
+.numpad-btn {
+  width:60px; height:60px; border-radius:50%; border:1px solid var(--border);
+  background:var(--surface); color:var(--text); font-size:1.3rem; font-weight:500;
+  cursor:pointer; transition:all 0.12s var(--ease);
+  display:flex; align-items:center; justify-content:center;
+}
+.numpad-btn:active { transform:scale(0.9); background:var(--primary-glow); border-color:var(--primary); }
+.numpad-btn.action { font-size:0.8rem; color:var(--text-secondary); }
+#pin-error { color:var(--danger); font-size:0.8rem; margin-top:1rem; min-height:1.2rem; }
+
+/* Tasting & Prix Fixe */
+.tasting-pill { background:linear-gradient(135deg,rgba(184,115,51,0.3),rgba(212,149,106,0.2)) !important; border-color:var(--primary) !important; }
+.tasting-section-label { font-size:0.75rem; font-weight:600; text-transform:uppercase; letter-spacing:0.5px; color:var(--primary-light); padding:0.5rem 0; }
+.tasting-row { border-left:3px solid var(--primary); }
+.pairing-row { border-left:3px solid #a78bfa; opacity:0.85; }
+.tasting-progress { margin-top:1rem; border-top:1px solid var(--border); padding-top:0.8rem; }
+.tp-card { background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius-sm); padding:0.8rem; margin-bottom:0.5rem; }
+.tp-name { font-weight:600; font-size:0.85rem; color:var(--primary-light); }
+.tp-progress { font-size:0.75rem; color:var(--text-secondary); margin:0.3rem 0; }
+.tp-done { font-size:0.75rem; color:var(--success); }
+.fire-btn { width:100%; padding:0.6rem; border:none; border-radius:var(--radius-sm); background:linear-gradient(135deg,#dc2626,#ea580c); color:white; font-weight:600; font-size:0.8rem; cursor:pointer; margin-top:0.4rem; transition:transform 0.12s var(--ease); }
+.fire-btn:active { transform:scale(0.97); }
+/* Prix Fixe Selector Overlay */
+#pf-overlay { position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none; align-items:center; justify-content:center; z-index:200; padding:1rem; }
+#pf-overlay.show { display:flex; }
+.pf-selector { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; max-width:420px; width:100%; max-height:80vh; overflow-y:auto; }
+.pf-selector h3 { font-size:1.1rem; font-weight:700; margin-bottom:0.3rem; }
+.pf-sel-sub { font-size:0.8rem; color:var(--text-secondary); margin-bottom:1rem; }
+.pf-course-select { margin-bottom:1rem; }
+.pf-course-select label:first-child { font-weight:600; font-size:0.85rem; display:block; margin-bottom:0.4rem; color:var(--primary-light); }
+.pf-options { display:flex; flex-direction:column; gap:0.4rem; }
+.pf-opt-label { display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; padding:0.5rem 0.8rem; border:1px solid var(--border); border-radius:var(--radius-sm); cursor:pointer; transition:all 0.12s var(--ease); }
+.pf-opt-label:has(input:checked) { border-color:var(--primary); background:var(--primary-glow); }
+.pf-opt-label input { accent-color:var(--primary); }
+.pf-upcharge { color:var(--warning); font-weight:600; font-size:0.75rem; }
+.pf-sel-actions { display:flex; gap:0.5rem; margin-top:1.2rem; }
+
+/* APP SHELL */
+.app-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0.8rem 1rem; background:var(--surface); border-bottom:1px solid var(--border); flex-shrink:0;
+}
+.app-header .user-info { font-weight:600; font-size:0.9rem; }
+.app-header .user-role { font-size:0.7rem; color:var(--text-muted); }
+.app-header .logout-btn {
+  background:none; border:1px solid var(--border); color:var(--text-secondary);
+  padding:0.4rem 0.8rem; border-radius:var(--radius-sm); font-size:0.75rem; cursor:pointer;
+}
+
+.app-nav {
+  display:flex; background:var(--surface); border-top:1px solid var(--border);
+  flex-shrink:0; position:relative; z-index:10;
+}
+.nav-btn {
+  flex:1; padding:0.6rem 0.3rem; text-align:center; border:none; background:none;
+  color:var(--text-muted); cursor:pointer; transition:all 0.2s var(--ease); position:relative;
+}
+.nav-btn .nav-icon { font-size:1.3rem; display:block; margin-bottom:0.15rem; }
+.nav-btn .nav-label { font-size:0.65rem; font-weight:500; }
+.nav-btn.active { color:var(--primary); }
+.nav-btn.active::after {
+  content:''; position:absolute; top:0; left:20%; right:20%;
+  height:2px; background:var(--primary); border-radius:0 0 2px 2px;
+}
+.nav-badge {
+  position:absolute; top:4px; right:calc(50% - 16px); background:var(--danger); color:#fff;
+  font-size:0.6rem; width:16px; height:16px; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-weight:700;
+}
+.hidden { display:none!important; }
+
+.app-content { flex:1; overflow-y:auto; padding:1rem; }
+
+/* TABLES */
+.table-grid { display:grid; grid-template-columns:repeat(3,1fr); gap:0.8rem; }
+.table-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:1rem; text-align:center; cursor:pointer; transition:all 0.16s var(--ease);
+}
+.table-card:active { transform:scale(0.96); }
+.table-card .table-num { font-size:1.4rem; font-weight:700; margin-bottom:0.2rem; }
+.table-card .table-status { font-size:0.7rem; color:var(--text-muted); }
+.table-card.has-call { border-color:var(--danger); animation:callPulse 1.5s infinite; }
+@keyframes callPulse { 0%,100%{box-shadow:0 0 0 0 rgba(248,113,113,0.3)} 50%{box-shadow:0 0 0 6px rgba(248,113,113,0)} }
+.table-card.has-order { border-color:var(--primary); }
+
+/* ORDER */
+.order-section h3 { font-size:0.9rem; font-weight:600; margin-bottom:0.8rem; color:var(--text-secondary); }
+.cat-pills { display:flex; gap:0.4rem; overflow-x:auto; margin-bottom:1rem; padding-bottom:0.5rem; scrollbar-width:none; }
+.cat-pills::-webkit-scrollbar { display:none; }
+.cat-pill {
+  padding:0.4rem 0.8rem; border-radius:20px; border:1px solid var(--border);
+  background:var(--surface); color:var(--text-secondary); font-size:0.75rem; font-weight:500;
+  white-space:nowrap; cursor:pointer; transition:all 0.16s var(--ease);
+}
+.cat-pill.active { background:var(--primary-glow); border-color:var(--primary); color:var(--primary-light); }
+
+.menu-item-row {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0.7rem 0; border-bottom:1px solid var(--border); cursor:pointer;
+  transition:background 0.1s;
+}
+.menu-item-row:active { background:var(--primary-glow); }
+.menu-item-row .item-info .item-name { font-size:0.85rem; font-weight:500; }
+.menu-item-row .item-info .item-meta { font-size:0.7rem; color:var(--text-muted); margin-top:0.1rem; }
+.menu-item-row .item-price { font-weight:600; color:var(--primary-light); font-size:0.9rem; }
+.menu-item-row .item-info .item-desc-toggle { font-size:0.65rem; color:var(--primary-light); margin-top:0.15rem; cursor:pointer; opacity:0.7; }
+.menu-item-row .item-info .item-desc-toggle:hover { opacity:1; }
+.item-desc-expanded { font-size:0.75rem; color:var(--text-muted); padding:0.3rem 0 0.5rem 0; line-height:1.4; border-bottom:1px solid var(--border); background:rgba(255,255,255,0.02); padding-left:0.5rem; margin-bottom:0.3rem; }
+.item-desc-expanded .desc-allergens { color:#e74c3c; font-size:0.65rem; margin-top:0.2rem; }
+.item-desc-expanded .desc-dietary { color:#27ae60; font-size:0.65rem; margin-top:0.1rem; }
+
+.order-summary {
+  margin-top:1rem; padding-top:1rem; border-top:2px solid var(--border);
+}
+.order-line {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0.5rem 0; border-bottom:1px solid var(--border);
+}
+.order-line .remove-btn { background:none; border:none; color:var(--danger); cursor:pointer; font-size:1rem; }
+.send-btn {
+  width:100%; margin-top:1rem; padding:0.9rem; border:none; border-radius:var(--radius);
+  background:var(--success); color:var(--bg); font-size:0.9rem; font-weight:700;
+  cursor:pointer; transition:all 0.16s var(--ease);
+}
+.send-btn:active { transform:scale(0.97); }
+.send-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+/* PAYMENT */
+.pay-btn {
+  width:100%; margin-top:0.8rem; padding:0.9rem; border:none; border-radius:var(--radius);
+  background:var(--info); color:#fff; font-size:0.9rem; font-weight:700;
+  cursor:pointer; transition:all 0.16s var(--ease);
+}
+.pay-btn:active { transform:scale(0.97); }
+.pay-btn:disabled { opacity:0.4; cursor:not-allowed; }
+
+/* Payment Modal */
+.payment-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.85); display:none;
+  align-items:center; justify-content:center; z-index:9999; padding:1rem;
+}
+.payment-overlay.show { display:flex; }
+.payment-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:1.5rem; width:100%; max-width:380px; max-height:90vh; overflow-y:auto;
+}
+.payment-card h2 { font-size:1.1rem; font-weight:700; margin-bottom:0.3rem; }
+.payment-card .pay-subtitle { color:var(--text-muted); font-size:0.8rem; margin-bottom:1.2rem; }
+.payment-card .pay-total { font-size:1.8rem; font-weight:700; color:var(--primary-light); margin-bottom:1.5rem; text-align:center; }
+.payment-card .pay-items { font-size:0.8rem; color:var(--text-secondary); margin-bottom:1rem; padding:0.8rem; background:var(--surface-2); border-radius:var(--radius-sm); }
+.payment-card .pay-items div { padding:0.2rem 0; display:flex; justify-content:space-between; }
+
+.tip-section { margin-bottom:1.2rem; }
+.tip-section label { font-size:0.8rem; color:var(--text-secondary); display:block; margin-bottom:0.5rem; }
+.tip-buttons { display:flex; gap:0.5rem; flex-wrap:wrap; }
+.tip-btn {
+  padding:0.5rem 1rem; border:1px solid var(--border); border-radius:var(--radius-sm);
+  background:var(--surface-2); color:var(--text); font-size:0.8rem; cursor:pointer;
+  transition:all 0.16s var(--ease);
+}
+.tip-btn.active { border-color:var(--primary); background:var(--primary-glow); color:var(--primary-light); }
+.tip-custom { width:80px; padding:0.5rem; border:1px solid var(--border); border-radius:var(--radius-sm); background:var(--surface-2); color:var(--text); font-size:0.8rem; text-align:center; }
+
+#sq-card-container {
+  min-height:50px; margin-bottom:1rem; padding:0.8rem;
+  background:var(--surface-2); border-radius:var(--radius-sm); border:1px solid var(--border);
+}
+.sq-input-label { font-size:0.75rem; color:var(--text-secondary); margin-bottom:0.4rem; display:block; }
+
+.charge-btn {
+  width:100%; padding:1rem; border:none; border-radius:var(--radius);
+  background:linear-gradient(135deg, #4ade80, #22c55e); color:#000; font-size:1rem; font-weight:700;
+  cursor:pointer; transition:all 0.16s var(--ease);
+}
+.charge-btn:active { transform:scale(0.97); }
+.charge-btn:disabled { opacity:0.5; cursor:not-allowed; }
+
+.cancel-pay-btn {
+  width:100%; margin-top:0.8rem; padding:0.7rem; border:1px solid var(--border);
+  border-radius:var(--radius); background:none; color:var(--text-secondary);
+  font-size:0.85rem; cursor:pointer;
+}
+
+.payment-success {
+  text-align:center; padding:2rem 1rem;
+}
+.payment-success .check-icon { font-size:3rem; margin-bottom:0.8rem; }
+.payment-success h3 { color:var(--success); margin-bottom:0.5rem; }
+.payment-success p { color:var(--text-secondary); font-size:0.85rem; }
+
+/* MESSAGES */
+.msg-list { display:flex; flex-direction:column; gap:0.5rem; min-height:200px; margin-bottom:1rem; }
+.msg-bubble {
+  max-width:80%; padding:0.6rem 1rem; border-radius:var(--radius); font-size:0.82rem; line-height:1.4;
+}
+.msg-bubble.from-server { background:var(--primary-glow); border:1px solid var(--primary); align-self:flex-end; }
+.msg-bubble.from-guest { background:var(--surface-2); align-self:flex-start; }
+.msg-input-row { display:flex; gap:0.5rem; }
+.msg-input-row input {
+  flex:1; padding:0.7rem; border:1px solid var(--border); border-radius:var(--radius);
+  background:var(--surface); color:var(--text); font-size:0.85rem;
+}
+.msg-input-row button {
+  padding:0.7rem 1.2rem; border:none; border-radius:var(--radius);
+  background:var(--primary); color:#fff; font-weight:600; cursor:pointer;
+}
+
+/* FLOOR PLAN */
+.floor-wrap { padding:0.75rem 0.75rem 1.2rem; height:100%; overflow:auto; }
+.floor-head { display:flex; justify-content:space-between; align-items:flex-start; gap:0.75rem; margin-bottom:0.75rem; }
+.floor-head h2 { margin:0; font-size:1.05rem; color:var(--primary-light); }
+.floor-head p { margin:0.2rem 0 0; font-size:0.75rem; color:var(--text-muted); }
+.floor-room-tabs { display:flex; gap:8px; overflow-x:auto; padding-bottom:0.4rem; margin-bottom:0.75rem; -webkit-overflow-scrolling:touch; }
+.floor-room-tab { flex:0 0 auto; padding:0.45rem 0.8rem; border-radius:999px; border:1px solid var(--border); background:var(--surface); color:var(--text-secondary); font-size:0.78rem; cursor:pointer; }
+.floor-room-tab.active { border-color:var(--primary); background:var(--primary-glow); color:var(--text); font-weight:600; }
+.floor-stage { position:relative; width:100%; overflow:auto; background:#13131a; border:1px solid rgba(201,168,76,0.3); border-radius:12px; box-shadow:inset 0 0 40px rgba(0,0,0,0.6); min-height:280px; }
+.floor-canvas { position:relative; }
+.floor-obj { position:absolute; box-sizing:border-box; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:0.2rem; }
+.floor-obj.seatable { cursor:pointer; box-shadow:0 4px 12px rgba(0,0,0,0.4); }
+.floor-obj.seatable:active { transform:scale(0.97); }
+.floor-tnum { font-size:0.85rem; font-weight:700; color:#F3ECDC; line-height:1.1; }
+.floor-tsub { font-size:0.62rem; color:rgba(243,236,220,0.7); }
+.floor-tstat { font-size:0.62rem; font-weight:600; margin-top:1px; }
+.floor-station { position:absolute; box-sizing:border-box; border-radius:10px; pointer-events:none; z-index:0; }
+.floor-station-tag { position:absolute; top:4px; left:6px; font-size:0.6rem; font-weight:800; color:#1a1306; padding:1px 6px; border-radius:5px; white-space:nowrap; box-shadow:0 2px 6px rgba(0,0,0,0.35); }
+.floor-obj.seatable { z-index:2; }
+.floor-tstation { position:absolute; top:2px; right:2px; font-size:0.55rem; font-weight:800; color:#1a1306; padding:0 4px; border-radius:4px; line-height:1.35; }
+.floor-legend { display:flex; flex-wrap:wrap; gap:0.7rem; margin-top:0.7rem; font-size:0.7rem; color:var(--text-muted); }
+.floor-dot { width:8px; height:8px; border-radius:50%; display:inline-block; margin-right:4px; }
+.item-thumb { width:42px; height:42px; border-radius:8px; object-fit:cover; margin-right:0.6rem; flex-shrink:0; border:1px solid var(--border); }
+
+/* HISTORY */
+.history-card {
+  background:var(--surface); border:1px solid var(--border); border-radius:var(--radius);
+  padding:1rem; margin-bottom:0.8rem;
+}
+.history-card .hdr { display:flex; justify-content:space-between; margin-bottom:0.4rem; }
+.history-card .items-list { font-size:0.8rem; color:var(--text-secondary); }
+.status-badge {
+  font-size:0.65rem; padding:0.15rem 0.5rem; border-radius:8px; font-weight:600;
+}
+.status-badge.new { background:rgba(251,146,60,0.15); color:var(--warning); }
+.status-badge.cleared { background:rgba(74,222,128,0.15); color:var(--success); }
+.status-badge.paid { background:rgba(96,165,250,0.15); color:var(--info); }
+
+/* Toast */
+.toast {
+  position:fixed; top:1rem; left:50%; transform:translateX(-50%) translateY(-100%);
+  background:var(--surface-2); color:var(--text); padding:0.8rem 1.5rem;
+  border-radius:var(--radius); font-size:0.85rem; font-weight:500; border:1px solid var(--border);
+  box-shadow:var(--shadow); z-index:9999; opacity:0; transition:all 0.3s var(--ease);
+}
+.toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+/* Call alert overlay */
+.call-alert {
+  position:fixed; inset:0; background:rgba(0,0,0,0.8); display:none;
+  align-items:center; justify-content:center; z-index:9999; padding:2rem;
+}
+.call-alert.show { display:flex; }
+.call-alert-card {
+  background:var(--surface); border:2px solid var(--danger); border-radius:var(--radius);
+  padding:2rem; text-align:center; max-width:300px; width:100%; animation:shake 0.5s;
+}
+@keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
+.call-alert-card h2 { color:var(--danger); margin-bottom:0.5rem; }
+.call-alert-card .ack-btn {
+  margin-top:1rem; padding:0.8rem 2rem; border:none; border-radius:var(--radius);
+  background:var(--primary); color:#fff; font-weight:600; cursor:pointer; font-size:0.9rem;
+}
+
+@media (max-width:380px) { .table-grid { grid-template-columns:repeat(2,1fr); } }
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+<div id="call-alert" class="call-alert">
+  <div class="call-alert-card">
+    <h2>🔔 TABLE CALLING</h2>
+    <p id="call-alert-table" style="font-size:1.2rem;font-weight:700;margin:0.5rem 0;">Table 3</p>
+    <p style="color:var(--text-muted);font-size:0.8rem;">Customer needs assistance</p>
+    <button class="ack-btn" onclick="acknowledgeCall()">Got it — On my way</button>
+  </div>
+</div>
+
+<!-- PAYMENT OVERLAY -->
+<div id="payment-overlay" class="payment-overlay">
+  <div class="payment-card" id="payment-card"></div>
+</div>
+
+<!-- PRIX FIXE SELECTOR OVERLAY -->
+<div id="pf-overlay"></div>
+
+<!-- LOGIN SCREEN -->
+<div id="login-screen" class="screen active">
+  <h1>Epicurean POS</h1>
+  <p class="subtitle">Enter your 4-digit code</p>
+  <div class="pin-display" id="pin-display">
+    <div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div><div class="pin-dot"></div>
+  </div>
+  <div class="numpad" id="numpad"></div>
+  <p id="pin-error"></p>
+</div>
+
+<!-- APP SCREEN -->
+<div id="app-screen" class="screen">
+  <div class="app-header">
+    <div>
+      <div class="user-info" id="user-name">Server</div>
+      <div class="user-role" id="user-role">Food Master</div>
+    </div>
+    <button class="logout-btn" onclick="logout()">Sign Out</button>
+  </div>
+  <div class="app-content" id="app-content"></div>
+  <div class="app-nav">
+    <button class="nav-btn active" data-tab="tables" onclick="switchTab('tables')">
+      <span class="nav-icon">🪑</span><span class="nav-label">Tables</span>
+    </button>
+    <button class="nav-btn" data-tab="order" onclick="switchTab('order')">
+      <span class="nav-icon">📝</span><span class="nav-label">Order</span>
+    </button>
+    <button class="nav-btn" data-tab="messages" onclick="switchTab('messages')" style="position:relative;">
+      <span class="nav-icon">💬</span><span class="nav-label">Messages</span>
+      <span class="nav-badge hidden" id="msg-badge">0</span>
+    </button>
+    <button class="nav-btn" data-tab="history" onclick="switchTab('history')">
+      <span class="nav-icon">📋</span><span class="nav-label">History</span>
+    </button>
+  </div>
+</div>
+
+<script>
+// ─── Square Config ─────────────────────────────────────────────
+var SQUARE_APP_ID = 'sandbox-sq0idb-wKcjD8vOYIKLyvtV7Zo6hQ';
+var SQUARE_LOCATION_ID = 'L2SMR9TKW98PT';
+var squarePayments = null;
+var squareCard = null;
+
+// ─── Firebase ───────────────────────────────────────────────────
+var firebaseConfig = {
+  apiKey: "AIzaSyAvg9x8kmKmZjcu62D2Jb4jpO57ArC657Y",
+  authDomain: "epicurean-house-at-the-choc-st.firebaseapp.com",
+  projectId: "epicurean-house-at-the-choc-st",
+  storageBucket: "epicurean-house-at-the-choc-st.firebasestorage.app",
+  messagingSenderId: "320703681087",
+  appId: "1:320703681087:web:04f7c9a17637388a039e8a"
+};
+var fbApp=null, fbDb=null, fbAuth=null, fbReady=false;
+try { fbApp=firebase.initializeApp(firebaseConfig); fbDb=firebase.firestore(); fbAuth=firebase.auth(); fbReady=true; } catch(e){ console.warn('Firebase:',e); }
+
+
+/* Named Firestore adapter for the existing database ID: default.
+   It exposes the small compat-like surface used by these static apps. */
+var FIRESTORE_DATABASE_ID = 'default';
+var FIRESTORE_ROOT = 'https://firestore.googleapis.com/v1/projects/' + encodeURIComponent(firebaseConfig.projectId) + '/databases/' + encodeURIComponent(FIRESTORE_DATABASE_ID) + '/documents';
+function createNamedFirestoreAdapter(){
+  var pollers=[];
+  function ensureAuth(){
+    if(typeof fbAuth==='undefined' || !fbAuth) return Promise.resolve(null);
+    if(fbAuth.currentUser) return Promise.resolve(fbAuth.currentUser);
+    return fbAuth.signInAnonymously().then(function(result){ return result.user; });
+  }
+  function request(method,url,body){
+    return ensureAuth().then(function(user){
+      var headers={'Content-Type':'application/json'};
+      var tokenPromise=user ? user.getIdToken().then(function(token){ headers.Authorization='Bearer '+token; }) : Promise.resolve();
+      return tokenPromise.then(function(){
+        var fullUrl=url+(url.indexOf('?')>=0?'&':'?')+'key='+encodeURIComponent(firebaseConfig.apiKey);
+        return fetch(fullUrl,{method:method,headers:headers,body:body===undefined?undefined:JSON.stringify(body)}).then(function(response){
+          return response.text().then(function(text){
+            var json=text?JSON.parse(text):{};
+            if(!response.ok){
+              var error=new Error((json.error&&json.error.message)||('Firestore request failed ('+response.status+')'));
+              error.code=(json.error&&json.error.status)||('http-'+response.status);
+              throw error;
+            }
+            return json;
+          });
+        });
+      });
+    });
+  }
+  function encodeValue(value){
+    if(value===null || value===undefined) return {nullValue:null};
+    if(value instanceof Date) return {timestampValue:value.toISOString()};
+    if(Array.isArray(value)) return {arrayValue:{values:value.map(encodeValue)}};
+    if(typeof value==='boolean') return {booleanValue:value};
+    if(typeof value==='number') return Number.isInteger(value)?{integerValue:String(value)}:{doubleValue:value};
+    if(typeof value==='object') return {mapValue:{fields:encodeFields(value)}};
+    return {stringValue:String(value)};
+  }
+  function encodeFields(object){
+    var fields={};
+    Object.keys(object||{}).forEach(function(key){ if(object[key]!==undefined) fields[key]=encodeValue(object[key]); });
+    return fields;
+  }
+  function decodeValue(value){
+    if(!value) return null;
+    if(Object.prototype.hasOwnProperty.call(value,'nullValue')) return null;
+    if(Object.prototype.hasOwnProperty.call(value,'stringValue')) return value.stringValue;
+    if(Object.prototype.hasOwnProperty.call(value,'booleanValue')) return value.booleanValue;
+    if(Object.prototype.hasOwnProperty.call(value,'integerValue')) return Number(value.integerValue);
+    if(Object.prototype.hasOwnProperty.call(value,'doubleValue')) return Number(value.doubleValue);
+    if(Object.prototype.hasOwnProperty.call(value,'timestampValue')) return value.timestampValue;
+    if(Object.prototype.hasOwnProperty.call(value,'bytesValue')) return value.bytesValue;
+    if(Object.prototype.hasOwnProperty.call(value,'referenceValue')) return value.referenceValue;
+    if(Object.prototype.hasOwnProperty.call(value,'geoPointValue')) return value.geoPointValue;
+    if(Object.prototype.hasOwnProperty.call(value,'arrayValue')) return (value.arrayValue.values||[]).map(decodeValue);
+    if(Object.prototype.hasOwnProperty.call(value,'mapValue')){
+      var map={}; Object.keys(value.mapValue.fields||{}).forEach(function(key){map[key]=decodeValue(value.mapValue.fields[key]);}); return map;
+    }
+    return null;
+  }
+  function decodeFields(fields){
+    var result={}; Object.keys(fields||{}).forEach(function(key){result[key]=decodeValue(fields[key]);}); return result;
+  }
+  function docUrl(collection,id){ return FIRESTORE_ROOT+'/'+encodeURIComponent(collection)+'/'+encodeURIComponent(id); }
+  function docFrom(json,fallbackId){
+    if(!json || !json.name) return {exists:false,id:fallbackId||'',data:function(){return undefined;}};
+    var parts=json.name.split('/');
+    return {exists:true,id:parts[parts.length-1]||fallbackId||'',data:function(){return decodeFields(json.fields||{});}};
+  }
+  function getDoc(collection,id){
+    return request('GET',docUrl(collection,id)).then(function(json){return docFrom(json,id);}).catch(function(error){
+      if(error.code==='NOT_FOUND' || error.code==='http-404') return docFrom(null,id);
+      throw error;
+    });
+  }
+  function setDoc(collection,id,data,options){
+    var merged=Promise.resolve(data);
+    if(options && options.merge){
+      merged=getDoc(collection,id).then(function(existing){ return existing.exists?Object.assign({},existing.data(),data):data; });
+    }
+    return merged.then(function(payload){ return request('PATCH',docUrl(collection,id),{fields:encodeFields(payload)}); }).then(function(json){return docFrom(json,id);});
+  }
+  function updateDoc(collection,id,data){
+    return request('PATCH',docUrl(collection,id),{fields:encodeFields(data)}).then(function(json){return docFrom(json,id);});
+  }
+  function addDoc(collection,data){
+    var id='web_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);
+    return request('POST',FIRESTORE_ROOT+'/'+encodeURIComponent(collection)+'?documentId='+encodeURIComponent(id),{fields:encodeFields(data)}).then(function(json){return docFrom(json,id);});
+  }
+  function listDocs(collection){
+    return request('GET',FIRESTORE_ROOT+'/'+encodeURIComponent(collection)+'?pageSize=1000').then(function(json){return (json.documents||[]).map(function(doc){return docFrom(doc);});});
+  }
+  function snapshot(docs){
+    return {docs:docs,size:docs.length,empty:docs.length===0,forEach:function(callback,context){docs.forEach(function(doc){callback.call(context,doc);});}};
+  }
+  function watchDoc(collection,id,callback,onError){
+    var stopped=false;
+    function refresh(){getDoc(collection,id).then(function(doc){if(!stopped) callback(doc);}).catch(function(error){if(!stopped && onError) onError(error);});}
+    refresh();
+    var timer=setInterval(refresh,5000); pollers.push(timer);
+    return function(){stopped=true;clearInterval(timer);};
+  }
+  function watchCollection(collection,filter,callback,onError){
+    var stopped=false,last='';
+    function refresh(){listDocs(collection).then(function(docs){
+      if(filter) docs=docs.filter(function(doc){var data=doc.data()||{};return filter.op==='==' ? data[filter.field]===filter.value : true;});
+      var signature=JSON.stringify(docs.map(function(doc){return {id:doc.id,data:doc.data()};}));
+      if(!stopped && signature!==last){last=signature;callback(snapshot(docs));}
+    }).catch(function(error){if(!stopped && onError) onError(error);});}
+    refresh();
+    var timer=setInterval(refresh,5000); pollers.push(timer);
+    return function(){stopped=true;clearInterval(timer);};
+  }
+  function collection(name){
+    var ref={
+      doc:function(id){return {get:function(){return getDoc(name,id);},set:function(data,options){return setDoc(name,id,data,options);},update:function(data){return updateDoc(name,id,data);},onSnapshot:function(callback,onError){return watchDoc(name,id,callback,onError);}};},
+      add:function(data){return addDoc(name,data);},
+      onSnapshot:function(callback,onError){return watchCollection(name,null,callback,onError);},
+      where:function(field,op,value){return {onSnapshot:function(callback,onError){return watchCollection(name,{field:field,op:op,value:value},callback,onError);}};}
+    };
+    return ref;
+  }
+  return {collection:collection};
+}
+
+if (typeof fbReady !== 'undefined' && fbReady) fbDb = createNamedFirestoreAdapter();
+// ─── State ──────────────────────────────────────────────────────
+var STATE = {
+  currentServer: null,
+  selectedTable: 1,
+  guestCount: 2,
+  rooms: [],
+  roomObjs: [],
+  stations: [],
+  menuItems: [],
+  menuCategories: [],
+  tastingMenus: [],
+  prixFixeMenus: [],
+  orders: [],
+  calls: [],
+  messages: [],
+  currentOrder: [],
+  activeTab: 'tables',
+  orderCat: null,
+  tipPercent: 18,
+  customTip: 0,
+  activeTastingOrders: [], // tracks course-by-course firing
+  _expandedItems: {},
+  floorRoom: null,
+  menuLive: false
+};
+var SEATABLE = {table:1, stool:1, outdoor:1, couch:1};
+
+function mapBohMenuItem(it){
+  it = it || {};
+  var cat = (it.catIds && it.catIds[0]) || it.category || '';
+  return Object.assign({}, it, {
+    category: cat,
+    photo: it.photoUrl || it.photo || '',
+    description: it.desc || it.description || '',
+    dietaryFlags: it.diet || it.dietary || it.dietaryFlags || [],
+    dietary: it.diet || it.dietary || it.dietaryFlags || [],
+    allergens: it.allergens || [],
+    cookTime: it.cookTime || it.cookMin || 0,
+    cookMin: it.cookMin || it.cookTime || 0,
+    station: it.station || 'Expo',
+    price: Number(it.price)||0,
+    active: it.active !== false
+  });
+}
+
+var SEED_CATEGORIES = [
+  {id:'small-plates',name:'Small Plates'},{id:'ceviche',name:'Ceviche'},
+  {id:'soups-salads',name:'Soups & Salads'},{id:'entrees',name:'Entrées'},
+  {id:'sides',name:'Sides'},{id:'desserts',name:'Desserts'},
+  {id:'kids',name:'Kids'},{id:'brunch',name:'Brunch'},
+  {id:'cocktails',name:'Cocktails'},{id:'beer',name:'Beer'},
+  {id:'spirits',name:'Spirits'},{id:'wine',name:'Wine'}
+];
+
+var SEED_ITEMS = [
+  {id:'i1',code:'SP01',name:'Tuna Tartare',price:16,category:'small-plates',station:'Cold/Garde Manger',cookTime:8,modifiers:[],description:'Ahi tuna, avocado mousse, sesame crisp, ponzu',allergens:['Fish','Sesame','Soy'],dietaryFlags:['Pescatarian','Gluten-Free']},
+  {id:'i2',code:'CE01',name:'Peruvian Ceviche',price:18,category:'ceviche',station:'Cold/Garde Manger',cookTime:5,modifiers:[],description:'Corvina, leche de tigre, sweet potato, red onion, cilantro',allergens:['Fish'],dietaryFlags:['Pescatarian','Gluten-Free','Dairy-Free']},
+  {id:'i3',code:'CE02',name:'Shrimp Ceviche',price:19,category:'ceviche',station:'Cold/Garde Manger',cookTime:5,modifiers:[],description:'Tiger shrimp, mango, habanero, coconut milk',allergens:['Shellfish'],dietaryFlags:['Pescatarian','Gluten-Free']},
+  {id:'i4',code:'EN01',name:'Wagyu Ribeye',price:58,category:'entrees',station:'Grill',cookTime:18,modifiers:[{group:'Temperature',options:['R','MR','M']}],description:'12oz prime wagyu, chimichurri, roasted garlic, seasonal vegetables',allergens:[],dietaryFlags:['Gluten-Free']},
+  {id:'i5',code:'EN02',name:'Pan-Seared Salmon',price:34,category:'entrees',station:'Sauté',cookTime:14,modifiers:[{group:'Temperature',options:['MR','M']}],description:'Atlantic salmon, lemon beurre blanc, asparagus, fingerling potatoes',allergens:['Fish','Dairy'],dietaryFlags:['Pescatarian']},
+  {id:'i6',code:'DE01',name:'Chocolate Studio Torte',price:14,category:'desserts',station:'Pastry',cookTime:3,modifiers:[],description:'Single-origin dark chocolate, raspberry coulis, gold leaf',allergens:['Dairy','Egg','Gluten'],dietaryFlags:['Vegetarian']},
+  {id:'i7',code:'DE02',name:'Crème Brûlée',price:12,category:'desserts',station:'Pastry',cookTime:2,modifiers:[],description:'Tahitian vanilla bean custard, caramelized sugar',allergens:['Dairy','Egg'],dietaryFlags:['Vegetarian','Gluten-Free']},
+  {id:'i8',code:'CK01',name:'Pisco Sour',price:14,category:'cocktails',station:'Bar',cookTime:3,modifiers:[],description:'Peruvian pisco, lime, egg white, Angostura bitters',allergens:['Egg'],dietaryFlags:['Vegetarian']},
+  {id:'i9',code:'CK02',name:'Chocolate Old Fashioned',price:16,category:'cocktails',station:'Bar',cookTime:3,modifiers:[],description:'Bourbon, cacao nib-infused syrup, orange peel, chocolate bitters',allergens:[],dietaryFlags:['Vegan']},
+  {id:'i10',code:'BE01',name:'Local Lager',price:8,category:'beer',station:'Bar',cookTime:1,modifiers:[],description:'Crisp craft lager from local brewery',allergens:['Gluten'],dietaryFlags:['Vegan']},
+  {id:'i11',code:'WN01',name:'Malbec Reserva',price:52,category:'wine',station:'Bar',cookTime:1,modifiers:[{group:'Pour',options:['Glass $14','Bottle $52']}],description:'Mendoza, Argentina. Full-bodied, dark fruit, spice, velvety tannins',allergens:['Sulfites'],dietaryFlags:['Vegan']},
+  {id:'i12',code:'WN02',name:'Chardonnay',price:44,category:'wine',station:'Bar',cookTime:1,modifiers:[{group:'Pour',options:['Glass $12','Bottle $44']}],description:'Sonoma Coast. Crisp citrus, green apple, light oak',allergens:['Sulfites'],dietaryFlags:['Vegan']},
+  {id:'i13',code:'SS01',name:'Soup of the Day',price:10,category:'soups-salads',station:'Sauté',cookTime:5,modifiers:[],description:'Chef\'s daily creation, ask your server for today\'s selection',allergens:['Dairy'],dietaryFlags:['Vegetarian']},
+  {id:'i14',code:'SD01',name:'Truffle Fries',price:12,category:'sides',station:'Fry',cookTime:6,modifiers:[],description:'Hand-cut fries, truffle oil, parmesan, fresh herbs',allergens:['Dairy'],dietaryFlags:['Vegetarian']}
+];
+
+var SEED_STAFF = [
+  {code:'3001',name:'Andre Mendoza',role:'Food Master'},
+  {code:'3002',name:'Paco Arias',role:'Food Master'},
+  {code:'4001',name:'Edwin Perez',role:'Front of House'},
+  {code:'5001',name:'General Manager',role:'Manager'}
+];
+
+var SEED_TASTING_MENUS = [
+  {id:'tm1',name:"Chef's Tasting",subtitle:'7-Course Seasonal Journey',price:145,duration:'~3 hours',service:'dinner',active:true,
+   courses:[
+     {name:'Amuse-Bouche',description:'Seasonal micro-bite',station:'Cold / Garde Manger'},
+     {name:'Ceviche Course',description:'Corvina, leche de tigre',station:'Cold / Garde Manger'},
+     {name:'Cold Plate',description:'Tuna tartare, avocado mousse',station:'Cold / Garde Manger'},
+     {name:'Soup',description:'Seasonal bisque, herb oil',station:'Sauté'},
+     {name:'Fish',description:'Pan-seared salmon, beurre blanc',station:'Sauté'},
+     {name:'Meat',description:'Wagyu ribeye, chimichurri',station:'Grill'},
+     {name:'Dessert',description:'Chocolate torte, raspberry',station:'Pastry'}
+   ],
+   pairings:[{id:'wp1',name:'Wine Pairing',description:'Sommelier-selected',price:85},{id:'wp2',name:'Premium Pairing',description:'Reserve selections',price:145}]},
+  {id:'tm2',name:'Chocolate Experience',subtitle:'5-Course Cacao Journey',price:95,duration:'~2 hours',service:'dinner',active:true,
+   courses:[
+     {name:'Cacao Amuse',description:'White chocolate sphere',station:'Pastry'},
+     {name:'Savory Cacao',description:'Cacao-crusted duck',station:'Sauté'},
+     {name:'Intermezzo',description:'Cacao nib sorbet',station:'Pastry'},
+     {name:'Main',description:'Mole negro, short rib',station:'Grill'},
+     {name:'Grand Dessert',description:'Chocolate studio showpiece',station:'Pastry'}
+   ],
+   pairings:[{id:'wp3',name:'Dessert Wine Pairing',description:'Sweet wine flight',price:65}]}
+];
+
+var SEED_PRIX_FIXE_MENUS = [
+  {id:'pf1',name:'Lunch Prix Fixe',subtitle:'Choose one from each course',price:42,service:'lunch',active:true,
+   courses:[
+     {label:'Appetizer',station:'Cold / Garde Manger',options:[{name:'Soup of the Day',upcharge:0},{name:'Caesar Salad',upcharge:0},{name:'Tuna Tartare',upcharge:5}]},
+     {label:'Main Course',station:'Grill',options:[{name:'Grilled Salmon',upcharge:0},{name:'Chicken Breast',upcharge:0},{name:'Wagyu Burger',upcharge:8}]},
+     {label:'Dessert',station:'Pastry',options:[{name:'Crème Brûlée',upcharge:0},{name:'Sorbet Trio',upcharge:0},{name:'Chocolate Torte',upcharge:4}]}
+   ]},
+  {id:'pf2',name:'Sunday Brunch Prix Fixe',subtitle:'Three courses + welcome cocktail',price:55,service:'brunch',active:true,
+   courses:[
+     {label:'Starter',station:'Cold / Garde Manger',options:[{name:'Avocado Toast',upcharge:0},{name:'Shrimp Cocktail',upcharge:6}]},
+     {label:'Main',station:'Sauté',options:[{name:'Eggs Benedict',upcharge:0},{name:'Steak & Eggs',upcharge:10},{name:'Lobster Omelette',upcharge:14}]},
+     {label:'Dessert',station:'Pastry',options:[{name:'French Toast',upcharge:0},{name:'Chocolate Soufflé',upcharge:5}]}
+   ]}
+];
+
+// ─── Helpers ────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function toast(msg) {
+  var t=document.getElementById('toast'); t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),3000);
+}
+function genId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,6); }
+
+// ─── Firebase load ──────────────────────────────────────────────
+function loadData() {
+  if (!fbReady) { STATE.menuCategories=SEED_CATEGORIES; STATE.menuItems=SEED_ITEMS; STATE.tastingMenus=SEED_TASTING_MENUS; STATE.prixFixeMenus=SEED_PRIX_FIXE_MENUS; return; }
+
+  // Listen directly to BOH shared menu (boh_shared/menu)
+  fbDb.collection('boh_shared').doc('menu').onSnapshot(function(doc){
+    if (doc.exists && doc.data() && doc.data().cats) {
+      var d = doc.data();
+      STATE.menuLive = true;
+      STATE.menuCategories = (d.cats||[]).filter(function(c){return c.visible!==false;});
+      STATE.modGroups = d.modGroups || [];
+      STATE.menuItems = (d.items||[]).map(function(it){
+        var mapped = mapBohMenuItem(it);
+        if ((!mapped.modifiers || !mapped.modifiers.length) && it.modGroupIds && STATE.modGroups.length) {
+          mapped.modifiers = it.modGroupIds.map(function(gid){
+            var g = STATE.modGroups.filter(function(x){ return x.id===gid; })[0];
+            if (!g) return null;
+            return {group:g.name, options:(g.options||[]).map(function(o){ return o.name+(o.up?(' +$'+o.up):''); })};
+          }).filter(Boolean);
+        }
+        return mapped;
+      }).filter(function(it){ return it.active !== false; });
+    } else if (!STATE.menuLive) {
+      STATE.menuCategories = SEED_CATEGORIES;
+      STATE.menuItems = SEED_ITEMS;
+    }
+    if (STATE.activeTab==='order') renderOrder();
+  }, function(){ if (!STATE.menuLive) { STATE.menuCategories = SEED_CATEGORIES; STATE.menuItems = SEED_ITEMS; } });
+
+  // Real-time listeners for BOH dining room layout tables
+  fbDb.collection('boh_shared').doc('tables').onSnapshot(function(doc){
+    if (doc.exists && doc.data()) {
+      var d = doc.data();
+      if (d.rooms) STATE.rooms = d.rooms;
+      if (d.roomObjs) STATE.roomObjs = d.roomObjs;
+      STATE.stations = Array.isArray(d.stations) ? d.stations : [];
+      if (!STATE.floorRoom && STATE.rooms && STATE.rooms.length) STATE.floorRoom = STATE.rooms[0].id;
+      if (STATE.activeTab==='tables') renderTables();
+    }
+  }, function(){});
+
+  // Real-time listeners for tasting & prix fixe menus from BOH
+  fbDb.collection('boh_shared').doc('tasting_menus').onSnapshot(function(doc){
+    if (doc.exists && Array.isArray((doc.data()||{}).list)) {
+      STATE.tastingMenus = doc.data().list.filter(function(t){ return t && t.active !== false; });
+    } else if (!STATE.menuLive) {
+      STATE.tastingMenus = SEED_TASTING_MENUS;
+    }
+    if (STATE.activeTab==='order') renderOrder();
+  }, function(){ if (!STATE.menuLive) STATE.tastingMenus = SEED_TASTING_MENUS; });
+
+  fbDb.collection('boh_shared').doc('prix_fixe_menus').onSnapshot(function(doc){
+    if (doc.exists && Array.isArray((doc.data()||{}).list)) {
+      STATE.prixFixeMenus = doc.data().list.filter(function(p){ return p && p.active !== false; });
+    } else if (!STATE.menuLive) {
+      STATE.prixFixeMenus = SEED_PRIX_FIXE_MENUS;
+    }
+    if (STATE.activeTab==='order') renderOrder();
+  }, function(){ if (!STATE.menuLive) STATE.prixFixeMenus = SEED_PRIX_FIXE_MENUS; });
+
+  fbDb.collection('calls').onSnapshot(snap=>{
+    STATE.calls=[]; snap.forEach(d=>STATE.calls.push({id:d.id,...d.data()}));
+    var active = STATE.calls.filter(c=>c.status==='active');
+    if (active.length > 0 && STATE.currentServer) showCallAlert(active[0]);
+    if (STATE.activeTab==='tables') renderTables();
+  });
+
+  fbDb.collection('orders').onSnapshot(snap=>{
+    var fbOrders=[]; snap.forEach(d=>fbOrders.push({id:d.id,...d.data()}));
+    // Merge: keep locally-pushed orders that haven't appeared in Firebase yet
+    var localOnly=(STATE._localOrders||[]).filter(lo=>!fbOrders.some(fo=>fo.sentAt===lo.sentAt&&fo.table===lo.table));
+    STATE._localOrders=localOnly;
+    STATE.orders=fbOrders.concat(localOnly);
+    if (STATE.activeTab==='tables') renderTables();
+    if (STATE.activeTab==='order') renderOrder();
+    if (STATE.activeTab==='history') renderHistory();
+  });
+
+  fbDb.collection('messages').onSnapshot(snap=>{
+    STATE.messages=[]; snap.forEach(d=>STATE.messages.push({id:d.id,...d.data()}));
+    if (STATE.activeTab==='messages') renderMessages();
+    updateMsgBadge();
+  });
+}
+
+// ─── Login ──────────────────────────────────────────────────────
+var pin = '';
+function buildNumpad() {
+  var pad=document.getElementById('numpad');
+  [1,2,3,4,5,6,7,8,9,'⌫',0,'→'].forEach(k=>{
+    var btn=document.createElement('button');
+    btn.className='numpad-btn'+(typeof k==='string'?' action':'');
+    btn.textContent=k;
+    btn.setAttribute('type', 'button');
+    btn.onclick=(e)=>{ e.preventDefault(); pinKey(k); };
+    btn.ontouchstart=(e)=>{ e.preventDefault(); pinKey(k); };
+    pad.appendChild(btn);
+  });
+}
+function pinKey(k) {
+  if (k==='⌫') pin=pin.slice(0,-1);
+  else if (k==='→') attemptLogin();
+  else if (pin.length<4) pin+=k;
+  updateDots();
+  if (pin.length===4) setTimeout(attemptLogin,200);
+}
+function updateDots() {
+  document.querySelectorAll('#pin-display .pin-dot').forEach((d,i)=>d.classList.toggle('filled',i<pin.length));
+}
+function attemptLogin() {
+  var staff=SEED_STAFF.find(s=>s.code===pin);
+  if (!staff) { document.getElementById('pin-error').textContent='Invalid code'; pin=''; updateDots(); return; }
+  document.getElementById('pin-error').textContent='';
+  STATE.currentServer=staff;
+  document.getElementById('user-name').textContent=staff.name;
+  document.getElementById('user-role').textContent=staff.role;
+  showScreen('app-screen');
+  switchTab('tables');
+  initSquare();
+}
+function logout() { STATE.currentServer=null; pin=''; updateDots(); showScreen('login-screen'); }
+
+// ─── Tabs ───────────────────────────────────────────────────────
+function switchTab(tab) {
+  STATE.activeTab=tab;
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+  if (tab==='tables') renderTables();
+  else if (tab==='order') renderOrder();
+  else if (tab==='messages') renderMessages();
+  else if (tab==='history') renderHistory();
+}
+
+// ─── Tables (BOH Dining Room Layout & Audit) ───────────────────
+function roomObjects(roomId){
+  var objs = STATE.roomObjs;
+  if (!objs) return [];
+  if (Array.isArray(objs)) return objs;
+  if (roomId && Array.isArray(objs[roomId])) return objs[roomId];
+  var all=[];
+  Object.keys(objs).forEach(function(id){
+    if (Array.isArray(objs[id])) objs[id].forEach(function(o){ all.push(o); });
+  });
+  return all;
+}
+function tableKey(o){
+  if (!o) return '';
+  if (o.num!=null && o.num!=='') return o.num;
+  return o.id || '';
+}
+function tableHasCall(tNum){
+  return STATE.calls.some(function(cl){ return String(cl.table)===String(tNum) && cl.status==='active'; });
+}
+function tableHasOrder(tNum){
+  return STATE.orders.some(function(o2){ return String(o2.table)===String(tNum) && o2.status!=='cleared' && o2.status!=='paid'; });
+}
+function setFloorRoom(roomId){
+  STATE.floorRoom = roomId;
+  renderTables();
+}
+function renderTables() {
+  var c=document.getElementById('app-content');
+  var rooms = Array.isArray(STATE.rooms) ? STATE.rooms : [];
+  if (!STATE.floorRoom && rooms.length) STATE.floorRoom = rooms[0].id;
+  var roomId = STATE.floorRoom || (rooms[0] && rooms[0].id);
+  var objs = roomObjects(roomId);
+
+  var html='<div class="floor-wrap">';
+  html+='<div class="floor-head"><div><h2>Dining room</h2><p>Floor plan from Back of House. Tap a table to start an order.</p></div><div style="font-size:0.8rem;color:var(--text-muted);text-align:right;">'+(STATE.currentServer?STATE.currentServer.name:'Server')+'</div></div>';
+
+  if (rooms.length > 1) {
+    html+='<div class="floor-room-tabs">';
+    rooms.forEach(function(rm){
+      html+='<button class="floor-room-tab'+(rm.id===roomId?' active':'')+'" onclick="setFloorRoom('+JSON.stringify(String(rm.id))+')">'+(rm.name||rm.id)+'</button>';
+    });
+    html+='</div>';
+  }
+
+  if (objs.length) {
+    var maxX=320, maxY=240;
+    objs.forEach(function(o){
+      maxX=Math.max(maxX, (o.x||0)+(o.w||80)+24);
+      maxY=Math.max(maxY, (o.y||0)+(o.h||80)+24);
+    });
+    var availW = Math.max(280, (c.clientWidth||window.innerWidth||360) - 28);
+    var scale = Math.min(1, availW / maxX);
+    html+='<div class="floor-stage" style="height:'+Math.round(maxY*scale)+'px">';
+    html+='<div class="floor-canvas" style="width:'+maxX+'px;height:'+maxY+'px;transform:scale('+scale+');transform-origin:top left;">';
+    // Waiter stations from BOH: draw each station zone behind the tables and map every table to its station.
+    var STATION_COLORS=['#C9A84C','#9BC4E2','#5FB48A','#E0A36B','#B98AD8','#E07A6B'];
+    var roomStations=(STATE.stations||[]).filter(function(s){ return String(s.room)===String(roomId); });
+    var tableStation={};
+    roomStations.forEach(function(s,si){
+      s._color=STATION_COLORS[si%STATION_COLORS.length];
+      (s.tableIds||[]).forEach(function(tid){ tableStation[String(tid)]=s; });
+    });
+    roomStations.forEach(function(s){
+      var sl=s.x||0, stp=s.y||0, sw=s.w||120, sh=s.h||120, col=s._color;
+      var numTxt=(s.number!=null&&s.number!=='')?String(s.number):'';
+      var lbl='Station'+(numTxt?' '+numTxt:'')+(s.server?' \u00b7 '+s.server:'');
+      html+='<div class="floor-station" style="left:'+sl+'px;top:'+stp+'px;width:'+sw+'px;height:'+sh+'px;border:2px dashed '+col+';background:'+col+'14;">'+
+        '<span class="floor-station-tag" style="background:'+col+';">'+lbl+'</span></div>';
+    });
+    objs.forEach(function(o){
+      if (o.type==='waiterstation') return;
+      var left=o.x||20, top=o.y||20, width=o.w||70, height=o.h||70, rot=o.rot||0;
+      var style='left:'+left+'px;top:'+top+'px;width:'+width+'px;height:'+height+'px;transform:rotate('+rot+'deg);';
+      var tNum=tableKey(o);
+      if (SEATABLE[o.type]) {
+        var hasCall=tableHasCall(tNum);
+        var hasOrder=tableHasOrder(tNum);
+        var bg=hasCall?'rgba(230,80,80,0.28)':(hasOrder?'rgba(220,165,50,0.28)':'rgba(201,168,76,0.14)');
+        var border=hasCall?'#E65050':(hasOrder?'#DCA532':'rgba(201,168,76,0.45)');
+        var radius=o.shape==='round'||o.type==='stool'?'50%':(o.type==='outdoor'?'10px':'12px');
+        var status=hasCall?'CALL':hasOrder?'Active':(o.status&&o.status!=='open'?o.status:'Open');
+        var statusColor=hasCall?'#E65050':hasOrder?'#DCA532':'#5FB48A';
+        var stn=tableStation[String(o.id)]||tableStation[String(tNum)];
+        var tBorder=stn?stn._color:border;
+        var stnGlow=stn?'box-shadow:0 0 0 2px '+stn._color+'66, 0 4px 12px rgba(0,0,0,0.4);':'';
+        var stnBadge=stn?'<div class="floor-tstation" style="background:'+stn._color+';">S'+((stn.number!=null&&stn.number!=='')?stn.number:'')+'</div>':'';
+        html+='<div class="floor-obj seatable" onclick="selectTable('+JSON.stringify(String(tNum))+')" style="'+style+'border-radius:'+radius+';background:'+bg+';border:2px solid '+tBorder+';'+stnGlow+'">'+
+          stnBadge+
+          '<div class="floor-tnum">'+tNum+'</div>'+
+          '<div class="floor-tsub">'+(o.seats||(o.type==='stool'?1:4))+' seats</div>'+
+          '<div class="floor-tstat" style="color:'+statusColor+'">'+status+'</div>'+
+        '</div>';
+      } else {
+        html+='<div class="floor-obj" style="'+style+'border:1px dashed rgba(255,255,255,0.16);border-radius:8px;background:rgba(255,255,255,0.04);color:rgba(243,236,220,0.5);font-size:0.7rem;pointer-events:none;">'+(o.label||o.type)+'</div>';
+      }
+    });
+    html+='</div></div>';
+    html+='<div class="floor-legend"><span><span class="floor-dot" style="background:#5FB48A"></span>Open</span><span><span class="floor-dot" style="background:#DCA532"></span>Active order</span><span><span class="floor-dot" style="background:#E65050"></span>Guest call</span></div>';
+  } else {
+    html+='<p style="color:var(--text-muted);font-size:0.85rem;margin-bottom:0.8rem;">No BOH floor plan yet. Showing numbered tables.</p>';
+    html+='<div class="table-grid">';
+    for (var i=1;i<=20;i++) {
+      var hasCall=tableHasCall(i);
+      var hasOrder=tableHasOrder(i);
+      var cls='table-card'+(hasCall?' has-call':'')+(hasOrder?' has-order':'');
+      html+='<div class="'+cls+'" onclick="selectTable('+i+')">'+
+        '<div class="table-num">'+i+'</div>'+
+        '<div class="table-status">'+(hasCall?'CALLING':hasOrder?'Active':'Open')+'</div>'+
+      '</div>';
+    }
+    html+='</div>';
+  }
+  html+='</div>';
+  c.innerHTML=html;
+}
+
+function selectTable(t) {
+  var gc = prompt('Guests for Table ' + t + ':', String(STATE.guestCount||2));
+  if (gc === null) return;
+  STATE.selectedTable = t;
+  STATE.guestCount = parseInt(gc,10) || 2;
+  if (fbReady) {
+    STATE.calls.filter(function(cl){ return String(cl.table)===String(t) && cl.status==='active'; }).forEach(function(cl){
+      fbDb.collection('calls').doc(cl.id).update({status:'acknowledged'});
+    });
+  }
+  toast('Table ' + t + ' · ' + STATE.guestCount + ' guests');
+  switchTab('order');
+}
+
+// ─── Order ──────────────────────────────────────────────────────
+function renderOrder() {
+  var c=document.getElementById('app-content');
+  var cats=STATE.menuCategories.length?STATE.menuCategories:(STATE.menuLive?[]:SEED_CATEGORIES);
+  var items=STATE.menuItems.length?STATE.menuItems:(STATE.menuLive?[]:SEED_ITEMS);
+  if (!STATE.orderCat && cats.length) STATE.orderCat=cats[0].id;
+
+  var html='<div class="order-section">';
+  html+='<h3>Table '+STATE.selectedTable+' — New Order</h3>';
+  html+='<div class="cat-pills">';
+  // Add Tasting & Prix Fixe pill if any are available
+  var hasTasting=(STATE.tastingMenus.length||STATE.prixFixeMenus.length);
+  if (hasTasting) {
+    html+='<div class="cat-pill tasting-pill'+(STATE.orderCat==='__tasting__'?' active':'')+'" onclick="filterCat(\'__tasting__\')">✦ Tasting</div>';
+  }
+  cats.forEach(cat=>{
+    html+='<div class="cat-pill'+(cat.id===STATE.orderCat?' active':'')+'" onclick="filterCat(\''+cat.id+'\')">'+cat.name+'</div>';
+  });
+  html+='</div>';
+
+  html+='<div id="menu-items-list">';
+  if (STATE.orderCat==='__tasting__') {
+    html+=renderTastingItems();
+  } else {
+    var filtered=items.filter(function(i){
+      if (i.catIds && i.catIds.length) return i.catIds.indexOf(STATE.orderCat)>-1;
+      return i.category===STATE.orderCat;
+    });
+    if (!filtered.length) {
+      html+='<p style="color:var(--text-muted);font-size:0.85rem;padding:1rem 0;">No dishes in this category from BOH yet.</p>';
+    }
+    filtered.forEach(item=>{
+      var hasDesc = item.description || item.desc || (item.allergens&&item.allergens.length) || (item.dietaryFlags&&item.dietaryFlags.length);
+      var cook = item.cookTime || item.cookMin || 0;
+      html+='<div class="menu-item-row" onclick="addItem(\''+item.id+'\')">'+
+        (item.photo?'<img class="item-thumb" src="'+item.photo+'" alt="">':'')+
+        '<div class="item-info"><div class="item-name">'+item.name+'</div>'+
+        '<div class="item-meta">'+(item.station||'')+' · '+cook+'min</div>'+
+        (hasDesc ? '<div class="item-desc-toggle" onclick="event.stopPropagation();toggleItemDesc(\''+item.id+'\')">[i] details</div>' : '')+
+        '</div>'+
+        '<div class="item-price">$'+(Number(item.price)||0).toFixed(2)+'</div>'+
+      '</div>';
+      // Expandable description panel (hidden by default)
+      if (hasDesc && STATE._expandedItems && STATE._expandedItems[item.id]) {
+        html+='<div class="item-desc-expanded">';
+        if (item.description || item.desc) html+='<div>'+(item.description||item.desc)+'</div>';
+        if (item.allergens && item.allergens.length) html+='<div class="desc-allergens">⚠ Allergens: '+item.allergens.join(', ')+'</div>';
+        if (item.dietaryFlags && item.dietaryFlags.length) html+='<div class="desc-dietary">'+item.dietaryFlags.join(' · ')+'</div>';
+        html+='</div>';
+      }
+    });
+  }
+  html+='</div>';
+
+  // Current order
+  html+='<div class="order-summary"><h3>Current Order ('+STATE.currentOrder.length+' items)</h3>';
+  if (!STATE.currentOrder.length) html+='<p style="color:var(--text-muted);font-size:0.8rem;padding:0.5rem 0;">Tap items above to add</p>';
+  else {
+    STATE.currentOrder.forEach((item,idx)=>{
+      html+='<div class="order-line"><span style="font-size:0.85rem;">'+item.name+(item.selectedMod?' <span style="color:var(--warning);font-size:0.7rem;">('+item.selectedMod+')</span>':'')+'</span>'+
+        '<button class="remove-btn" onclick="removeItem('+idx+')">✕</button></div>';
+    });
+    var total=STATE.currentOrder.reduce((s,i)=>s+i.price,0);
+    html+='<div style="display:flex;justify-content:space-between;padding:0.5rem 0;font-weight:700;border-top:1px solid var(--border);margin-top:0.5rem;">'+
+      '<span>Total</span><span style="color:var(--primary-light);">$'+total.toFixed(2)+'</span></div>';
+  }
+  html+='<button class="send-btn" onclick="sendOrder()"'+(STATE.currentOrder.length?'':' disabled')+'>🔥 Send to Kitchen</button>';
+
+  // Show active tasting/prix fixe orders with Fire Next Course
+  var tableTastings=STATE.activeTastingOrders.filter(o=>o.table===STATE.selectedTable&&o.status==='active');
+  if (tableTastings.length) {
+    html+='<div class="tasting-progress">';
+    tableTastings.forEach(to=>{
+      var courses=to.type==='tasting'?to.courses:to.selections;
+      var firedCount=courses.filter(c=>c.fired).length;
+      var totalCourses=courses.length;
+      var allFired=firedCount>=totalCourses;
+      html+='<div class="tp-card"><div class="tp-name">'+(to.tastingName||to.prixFixeName)+'</div>'+
+        '<div class="tp-progress">Course '+firedCount+'/'+totalCourses+' fired</div>';
+      if (!allFired) {
+        var nextCourse=courses[to.currentCourse+1];
+        var nextName=to.type==='tasting'?nextCourse.name:nextCourse.course+': '+nextCourse.choice;
+        html+='<button class="fire-btn" onclick="fireNextCourse(\''+to.id+'\')">🔥 Fire Course '+(to.currentCourse+2)+': '+nextName+'</button>';
+      } else {
+        html+='<div class="tp-done">✓ All courses served</div>';
+      }
+      html+='</div>';
+    });
+    html+='</div>';
+  }
+
+  // Show Charge button for active orders on this table
+  var tableOrders=STATE.orders.filter(o=>o.table===STATE.selectedTable&&o.status==='new');
+  var tastingTotal=tableTastings.reduce((s,to)=>s+(to.totalPrice||0),0);
+  if (tableOrders.length||tastingTotal>0) {
+    var orderTotal=tableOrders.reduce((s,o)=>s+o.items.reduce((ss,i)=>{
+      var found=(STATE.menuItems.length?STATE.menuItems:SEED_ITEMS).find(mi=>mi.id===i.id);
+      return ss+(found?found.price:0);
+    },0),0)+tastingTotal;
+    html+='<button class="pay-btn" onclick="openPayment('+orderTotal+')">💳 Charge Table — $'+orderTotal.toFixed(2)+'</button>';
+  }
+  html+='</div></div>';
+  c.innerHTML=html;
+}
+
+function filterCat(catId) {
+  STATE.orderCat=catId;
+  renderOrder();
+}
+
+// ─── Tasting & Prix Fixe Ordering ──────────────────────────────
+function renderTastingItems() {
+  var html='';
+  if (STATE.tastingMenus.length) {
+    html+='<div class="tasting-section-label">Tasting Menus</div>';
+    STATE.tastingMenus.forEach(tm=>{
+      html+='<div class="menu-item-row tasting-row" onclick="addTastingMenu(\''+tm.id+'\')">'+
+        '<div class="item-info"><div class="item-name">✦ '+tm.name+'</div>'+
+        '<div class="item-meta">'+tm.courses.length+' courses · '+tm.duration+'</div></div>'+
+        '<div class="item-price">$'+tm.price.toFixed(2)+'</div>'+
+      '</div>';
+      // Show pairings as sub-items
+      if (tm.pairings&&tm.pairings.length) {
+        tm.pairings.forEach(p=>{
+          html+='<div class="menu-item-row pairing-row" onclick="addPairing(\''+tm.id+'\',\''+p.id+'\')">'+
+            '<div class="item-info"><div class="item-name" style="padding-left:1rem;">🍷 '+p.name+'</div>'+
+            '<div class="item-meta" style="padding-left:1rem;">Add-on for '+tm.name+'</div></div>'+
+            '<div class="item-price">+$'+p.price.toFixed(2)+'</div>'+
+          '</div>';
+        });
+      }
+    });
+  }
+  if (STATE.prixFixeMenus.length) {
+    html+='<div class="tasting-section-label" style="margin-top:1rem;">Prix Fixe Menus</div>';
+    STATE.prixFixeMenus.forEach(pf=>{
+      html+='<div class="menu-item-row tasting-row" onclick="openPrixFixeSelector(\''+pf.id+'\')">'+
+        '<div class="item-info"><div class="item-name">◈ '+pf.name+'</div>'+
+        '<div class="item-meta">'+pf.courses.length+' courses · Choose options</div></div>'+
+        '<div class="item-price">$'+pf.price.toFixed(2)+'</div>'+
+      '</div>';
+    });
+  }
+  if (!html) html='<p style="color:var(--text-muted);font-size:0.85rem;padding:1rem;">No tasting or prix fixe menus available. Create them in BOH.</p>';
+  return html;
+}
+
+function addTastingMenu(tmId) {
+  var tm=STATE.tastingMenus.find(t=>t.id===tmId);
+  if (!tm) return;
+  STATE.currentOrder.push({
+    id:'tasting_'+tmId+'_'+Date.now(),
+    name:tm.name+' (Tasting)',
+    price:tm.price,
+    category:'tasting',
+    station:'Expo',
+    cookTime:0,
+    isTasting:true,
+    tastingId:tmId,
+    courses:tm.courses,
+    selectedMod:tm.courses.length+' courses'
+  });
+  toast('+ '+tm.name);
+  renderOrder();
+}
+
+function addPairing(tmId, pairingId) {
+  var tm=STATE.tastingMenus.find(t=>t.id===tmId);
+  if (!tm) return;
+  var p=tm.pairings.find(x=>x.id===pairingId);
+  if (!p) return;
+  STATE.currentOrder.push({
+    id:'pairing_'+pairingId+'_'+Date.now(),
+    name:p.name+' (for '+tm.name+')',
+    price:p.price,
+    category:'tasting',
+    station:'Bar',
+    cookTime:0,
+    isPairing:true,
+    selectedMod:null
+  });
+  toast('+ '+p.name);
+  renderOrder();
+}
+
+function openPrixFixeSelector(pfId) {
+  var pf=STATE.prixFixeMenus.find(p=>p.id===pfId);
+  if (!pf) return;
+  var html='<div class="pf-selector"><h3>'+pf.name+' — $'+pf.price.toFixed(2)+'</h3>';
+  html+='<p class="pf-sel-sub">Select one option per course:</p>';
+  pf.courses.forEach((c,ci)=>{
+    html+='<div class="pf-course-select"><label>'+c.label+'</label><div class="pf-options">';
+    c.options.forEach((o,oi)=>{
+      html+='<label class="pf-opt-label"><input type="radio" name="pf-course-'+ci+'" value="'+oi+'"'+(oi===0?' checked':'')+'>'+
+        o.name+(o.upcharge>0?' <span class="pf-upcharge">+$'+o.upcharge.toFixed(2)+'</span>':'')+'</label>';
+    });
+    html+='</div></div>';
+  });
+  html+='<div class="pf-sel-actions"><button class="send-btn" onclick="confirmPrixFixe(\''+pfId+'\')">Add to Order</button>'+
+    '<button class="cancel-pay-btn" onclick="closePfSelector()">Cancel</button></div></div>';
+  document.getElementById('pf-overlay').innerHTML=html;
+  document.getElementById('pf-overlay').classList.add('show');
+}
+
+function closePfSelector() {
+  document.getElementById('pf-overlay').classList.remove('show');
+}
+
+function confirmPrixFixe(pfId) {
+  var pf=STATE.prixFixeMenus.find(p=>p.id===pfId);
+  if (!pf) return;
+  var selections=[];
+  var totalUpcharge=0;
+  pf.courses.forEach((c,ci)=>{
+    var radios=document.querySelectorAll('input[name="pf-course-'+ci+'"]');
+    var sel=0;
+    radios.forEach((r,i)=>{ if(r.checked) sel=i; });
+    var opt=c.options[sel];
+    selections.push({course:c.label, choice:opt.name, upcharge:opt.upcharge||0, station:c.station||'Expo'});
+    totalUpcharge+=(opt.upcharge||0);
+  });
+  var choiceStr=selections.map(s=>s.choice).join(', ');
+  STATE.currentOrder.push({
+    id:'prixfixe_'+pfId+'_'+Date.now(),
+    name:pf.name+' (Prix Fixe)',
+    price:pf.price+totalUpcharge,
+    category:'prix-fixe',
+    station:'Expo',
+    cookTime:0,
+    isPrixFixe:true,
+    prixFixeId:pfId,
+    selections:selections,
+    selectedMod:choiceStr
+  });
+  closePfSelector();
+  toast('+ '+pf.name);
+  renderOrder();
+}
+
+function toggleItemDesc(itemId) {
+  if (!STATE._expandedItems) STATE._expandedItems={};
+  STATE._expandedItems[itemId] = !STATE._expandedItems[itemId];
+  renderOrder();
+}
+
+function addItem(itemId) {
+  var items=STATE.menuItems.length?STATE.menuItems:SEED_ITEMS;
+  var item=items.find(i=>i.id===itemId);
+  if (!item) return;
+  if (item.modifiers&&item.modifiers.length) {
+    var mod=item.modifiers[0];
+    var choice=prompt(mod.group+'?\n'+mod.options.join(', '));
+    STATE.currentOrder.push({...item, selectedMod:choice||mod.options[0]});
+  } else {
+    STATE.currentOrder.push({...item, selectedMod:null});
+  }
+  toast('+ '+item.name);
+  renderOrder();
+}
+
+function removeItem(idx) { STATE.currentOrder.splice(idx,1); renderOrder(); }
+
+var activeOrdersWrite = Promise.resolve();
+function publishActiveOrder(order, docId) {
+  if (!fbReady) return Promise.resolve();
+  activeOrdersWrite = activeOrdersWrite.then(function(){
+    var feedRef = fbDb.collection('boh_shared').doc('active_orders');
+    return feedRef.get().then(function(doc){
+      var data = doc.exists && doc.data() || {};
+      var list = Array.isArray(data.list) ? data.list.filter(function(item){ return item && item.status === 'new' && item.id !== docId; }) : [];
+      list.push(Object.assign({}, order, {id:docId, status:'new'}));
+      return feedRef.set({list:list, updatedAt:Date.now()});
+    });
+  }).catch(function(error){ console.warn('Active order feed:', error); });
+  return activeOrdersWrite;
+}
+
+function sendOrder() {
+  if (!STATE.currentOrder.length) return;
+  // Separate tasting/prix fixe items from regular items
+  var regularItems=STATE.currentOrder.filter(i=>!i.isTasting&&!i.isPrixFixe&&!i.isPairing);
+  var tastingItems=STATE.currentOrder.filter(i=>i.isTasting||i.isPrixFixe||i.isPairing);
+
+  // Send regular items as normal order
+  if (regularItems.length) {
+    var order = {
+      table: STATE.selectedTable,
+      guestCount: STATE.guestCount || 2,
+      server: STATE.currentServer?STATE.currentServer.name:'Unknown',
+      serverCode: STATE.currentServer?STATE.currentServer.code:'0000',
+      serverRole: STATE.currentServer?STATE.currentServer.role:'Waiter',
+      items: regularItems.map(i=>({id:i.id,name:i.name,station:i.station,cookTime:i.cookTime,modifiers:i.modifiers||[],selectedMod:i.selectedMod})),
+      status:'new',
+      sentAt:Date.now(),
+      clearedAt:null
+    };
+    var localOrder={id:genId(),...order};
+    STATE.orders.push(localOrder);
+    if (!STATE._localOrders) STATE._localOrders=[];
+    STATE._localOrders.push(localOrder);
+    if (fbReady) fbDb.collection('orders').add(order).then(function(ref){ publishActiveOrder(order, ref.id); });
+  }
+
+  // Send tasting/prix fixe as course-by-course orders
+  tastingItems.forEach(ti=>{
+    if (ti.isTasting) {
+      // Fire first course immediately, rest on demand
+      var tastingOrder = {
+        table: STATE.selectedTable,
+        guestCount: STATE.guestCount || 2,
+        server: STATE.currentServer?STATE.currentServer.name:'Unknown',
+        serverCode: STATE.currentServer?STATE.currentServer.code:'0000',
+        serverRole: STATE.currentServer?STATE.currentServer.role:'Waiter',
+        type:'tasting',
+        tastingName:ti.name,
+        tastingId:ti.tastingId,
+        totalPrice:ti.price,
+        courses:ti.courses.map((c,i)=>({...c, fired:i===0, firedAt:i===0?Date.now():null})),
+        currentCourse:0,
+        status:'active',
+        sentAt:Date.now()
+      };
+      if (fbReady) fbDb.collection('tasting_orders').add(tastingOrder);
+      STATE.activeTastingOrders.push({id:genId(),...tastingOrder});
+      // Also send first course to regular orders for kitchen display
+      var firstCourse=ti.courses[0];
+      var courseOrder={
+        table: STATE.selectedTable,
+        server: STATE.currentServer?STATE.currentServer.name:'Unknown',
+        tastingCourse:{
+          type:'tasting',
+          menuName:ti.name,
+          courseNum:1,
+          totalCourses:ti.courses.length,
+          courseName:firstCourse.name,
+          station:firstCourse.station||'Expo',
+          description:firstCourse.desc||''
+        },
+        status:'new', sentAt:Date.now(), clearedAt:null,
+        isTastingCourse:true, courseNum:1, tastingName:ti.name
+      };
+      if (fbReady) fbDb.collection('orders').add(courseOrder).then(function(ref){ publishActiveOrder(courseOrder, ref.id); });
+    } else if (ti.isPrixFixe) {
+      // Fire first course immediately
+      var pfOrder = {
+        table: STATE.selectedTable,
+        server: STATE.currentServer?STATE.currentServer.name:'Unknown',
+        type:'prix-fixe',
+        prixFixeName:ti.name,
+        prixFixeId:ti.prixFixeId,
+        totalPrice:ti.price,
+        selections:ti.selections.map((s,i)=>({...s, fired:i===0, firedAt:i===0?Date.now():null})),
+        currentCourse:0,
+        status:'active',
+        sentAt:Date.now()
+      };
+      if (fbReady) fbDb.collection('tasting_orders').add(pfOrder);
+      STATE.activeTastingOrders.push({id:genId(),...pfOrder});
+      // Fire first course to kitchen with tastingCourse format
+      var firstSel=ti.selections[0];
+      var pfCourseOrder={
+        table: STATE.selectedTable,
+        server: STATE.currentServer?STATE.currentServer.name:'Unknown',
+        tastingCourse:{
+          type:'prix_fixe',
+          menuName:ti.name,
+          courseNum:1,
+          totalCourses:ti.selections.length,
+          courseName:firstSel.course+': '+firstSel.choice,
+          station:firstSel.station||'Expo',
+          choices:ti.selections.map(function(s){return s.course+': '+s.choice;}).join(' · ')
+        },
+        status:'new', sentAt:Date.now(), clearedAt:null,
+        isTastingCourse:true, courseNum:1, tastingName:ti.name
+      };
+      if (fbReady) fbDb.collection('orders').add(pfCourseOrder).then(function(ref){ publishActiveOrder(pfCourseOrder, ref.id); });
+    }
+    // Pairings just get noted on the tasting order, bar handles them
+    if (ti.isPairing) {
+      var pairingOrder={
+        table: STATE.selectedTable,
+        server: STATE.currentServer?STATE.currentServer.name:'Unknown',
+        items:[{id:'pair_'+Date.now(),name:ti.name,station:'Bar',cookTime:2,modifiers:[],selectedMod:null}],
+        status:'new', sentAt:Date.now(), clearedAt:null
+      };
+      if (fbReady) fbDb.collection('orders').add(pairingOrder).then(function(ref){ publishActiveOrder(pairingOrder, ref.id); });
+    }
+  });
+
+  toast('✓ Order sent to kitchen!');
+  STATE.currentOrder=[];
+  renderOrder();
+}
+
+// Fire next course for a tasting/prix fixe order
+function fireNextCourse(orderId) {
+  var to=STATE.activeTastingOrders.find(o=>o.id===orderId);
+  if (!to) return;
+  var courses = to.type==='tasting' ? to.courses : to.selections;
+  var nextIdx = to.currentCourse+1;
+  if (nextIdx>=courses.length) { toast('All courses fired!'); return; }
+  to.currentCourse=nextIdx;
+  courses[nextIdx].fired=true;
+  courses[nextIdx].firedAt=Date.now();
+  // Send next course to kitchen
+  var nextCourse=courses[nextIdx];
+  var courseName = to.type==='tasting' ? nextCourse.name : nextCourse.course+': '+nextCourse.choice;
+  var courseStation = nextCourse.station || 'Expo';
+  var menuName = to.tastingName||to.prixFixeName;
+  var courseOrder;
+  if (to.type==='prix-fixe') {
+    // Send with tastingCourse format for rich kitchen display
+    courseOrder={
+      table: to.table,
+      server: to.server,
+      tastingCourse:{
+        type:'prix_fixe',
+        menuName:menuName,
+        courseNum:nextIdx+1,
+        totalCourses:courses.length,
+        courseName:courseName,
+        station:courseStation,
+        choices:courses.map(function(s){return s.course+': '+s.choice;}).join(' \u00b7 ')
+      },
+      status:'new', sentAt:Date.now(), clearedAt:null,
+      isTastingCourse:true, courseNum:nextIdx+1, tastingName:menuName
+    };
+  } else {
+    // Tasting menu format
+    courseOrder={
+      table: to.table,
+      server: to.server,
+      tastingCourse:{
+        type:'tasting',
+        menuName:menuName,
+        courseNum:nextIdx+1,
+        totalCourses:courses.length,
+        courseName:courseName,
+        station:courseStation
+      },
+      status:'new', sentAt:Date.now(), clearedAt:null,
+      isTastingCourse:true, courseNum:nextIdx+1, tastingName:menuName
+    };
+  }
+  if (fbReady) {
+    fbDb.collection('orders').add(courseOrder).then(function(ref){ publishActiveOrder(courseOrder, ref.id); });
+  }
+  toast('\ud83d\udd25 Course '+(nextIdx+1)+' fired!');
+  renderOrder();
+}
+
+// ─── Square Payment ─────────────────────────────────────────────
+async function initSquare() {
+  if (squarePayments) return;
+  try {
+    squarePayments = await Square.payments(SQUARE_APP_ID, SQUARE_LOCATION_ID);
+  } catch(e) {
+    console.warn('Square init:', e);
+  }
+}
+
+function openPayment(subtotal) {
+  STATE.tipPercent = 18;
+  STATE.customTip = 0;
+  var tip = Math.round(subtotal * STATE.tipPercent) / 100;
+  var total = subtotal + tip;
+
+  var tableOrders = STATE.orders.filter(o=>o.table===STATE.selectedTable&&o.status==='new');
+  var itemsList = tableOrders.reduce((arr,o)=>arr.concat(o.items),[]);
+
+  var html = '<h2>💳 Payment</h2>';
+  html += '<p class="pay-subtitle">Table '+STATE.selectedTable+' — '+STATE.currentServer.name+'</p>';
+
+  // Items breakdown
+  html += '<div class="pay-items">';
+  itemsList.forEach(i=>{
+    var found=(STATE.menuItems.length?STATE.menuItems:SEED_ITEMS).find(mi=>mi.id===i.id);
+    html += '<div><span>'+i.name+'</span><span>$'+(found?found.price.toFixed(2):'0.00')+'</span></div>';
+  });
+  html += '<div style="border-top:1px solid var(--border);margin-top:0.4rem;padding-top:0.4rem;font-weight:600;"><span>Subtotal</span><span>$'+subtotal.toFixed(2)+'</span></div>';
+  html += '</div>';
+
+  // Tip selection
+  html += '<div class="tip-section"><label>Add Tip</label><div class="tip-buttons">';
+  [15,18,20,25].forEach(pct=>{
+    html += '<button class="tip-btn'+(pct===STATE.tipPercent?' active':'')+'" onclick="setTip('+pct+','+subtotal+')">'+pct+'%</button>';
+  });
+  html += '<input class="tip-custom" type="number" placeholder="$" onchange="setCustomTip(this.value,'+subtotal+')">';
+  html += '</div></div>';
+
+  // Total
+  html += '<div class="pay-total" id="pay-total-display">$'+total.toFixed(2)+'</div>';
+
+  // Card input
+  html += '<label class="sq-input-label">Card Details</label>';
+  html += '<div id="sq-card-container"></div>';
+
+  // Charge button
+  html += '<button class="charge-btn" id="charge-btn" onclick="processPayment('+subtotal+')">Charge $'+total.toFixed(2)+'</button>';
+  html += '<button class="cancel-pay-btn" onclick="closePayment()">Cancel</button>';
+
+  document.getElementById('payment-card').innerHTML = html;
+  document.getElementById('payment-overlay').classList.add('show');
+
+  // Attach Square card form
+  attachCardForm();
+}
+
+async function attachCardForm() {
+  if (!squarePayments) {
+    document.getElementById('sq-card-container').innerHTML = '<p style="color:var(--warning);font-size:0.8rem;">Square is loading… If this persists, check your connection.</p>';
+    await initSquare();
+    if (!squarePayments) return;
+  }
+  try {
+    if (squareCard) { await squareCard.destroy(); squareCard=null; }
+    squareCard = await squarePayments.card();
+    await squareCard.attach('#sq-card-container');
+  } catch(e) {
+    console.warn('Card attach:', e);
+    document.getElementById('sq-card-container').innerHTML = '<p style="color:var(--danger);font-size:0.8rem;">Could not load card form. Error: '+e.message+'</p>';
+  }
+}
+
+function setTip(pct, subtotal) {
+  STATE.tipPercent = pct;
+  STATE.customTip = 0;
+  var tip = Math.round(subtotal * pct) / 100;
+  var total = subtotal + tip;
+  document.getElementById('pay-total-display').textContent = '$'+total.toFixed(2);
+  var chargeBtn = document.getElementById('charge-btn');
+  chargeBtn.textContent = 'Charge $'+total.toFixed(2);
+  chargeBtn.setAttribute('onclick','processPayment('+subtotal+')');
+  // Update active state
+  document.querySelectorAll('.tip-btn').forEach(b=>b.classList.remove('active'));
+  event.target.classList.add('active');
+}
+
+function setCustomTip(val, subtotal) {
+  var tipAmt = parseFloat(val) || 0;
+  STATE.customTip = tipAmt;
+  STATE.tipPercent = 0;
+  var total = subtotal + tipAmt;
+  document.getElementById('pay-total-display').textContent = '$'+total.toFixed(2);
+  var chargeBtn = document.getElementById('charge-btn');
+  chargeBtn.textContent = 'Charge $'+total.toFixed(2);
+  chargeBtn.setAttribute('onclick','processPayment('+subtotal+')');
+  document.querySelectorAll('.tip-btn').forEach(b=>b.classList.remove('active'));
+}
+
+async function processPayment(subtotal) {
+  var chargeBtn = document.getElementById('charge-btn');
+  chargeBtn.disabled = true;
+  chargeBtn.textContent = 'Processing…';
+
+  var tip = STATE.customTip || (Math.round(subtotal * STATE.tipPercent) / 100);
+  var totalCents = Math.round((subtotal + tip) * 100);
+
+  try {
+    if (!squareCard) throw new Error('Card form not ready');
+    var tokenResult = await squareCard.tokenize();
+    if (tokenResult.status !== 'OK') throw new Error(tokenResult.errors?tokenResult.errors[0].message:'Tokenization failed');
+
+    // In production, you'd send this token to your server to create a payment.
+    // For sandbox testing, we simulate a successful payment.
+    var paymentData = {
+      token: tokenResult.token,
+      amount: totalCents,
+      currency: 'USD',
+      table: STATE.selectedTable,
+      server: STATE.currentServer?STATE.currentServer.name:'Unknown',
+      tip: Math.round(tip*100),
+      subtotal: Math.round(subtotal*100),
+      timestamp: Date.now()
+    };
+
+    // Save payment record to Firebase
+    if (fbReady) {
+      await fbDb.collection('payments').add(paymentData);
+      // Mark orders as paid
+      var tableOrders = STATE.orders.filter(o=>o.table===STATE.selectedTable&&o.status==='new');
+      for (var o of tableOrders) {
+        await fbDb.collection('orders').doc(o.id).update({status:'paid', paidAt:Date.now()});
+      }
+    }
+
+    // Show success
+    showPaymentSuccess(subtotal + tip);
+
+  } catch(e) {
+    chargeBtn.disabled = false;
+    chargeBtn.textContent = 'Charge $'+(subtotal+tip).toFixed(2);
+    toast('⚠ Payment failed: '+e.message);
+  }
+}
+
+function showPaymentSuccess(total) {
+  var html = '<div class="payment-success">';
+  html += '<div class="check-icon">✅</div>';
+  html += '<h3>Payment Successful!</h3>';
+  html += '<p>$'+total.toFixed(2)+' charged to card</p>';
+  html += '<p style="margin-top:0.5rem;">Table '+STATE.selectedTable+' — '+STATE.currentServer.name+'</p>';
+  html += '<button class="charge-btn" style="margin-top:1.5rem;" onclick="closePayment()">Done</button>';
+  html += '</div>';
+  document.getElementById('payment-card').innerHTML = html;
+}
+
+function closePayment() {
+  document.getElementById('payment-overlay').classList.remove('show');
+  if (squareCard) { squareCard.destroy().catch(()=>{}); squareCard=null; }
+  renderOrder();
+}
+
+// ─── Messages ───────────────────────────────────────────────────
+function renderMessages() {
+  var c=document.getElementById('app-content');
+  var msgs=STATE.messages.filter(m=>m.table===STATE.selectedTable).sort((a,b)=>a.time-b.time);
+  var html='<h3 style="font-size:0.9rem;font-weight:600;color:var(--text-secondary);margin-bottom:1rem;">Messages — Table '+STATE.selectedTable+'</h3>';
+  html+='<div class="msg-list">';
+  msgs.forEach(m=>{
+    html+='<div class="msg-bubble '+(m.from==='server'?'from-server':'from-guest')+'">'+m.text+'</div>';
+  });
+  html+='</div>';
+  html+='<div class="msg-input-row"><input id="msg-input" type="text" placeholder="Message to table…"><button onclick="sendMsg()">Send</button></div>';
+  c.innerHTML=html;
+}
+function sendMsg() {
+  var input=document.getElementById('msg-input');
+  if (!input||!input.value.trim()) return;
+  var msg={table:STATE.selectedTable,from:'server',text:input.value.trim(),time:Date.now()};
+  if (fbReady) fbDb.collection('messages').add(msg);
+  input.value=''; toast('Message sent');
+}
+function updateMsgBadge() {
+  var unread=STATE.messages.filter(m=>m.from==='guest'&&Date.now()-m.time<60000).length;
+  var badge=document.getElementById('msg-badge');
+  if (unread>0) { badge.textContent=unread; badge.classList.remove('hidden'); }
+  else badge.classList.add('hidden');
+}
+
+// ─── History ────────────────────────────────────────────────────
+function renderHistory() {
+  var c=document.getElementById('app-content');
+  var orders=STATE.orders.filter(o=>o.server===(STATE.currentServer?STATE.currentServer.name:'')).sort((a,b)=>b.sentAt-a.sentAt);
+  var html='<h3 style="font-size:0.9rem;font-weight:600;color:var(--text-secondary);margin-bottom:1rem;">Order History</h3>';
+  if (!orders.length) { c.innerHTML=html+'<p style="color:var(--text-muted);">No orders yet.</p>'; return; }
+  orders.forEach(o=>{
+    var elapsed=Math.round((Date.now()-o.sentAt)/60000);
+    var statusCls = o.status==='paid'?'paid':o.status==='cleared'?'cleared':'new';
+    html+='<div class="history-card"><div class="hdr"><strong>Table '+o.table+'</strong>'+
+      '<span class="status-badge '+statusCls+'">'+o.status+'</span></div>'+
+      '<div class="items-list">'+o.items.map(i=>i.name).join(', ')+'</div>'+
+      '<div style="font-size:0.7rem;color:var(--text-muted);margin-top:0.3rem;">'+elapsed+'m ago</div></div>';
+  });
+  c.innerHTML=html;
+}
+
+// ─── Call Alert ─────────────────────────────────────────────────
+var alertedCallId=null;
+function showCallAlert(call) {
+  if (alertedCallId===call.id) return;
+  alertedCallId=call.id;
+  document.getElementById('call-alert-table').textContent='Table '+call.table;
+  document.getElementById('call-alert').classList.add('show');
+  if (navigator.vibrate) navigator.vibrate([300,100,300,100,300]);
+  try { var ctx=new(window.AudioContext||window.webkitAudioContext)(); var osc=ctx.createOscillator(); osc.type='sine'; osc.frequency.value=880; osc.connect(ctx.destination); osc.start(); setTimeout(()=>osc.stop(),300); } catch(e){}
+}
+function acknowledgeCall() {
+  document.getElementById('call-alert').classList.remove('show');
+  if (fbReady&&alertedCallId) fbDb.collection('calls').doc(alertedCallId).update({status:'acknowledged'});
+  alertedCallId=null;
+}
+
+// ─── Init ───────────────────────────────────────────────────────
+function init() {
+  buildNumpad();
+  loadData();
+}
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', init);
+} else {
+  init();
+}
+
+// Service worker registration removed to prevent stale caching
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(function(registrations) {
+    for(var i=0; i<registrations.length; i++) registrations[i].unregister();
+  });
+}
+</script>
+</body>
+</html>

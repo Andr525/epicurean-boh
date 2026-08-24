@@ -1,0 +1,1227 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<title>The Epicurean House — Menu</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.13.1/firebase-firestore-compat.js"></script>
+<style>
+:root {
+  --bg: #0A0A0A;
+  --bg-elevated: #141414;
+  --bg-card: #1A1A1A;
+  --bg-card-hover: #222222;
+  --gold: #C8A961;
+  --gold-dim: #A08840;
+  --gold-glow: rgba(200,169,97,0.12);
+  --text-primary: #F5F2ED;
+  --text-secondary: #A8A29E;
+  --text-muted: #6B6560;
+  --border: rgba(255,255,255,0.06);
+  --border-gold: rgba(200,169,97,0.25);
+  --wine: #8B3A4A;
+  --sage: #6B8F6B;
+  --shadow: 0 8px 32px rgba(0,0,0,0.4);
+  --radius: 8px;
+  --radius-lg: 16px;
+  --font-display: 'Cormorant Garamond', Georgia, serif;
+  --font-body: 'Inter', -apple-system, sans-serif;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+* { margin:0; padding:0; box-sizing:border-box; }
+html,body { height:100%; overflow:hidden; }
+body { font-family:var(--font-body); color:var(--text-primary); background:var(--bg); -webkit-font-smoothing:antialiased; }
+
+.screen { display:none; height:100vh; overflow:hidden; }
+.screen.active { display:flex; flex-direction:column; }
+
+/* ─── SETUP SCREEN ─── */
+#setup {
+  background:var(--bg);
+  align-items:center; justify-content:center; text-align:center;
+  padding:2rem; position:relative;
+}
+#setup::before {
+  content:''; position:absolute; inset:0;
+  background:radial-gradient(ellipse at 50% 30%, rgba(200,169,97,0.04) 0%, transparent 70%);
+}
+#setup h1 {
+  font-family:var(--font-display); font-size:3rem; font-weight:300;
+  letter-spacing:0.08em; color:var(--text-primary); position:relative;
+}
+#setup .subtitle {
+  font-family:var(--font-body); font-size:0.7rem; color:var(--text-muted);
+  font-weight:400; letter-spacing:0.3em; text-transform:uppercase;
+  margin-top:0.5rem; margin-bottom:2.5rem; position:relative;
+}
+.divider {
+  width:40px; height:1px; background:var(--gold); margin:0 auto 2.5rem;
+  opacity:0.5; position:relative;
+}
+.lang-grid {
+  display:grid; grid-template-columns:repeat(2,1fr); gap:0.8rem;
+  max-width:280px; width:100%; margin-bottom:2.5rem; position:relative;
+}
+.lang-card {
+  background:transparent; border:1px solid var(--border);
+  border-radius:var(--radius); padding:1rem; cursor:pointer;
+  transition:all 0.2s var(--ease-out); text-align:center;
+}
+.lang-card:hover { border-color:rgba(255,255,255,0.15); }
+.lang-card.selected { border-color:var(--gold); background:var(--gold-glow); }
+.lang-card h3 { font-family:var(--font-display); font-size:1.2rem; font-weight:400; color:var(--text-primary); }
+.lang-card p { font-size:0.65rem; color:var(--text-muted); margin-top:0.2rem; letter-spacing:0.05em; }
+
+.setup-form { max-width:280px; width:100%; position:relative; }
+.setup-form select {
+  width:100%; padding:0.9rem 1rem; border-radius:var(--radius);
+  border:1px solid var(--border); background:var(--bg-elevated);
+  color:var(--text-primary); font-size:0.85rem; margin-bottom:1rem;
+  appearance:none; font-family:var(--font-body);
+}
+.setup-form select option { background:#1a1a1a; color:#fff; }
+.btn-open {
+  width:100%; padding:1rem; border:none; border-radius:var(--radius);
+  background:var(--gold); color:var(--bg); font-size:0.8rem; font-weight:500;
+  cursor:pointer; transition:all 0.16s var(--ease-out);
+  letter-spacing:0.1em; text-transform:uppercase;
+}
+.btn-open:active { transform:scale(0.97); opacity:0.9; }
+
+/* ─── MENU SCREEN ─── */
+#menu { background:var(--bg); }
+.menu-header {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:1rem 1.5rem; background:var(--bg); border-bottom:1px solid var(--border);
+  flex-shrink:0;
+}
+.menu-header .brand {
+  font-family:var(--font-display); font-size:1.2rem; color:var(--text-primary);
+  font-weight:300; letter-spacing:0.04em;
+}
+.menu-header .table-badge {
+  font-size:0.65rem; font-weight:500; color:var(--gold);
+  letter-spacing:0.15em; text-transform:uppercase;
+}
+.call-server-btn {
+  background:transparent; color:var(--text-secondary); border:1px solid var(--border);
+  border-radius:var(--radius); padding:0.5rem 1rem; font-size:0.75rem;
+  font-weight:400; cursor:pointer; letter-spacing:0.05em;
+  transition:all 0.16s var(--ease-out);
+}
+.call-server-btn:hover { border-color:var(--gold); color:var(--gold); }
+.call-server-btn:active { transform:scale(0.95); }
+
+/* ─── NAV TABS ─── */
+.menu-nav {
+  display:flex; gap:0; overflow-x:auto; padding:0;
+  background:var(--bg); border-bottom:1px solid var(--border); flex-shrink:0;
+  scrollbar-width:none;
+}
+.menu-nav::-webkit-scrollbar { display:none; }
+.menu-nav-item {
+  padding:0.9rem 1.4rem; font-size:0.65rem; font-weight:400; white-space:nowrap;
+  color:var(--text-muted); letter-spacing:0.15em; text-transform:uppercase;
+  cursor:pointer; transition:all 0.2s var(--ease-out);
+  border-bottom:1px solid transparent; position:relative;
+}
+.menu-nav-item:hover { color:var(--text-secondary); }
+.menu-nav-item.active { color:var(--gold); border-bottom-color:var(--gold); }
+
+/* ─── MENU CONTENT ─── */
+.menu-content { flex:1; overflow-y:auto; padding:2rem 1.5rem; scroll-behavior:smooth; }
+.menu-content::-webkit-scrollbar { width:3px; }
+.menu-content::-webkit-scrollbar-thumb { background:var(--border); border-radius:3px; }
+
+/* Section headers */
+.section-header {
+  margin-bottom:1.5rem; padding-bottom:1rem; border-bottom:1px solid var(--border);
+}
+.section-label {
+  font-size:0.6rem; letter-spacing:0.25em; text-transform:uppercase;
+  color:var(--gold-dim); margin-bottom:0.4rem; font-weight:400;
+}
+.section-title {
+  font-family:var(--font-display); font-size:2rem; font-weight:300;
+  color:var(--text-primary); letter-spacing:0.02em;
+}
+
+/* ─── REGULAR MENU GRID ─── */
+.menu-grid { display:grid; grid-template-columns:1fr; gap:0; margin-bottom:3rem; }
+
+.dish-row {
+  display:flex; align-items:flex-start; justify-content:space-between;
+  padding:1.2rem 0; border-bottom:1px solid var(--border);
+  cursor:pointer; transition:all 0.2s var(--ease-out); gap:1rem;
+}
+.dish-row:first-child { padding-top:0; }
+.dish-row:hover { background:var(--bg-elevated); margin:0 -1rem; padding-left:1rem; padding-right:1rem; border-radius:var(--radius); }
+.dish-info { flex:1; }
+.dish-name {
+  font-family:var(--font-display); font-size:1.15rem; font-weight:400;
+  color:var(--text-primary); margin-bottom:0.3rem; letter-spacing:0.01em;
+}
+.dish-desc {
+  font-size:0.78rem; color:var(--text-secondary); line-height:1.6;
+  font-weight:300; max-width:500px;
+}
+.dish-tags-row { display:flex; gap:0.4rem; margin-top:0.5rem; flex-wrap:wrap; }
+.dish-tag {
+  font-size:0.6rem; padding:0.2rem 0.5rem; border-radius:3px;
+  border:1px solid rgba(107,143,107,0.3); color:var(--sage); font-weight:400;
+  letter-spacing:0.03em;
+}
+.dish-tag.allergen { border-color:rgba(139,58,74,0.3); color:var(--wine); }
+.dish-price {
+  font-size:0.9rem; color:var(--gold); font-weight:400;
+  white-space:nowrap; padding-top:0.2rem;
+}
+
+/* ─── PHOTO CARDS (for featured items) ─── */
+.featured-grid {
+  display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));
+  gap:1.2rem; margin-bottom:3rem;
+}
+.photo-card {
+  position:relative; border-radius:var(--radius-lg); overflow:hidden;
+  aspect-ratio:4/3; cursor:pointer; transition:all 0.3s var(--ease-out);
+}
+.photo-card:hover { transform:translateY(-3px); box-shadow:var(--shadow); }
+.photo-card img {
+  width:100%; height:100%; object-fit:cover;
+  transition:transform 0.4s var(--ease-out);
+}
+.photo-card:hover img { transform:scale(1.03); }
+.photo-card-overlay {
+  position:absolute; inset:0;
+  background:linear-gradient(to top, rgba(0,0,0,0.85) 0%, rgba(0,0,0,0.1) 60%, transparent 100%);
+}
+.photo-card-info {
+  position:absolute; bottom:0; left:0; right:0; padding:1.2rem;
+}
+.photo-card-name {
+  font-family:var(--font-display); font-size:1.2rem; font-weight:400;
+  color:#fff; margin-bottom:0.2rem;
+}
+.photo-card-desc { font-size:0.7rem; color:rgba(255,255,255,0.6); font-weight:300; }
+.photo-card-price {
+  position:absolute; top:1rem; right:1rem;
+  background:rgba(0,0,0,0.6); backdrop-filter:blur(8px);
+  padding:0.3rem 0.7rem; border-radius:4px;
+  font-size:0.75rem; color:var(--gold); font-weight:400;
+}
+
+/* ─── TASTING MENU SECTION ─── */
+.tasting-section { margin-bottom:3rem; }
+.tasting-card {
+  background:var(--bg-elevated); border:1px solid var(--border-gold);
+  border-radius:var(--radius-lg); padding:2rem; margin-bottom:1.2rem;
+  position:relative; overflow:hidden;
+  transition:all 0.2s var(--ease-out); cursor:pointer;
+}
+.tasting-card::before {
+  content:''; position:absolute; top:0; left:0; right:0; height:1px;
+  background:linear-gradient(90deg, transparent, var(--gold), transparent);
+  opacity:0.4;
+}
+.tasting-card:hover { border-color:var(--gold); background:var(--bg-card-hover); }
+.tasting-card-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem; }
+.tasting-card-title {
+  font-family:var(--font-display); font-size:1.5rem; font-weight:400;
+  color:var(--text-primary);
+}
+.tasting-card-subtitle {
+  font-size:0.7rem; color:var(--text-muted); letter-spacing:0.1em;
+  text-transform:uppercase; margin-top:0.3rem;
+}
+.tasting-card-price {
+  font-family:var(--font-display); font-size:1.4rem; color:var(--gold); font-weight:400;
+}
+.tasting-card-price small {
+  font-size:0.65rem; color:var(--text-muted); display:block;
+  font-family:var(--font-body); letter-spacing:0.05em;
+}
+.tasting-courses-list { list-style:none; }
+.tasting-courses-list li {
+  padding:0.5rem 0; font-size:0.8rem; color:var(--text-secondary);
+  border-bottom:1px solid var(--border); font-weight:300;
+  display:flex; align-items:center; gap:0.6rem;
+}
+.tasting-courses-list li:last-child { border-bottom:none; }
+.tasting-courses-list .course-num {
+  font-size:0.6rem; color:var(--gold-dim); letter-spacing:0.1em;
+  min-width:1.5rem;
+}
+.tasting-pairing {
+  display:inline-flex; align-items:center; gap:0.5rem;
+  margin-top:1rem; padding:0.6rem 1rem; border-radius:var(--radius);
+  background:rgba(139,58,74,0.1); border:1px solid rgba(139,58,74,0.2);
+  font-size:0.72rem; color:var(--text-secondary);
+}
+.tasting-pairing .pairing-price { color:var(--gold); margin-left:0.5rem; }
+
+/* ─── PRIX FIXE SECTION ─── */
+.prix-fixe-card {
+  background:var(--bg-elevated); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:2rem; margin-bottom:1.2rem;
+  transition:all 0.2s var(--ease-out); cursor:pointer;
+}
+.prix-fixe-card:hover { border-color:var(--border-gold); }
+.prix-fixe-header { display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1.2rem; }
+.prix-fixe-title {
+  font-family:var(--font-display); font-size:1.4rem; font-weight:400;
+  color:var(--text-primary);
+}
+.prix-fixe-desc {
+  font-size:0.75rem; color:var(--text-muted); margin-top:0.3rem; font-weight:300;
+}
+.prix-fixe-price {
+  font-family:var(--font-display); font-size:1.3rem; color:var(--gold);
+}
+.prix-fixe-price small {
+  font-size:0.6rem; color:var(--text-muted); display:block;
+  font-family:var(--font-body);
+}
+.prix-fixe-courses { margin-top:1rem; }
+.prix-fixe-course-group { margin-bottom:1rem; }
+.prix-fixe-course-label {
+  font-size:0.6rem; letter-spacing:0.2em; text-transform:uppercase;
+  color:var(--gold-dim); margin-bottom:0.4rem;
+}
+.prix-fixe-option {
+  padding:0.4rem 0; font-size:0.8rem; color:var(--text-secondary);
+  font-weight:300; display:flex; justify-content:space-between;
+}
+.prix-fixe-option .upcharge { color:var(--gold); font-size:0.7rem; }
+
+/* ─── FOOTER ─── */
+.menu-footer {
+  display:flex; align-items:center; justify-content:space-between;
+  padding:0.8rem 1.5rem; background:var(--bg); border-top:1px solid var(--border); flex-shrink:0;
+}
+.lang-selector { display:flex; gap:0.4rem; }
+.lang-btn {
+  width:28px; height:28px; border-radius:50%; border:1px solid var(--border);
+  background:transparent; font-size:0.6rem; cursor:pointer; color:var(--text-muted);
+  display:flex; align-items:center; justify-content:center;
+  transition:all 0.16s var(--ease-out); letter-spacing:0.02em;
+}
+.lang-btn:hover { border-color:var(--text-secondary); color:var(--text-secondary); }
+.lang-btn.active { border-color:var(--gold); color:var(--gold); background:var(--gold-glow); }
+
+/* ─── DISH DETAIL MODAL ─── */
+.modal-overlay {
+  position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(8px);
+  display:none; align-items:center; justify-content:center; z-index:1000; padding:1.5rem;
+}
+.modal-overlay.open { display:flex; }
+.modal-card {
+  background:var(--bg-elevated); border:1px solid var(--border);
+  border-radius:var(--radius-lg); padding:2rem;
+  max-width:480px; width:100%; max-height:80vh; overflow-y:auto;
+  box-shadow:var(--shadow); position:relative;
+}
+.modal-card h2 { font-family:var(--font-display); font-size:1.6rem; font-weight:400; margin-bottom:0.5rem; }
+.modifier-group { margin-top:1.2rem; }
+.modifier-group h4 {
+  font-size:0.65rem; text-transform:uppercase; letter-spacing:0.15em;
+  color:var(--text-muted); margin-bottom:0.5rem;
+}
+.modifier-option {
+  display:flex; align-items:center; gap:0.6rem; padding:0.6rem 0;
+  border-bottom:1px solid var(--border); cursor:pointer; font-size:0.85rem;
+  color:var(--text-secondary);
+}
+.modifier-option input { accent-color:var(--gold); }
+
+/* ─── TASTING DETAIL MODAL ─── */
+.tasting-modal-courses { margin-top:1.5rem; }
+.tasting-modal-course {
+  padding:1rem 0; border-bottom:1px solid var(--border);
+}
+.tasting-modal-course:last-child { border-bottom:none; }
+.tasting-modal-course-num {
+  font-size:0.6rem; letter-spacing:0.2em; text-transform:uppercase;
+  color:var(--gold-dim); margin-bottom:0.3rem;
+}
+.tasting-modal-course-name {
+  font-family:var(--font-display); font-size:1.1rem; font-weight:400;
+  color:var(--text-primary); margin-bottom:0.2rem;
+}
+.tasting-modal-course-desc {
+  font-size:0.75rem; color:var(--text-secondary); font-weight:300;
+}
+
+/* ─── TOAST & NOTIFICATION ─── */
+.toast {
+  position:fixed; top:1.5rem; left:50%; transform:translateX(-50%) translateY(-100%);
+  background:var(--bg-elevated); color:var(--text-primary); padding:0.8rem 1.5rem;
+  border-radius:var(--radius); font-size:0.8rem; font-weight:400;
+  border:1px solid var(--border); box-shadow:var(--shadow); z-index:9999; opacity:0;
+  transition:all 0.3s var(--ease-out);
+}
+.toast.show { transform:translateX(-50%) translateY(0); opacity:1; }
+
+.msg-notification {
+  position:fixed; bottom:5rem; left:50%; transform:translateX(-50%);
+  background:var(--bg-elevated); color:var(--text-primary); padding:0.8rem 1.5rem;
+  border-radius:var(--radius); font-size:0.8rem; border:1px solid var(--border-gold);
+  box-shadow:var(--shadow); z-index:999; display:none; max-width:80%;
+}
+.msg-notification.show { display:block; animation:slideUp 0.3s var(--ease-out); }
+@keyframes slideUp { from{opacity:0;transform:translateX(-50%) translateY(20px)} to{opacity:1;transform:translateX(-50%) translateY(0)} }
+
+/* ─── ALLERGY FILTER ─── */
+.allergy-filter-btn {
+  background:none; border:1px solid var(--border); color:var(--text-secondary);
+  padding:0.4rem 0.8rem; border-radius:4px; font-size:0.65rem; cursor:pointer;
+  letter-spacing:0.05em; transition:all 0.2s var(--ease-out);
+}
+.allergy-filter-btn:hover { border-color:var(--gold-dim); color:var(--gold); }
+.allergy-filter-btn.active { border-color:var(--wine); color:var(--wine); background:rgba(139,58,74,0.08); }
+.allergy-grid {
+  display:grid; grid-template-columns:repeat(2,1fr); gap:0.6rem;
+}
+.allergy-check {
+  display:flex; align-items:center; gap:0.5rem; padding:0.6rem 0.8rem;
+  border:1px solid var(--border); border-radius:var(--radius); cursor:pointer;
+  transition:all 0.2s var(--ease-out); font-size:0.75rem; color:var(--text-secondary);
+}
+.allergy-check:hover { border-color:var(--wine); }
+.allergy-check.selected { border-color:var(--wine); background:rgba(139,58,74,0.08); color:var(--wine); }
+.allergy-check input { accent-color:var(--wine); }
+
+/* Allergen warning on items */
+.dish-row.has-allergen { border-left:3px solid var(--wine); padding-left:0.8rem; }
+.dish-row.has-allergen .dish-name::after {
+  content:'\26A0'; margin-left:0.4rem; color:var(--wine); font-size:0.7rem;
+}
+.photo-card.has-allergen::after {
+  content:'\26A0 Contains allergen'; position:absolute; top:0.6rem; left:0.6rem;
+  background:rgba(139,58,74,0.9); color:#fff; font-size:0.6rem; padding:0.2rem 0.5rem;
+  border-radius:3px; z-index:2;
+}
+
+/* Responsive */
+@media (min-width:768px) {
+  .featured-grid { grid-template-columns:repeat(2,1fr); }
+}
+@media (min-width:1024px) {
+  .featured-grid { grid-template-columns:repeat(3,1fr); }
+  .menu-content { padding:2.5rem 3rem; }
+}
+</style>
+</head>
+<body>
+
+<div id="toast" class="toast"></div>
+<div id="msg-notification" class="msg-notification"></div>
+
+<!-- SETUP SCREEN -->
+<div id="setup" class="screen active">
+  <h1>The Epicurean House</h1>
+  <p class="subtitle">at The Chocolate Studio</p>
+  <div class="divider"></div>
+  <div class="lang-grid">
+    <div class="lang-card selected" onclick="setLang('en',this)"><h3>English</h3><p>English</p></div>
+    <div class="lang-card" onclick="setLang('es',this)"><h3>Español</h3><p>Spanish</p></div>
+    <div class="lang-card" onclick="setLang('fr',this)"><h3>Français</h3><p>French</p></div>
+    <div class="lang-card" onclick="setLang('ja',this)"><h3>日本語</h3><p>Japanese</p></div>
+  </div>
+  <div class="setup-form">
+    <select id="setup-table"><option value="">Select table</option></select>
+    <button class="btn-open" onclick="openMenu()">View Menu</button>
+  </div>
+</div>
+
+<!-- MENU SCREEN -->
+<div id="menu" class="screen">
+  <div class="menu-header">
+    <span class="brand">The Epicurean House</span>
+    <span class="table-badge" id="menu-table-badge">Table 1</span>
+    <button class="allergy-filter-btn" id="allergy-btn" onclick="openAllergyFilter()">Allergies</button>
+    <button class="call-server-btn" onclick="callServer()">Call Server</button>
+  </div>
+  <div class="menu-nav" id="menu-nav"></div>
+  <div class="menu-content" id="menu-content"></div>
+  <div class="menu-footer">
+    <div class="lang-selector">
+      <button class="lang-btn active" data-lang="en" onclick="switchLang('en')">EN</button>
+      <button class="lang-btn" data-lang="es" onclick="switchLang('es')">ES</button>
+      <button class="lang-btn" data-lang="fr" onclick="switchLang('fr')">FR</button>
+      <button class="lang-btn" data-lang="ja" onclick="switchLang('ja')">JA</button>
+    </div>
+    <div id="menu-msg-area" style="font-size:0.7rem;color:var(--text-muted);max-width:60%;text-align:right;"></div>
+  </div>
+</div>
+
+<!-- ALLERGY FILTER MODAL -->
+<div class="modal-overlay" id="allergy-modal" onclick="if(event.target===this)closeAllergyModal()">
+  <div class="modal-card" id="allergy-modal-content">
+    <button style="position:absolute;top:1rem;right:1.2rem;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);" onclick="closeAllergyModal()">&times;</button>
+    <h2 style="font-family:var(--font-display);font-size:1.3rem;margin-bottom:0.5rem;">Your Allergies</h2>
+    <p style="font-size:0.75rem;color:var(--text-secondary);margin-bottom:1.5rem;">Select any allergens that apply to you. Items containing these will be flagged on the menu.</p>
+    <div id="allergy-checkboxes" class="allergy-grid"></div>
+    <button class="btn-open" style="margin-top:1.5rem;width:100%;" onclick="applyAllergyFilter()">Apply Filter</button>
+    <button style="margin-top:0.8rem;width:100%;background:none;border:1px solid var(--border);color:var(--text-secondary);padding:0.7rem;border-radius:var(--radius);cursor:pointer;font-size:0.8rem;" onclick="clearAllergyFilter()">Clear All</button>
+  </div>
+</div>
+
+<!-- DISH DETAIL MODAL -->
+<div class="modal-overlay" id="dish-modal" onclick="if(event.target===this)closeDishModal()">
+  <div class="modal-card" id="dish-modal-content"></div>
+</div>
+
+<!-- TASTING DETAIL MODAL -->
+<div class="modal-overlay" id="tasting-modal" onclick="if(event.target===this)closeTastingModal()">
+  <div class="modal-card" id="tasting-modal-content"></div>
+</div>
+
+<script>
+// ─── Firebase ───────────────────────────────────────────────────
+var firebaseConfig = {
+  apiKey: "AIzaSyAvg9x8kmKmZjcu62D2Jb4jpO57ArC657Y",
+  authDomain: "epicurean-house-at-the-choc-st.firebaseapp.com",
+  projectId: "epicurean-house-at-the-choc-st",
+  storageBucket: "epicurean-house-at-the-choc-st.firebasestorage.app",
+  messagingSenderId: "320703681087",
+  appId: "1:320703681087:web:04f7c9a17637388a039e8a"
+};
+var fbApp=null, fbDb=null, fbAuth=null, fbReady=false;
+try {
+  fbApp=firebase.initializeApp(firebaseConfig);
+  fbDb=firebase.firestore();
+  fbAuth=firebase.auth();
+  fbReady=true;
+} catch(e){ console.warn('Firebase init:',e); }
+
+
+/* Named Firestore adapter for the existing database ID: default.
+   It exposes the small compat-like surface used by these static apps. */
+var FIRESTORE_DATABASE_ID = 'default';
+var FIRESTORE_ROOT = 'https://firestore.googleapis.com/v1/projects/' + encodeURIComponent(firebaseConfig.projectId) + '/databases/' + encodeURIComponent(FIRESTORE_DATABASE_ID) + '/documents';
+function createNamedFirestoreAdapter(){
+  var pollers=[];
+  function ensureAuth(){
+    if(typeof fbAuth==='undefined' || !fbAuth) return Promise.resolve(null);
+    if(fbAuth.currentUser) return Promise.resolve(fbAuth.currentUser);
+    return fbAuth.signInAnonymously().then(function(result){ return result.user; });
+  }
+  function request(method,url,body){
+    return ensureAuth().then(function(user){
+      var headers={'Content-Type':'application/json'};
+      var tokenPromise=user ? user.getIdToken().then(function(token){ headers.Authorization='Bearer '+token; }) : Promise.resolve();
+      return tokenPromise.then(function(){
+        var fullUrl=url+(url.indexOf('?')>=0?'&':'?')+'key='+encodeURIComponent(firebaseConfig.apiKey);
+        return fetch(fullUrl,{method:method,headers:headers,body:body===undefined?undefined:JSON.stringify(body)}).then(function(response){
+          return response.text().then(function(text){
+            var json=text?JSON.parse(text):{};
+            if(!response.ok){
+              var error=new Error((json.error&&json.error.message)||('Firestore request failed ('+response.status+')'));
+              error.code=(json.error&&json.error.status)||('http-'+response.status);
+              throw error;
+            }
+            return json;
+          });
+        });
+      });
+    });
+  }
+  function encodeValue(value){
+    if(value===null || value===undefined) return {nullValue:null};
+    if(value instanceof Date) return {timestampValue:value.toISOString()};
+    if(Array.isArray(value)) return {arrayValue:{values:value.map(encodeValue)}};
+    if(typeof value==='boolean') return {booleanValue:value};
+    if(typeof value==='number') return Number.isInteger(value)?{integerValue:String(value)}:{doubleValue:value};
+    if(typeof value==='object') return {mapValue:{fields:encodeFields(value)}};
+    return {stringValue:String(value)};
+  }
+  function encodeFields(object){
+    var fields={};
+    Object.keys(object||{}).forEach(function(key){ if(object[key]!==undefined) fields[key]=encodeValue(object[key]); });
+    return fields;
+  }
+  function decodeValue(value){
+    if(!value) return null;
+    if(Object.prototype.hasOwnProperty.call(value,'nullValue')) return null;
+    if(Object.prototype.hasOwnProperty.call(value,'stringValue')) return value.stringValue;
+    if(Object.prototype.hasOwnProperty.call(value,'booleanValue')) return value.booleanValue;
+    if(Object.prototype.hasOwnProperty.call(value,'integerValue')) return Number(value.integerValue);
+    if(Object.prototype.hasOwnProperty.call(value,'doubleValue')) return Number(value.doubleValue);
+    if(Object.prototype.hasOwnProperty.call(value,'timestampValue')) return value.timestampValue;
+    if(Object.prototype.hasOwnProperty.call(value,'bytesValue')) return value.bytesValue;
+    if(Object.prototype.hasOwnProperty.call(value,'referenceValue')) return value.referenceValue;
+    if(Object.prototype.hasOwnProperty.call(value,'geoPointValue')) return value.geoPointValue;
+    if(Object.prototype.hasOwnProperty.call(value,'arrayValue')) return (value.arrayValue.values||[]).map(decodeValue);
+    if(Object.prototype.hasOwnProperty.call(value,'mapValue')){
+      var map={}; Object.keys(value.mapValue.fields||{}).forEach(function(key){map[key]=decodeValue(value.mapValue.fields[key]);}); return map;
+    }
+    return null;
+  }
+  function decodeFields(fields){
+    var result={}; Object.keys(fields||{}).forEach(function(key){result[key]=decodeValue(fields[key]);}); return result;
+  }
+  function docUrl(collection,id){ return FIRESTORE_ROOT+'/'+encodeURIComponent(collection)+'/'+encodeURIComponent(id); }
+  function docFrom(json,fallbackId){
+    if(!json || !json.name) return {exists:false,id:fallbackId||'',data:function(){return undefined;}};
+    var parts=json.name.split('/');
+    return {exists:true,id:parts[parts.length-1]||fallbackId||'',data:function(){return decodeFields(json.fields||{});}};
+  }
+  function getDoc(collection,id){
+    return request('GET',docUrl(collection,id)).then(function(json){return docFrom(json,id);}).catch(function(error){
+      if(error.code==='NOT_FOUND' || error.code==='http-404') return docFrom(null,id);
+      throw error;
+    });
+  }
+  function setDoc(collection,id,data,options){
+    var merged=Promise.resolve(data);
+    if(options && options.merge){
+      merged=getDoc(collection,id).then(function(existing){ return existing.exists?Object.assign({},existing.data(),data):data; });
+    }
+    return merged.then(function(payload){ return request('PATCH',docUrl(collection,id),{fields:encodeFields(payload)}); }).then(function(json){return docFrom(json,id);});
+  }
+  function updateDoc(collection,id,data){
+    return request('PATCH',docUrl(collection,id),{fields:encodeFields(data)}).then(function(json){return docFrom(json,id);});
+  }
+  function addDoc(collection,data){
+    var id='web_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);
+    return request('POST',FIRESTORE_ROOT+'/'+encodeURIComponent(collection)+'?documentId='+encodeURIComponent(id),{fields:encodeFields(data)}).then(function(json){return docFrom(json,id);});
+  }
+  function listDocs(collection){
+    return request('GET',FIRESTORE_ROOT+'/'+encodeURIComponent(collection)+'?pageSize=1000').then(function(json){return (json.documents||[]).map(function(doc){return docFrom(doc);});});
+  }
+  function snapshot(docs){
+    return {docs:docs,size:docs.length,empty:docs.length===0,forEach:function(callback,context){docs.forEach(function(doc){callback.call(context,doc);});}};
+  }
+  function watchDoc(collection,id,callback,onError){
+    var stopped=false;
+    function refresh(){getDoc(collection,id).then(function(doc){if(!stopped) callback(doc);}).catch(function(error){if(!stopped && onError) onError(error);});}
+    refresh();
+    var timer=setInterval(refresh,5000); pollers.push(timer);
+    return function(){stopped=true;clearInterval(timer);};
+  }
+  function watchCollection(collection,filter,callback,onError){
+    var stopped=false,last='';
+    function refresh(){listDocs(collection).then(function(docs){
+      if(filter) docs=docs.filter(function(doc){var data=doc.data()||{};return filter.op==='==' ? data[filter.field]===filter.value : true;});
+      var signature=JSON.stringify(docs.map(function(doc){return {id:doc.id,data:doc.data()};}));
+      if(!stopped && signature!==last){last=signature;callback(snapshot(docs));}
+    }).catch(function(error){if(!stopped && onError) onError(error);});}
+    refresh();
+    var timer=setInterval(refresh,5000); pollers.push(timer);
+    return function(){stopped=true;clearInterval(timer);};
+  }
+  function collection(name){
+    var ref={
+      doc:function(id){return {get:function(){return getDoc(name,id);},set:function(data,options){return setDoc(name,id,data,options);},update:function(data){return updateDoc(name,id,data);},onSnapshot:function(callback,onError){return watchDoc(name,id,callback,onError);}};},
+      add:function(data){return addDoc(name,data);},
+      onSnapshot:function(callback,onError){return watchCollection(name,null,callback,onError);},
+      where:function(field,op,value){return {onSnapshot:function(callback,onError){return watchCollection(name,{field:field,op:op,value:value},callback,onError);}};}
+    };
+    return ref;
+  }
+  return {collection:collection};
+}
+
+if (typeof fbReady !== 'undefined' && fbReady) fbDb = createNamedFirestoreAdapter();
+// ─── State ──────────────────────────────────────────────────────
+var STATE = { lang:'en', tableNum:1, menuItems:[], menuCategories:[], messages:[], tastingMenus:[], prixFixeMenus:[], customerAllergies:[], roomObjs:{}, rooms:[], menuLive:false };
+var SPECIAL_NAV = [
+  {id:'tasting',name:'Tasting Menus',visible:true,type:'special'},
+  {id:'prix-fixe',name:'Prix Fixe',visible:true,type:'special'}
+];
+
+var SEED_CATEGORIES = [
+  {id:'tasting',name:'Tasting Menus',visible:true,type:'special'},
+  {id:'prix-fixe',name:'Prix Fixe',visible:true,type:'special'},
+  {id:'small-plates',name:'Small Plates',visible:true},
+  {id:'ceviche',name:'Ceviche',visible:true},
+  {id:'soups-salads',name:'Soups & Salads',visible:true},
+  {id:'entrees',name:'Entrées',visible:true},
+  {id:'sides',name:'Sides',visible:true},
+  {id:'desserts',name:'Desserts',visible:true},
+  {id:'cocktails',name:'Cocktails',visible:true},
+  {id:'wine',name:'Wine',visible:true},
+  {id:'beer',name:'Beer & Spirits',visible:true}
+];
+
+var SEED_ITEMS = [
+  {id:'i1',code:'SP01',name:'Tuna Tartare',desc:'Ahi tuna, avocado mousse, sesame crisp, ponzu',price:16,cost:5.5,category:'small-plates',station:'Cold/Garde Manger',cookTime:8,allergens:['Fish','Soy','Sesame'],dietary:['GF','DF'],modifiers:[],photo:'https://files.manuscdn.com/user_upload_by_module/session_file/310519663748878699/hOvRJUxUpqahEgLs.jpg'},
+  {id:'i2',code:'CE01',name:'Peruvian Ceviche',desc:'Fresh corvina, leche de tigre, red onion, sweet potato, cancha',price:18,cost:6.5,category:'ceviche',station:'Cold/Garde Manger',cookTime:5,allergens:['Fish'],dietary:['GF','DF'],modifiers:[],photo:'https://files.manuscdn.com/user_upload_by_module/session_file/310519663748878699/JcroiJSPDIxHPrNU.jpeg'},
+  {id:'i3',code:'CE02',name:'Shrimp Ceviche',desc:'Gulf shrimp, mango, habanero, coconut milk',price:19,cost:7,category:'ceviche',station:'Cold/Garde Manger',cookTime:5,allergens:['Shellfish'],dietary:['GF','DF'],modifiers:[],photo:'https://files.manuscdn.com/user_upload_by_module/session_file/310519663748878699/eTQUOSZOFZkcLQWz.jpg'},
+  {id:'i4',code:'EN01',name:'Wagyu Ribeye',desc:'12oz prime wagyu, chimichurri, roasted garlic, seasonal vegetables',price:58,cost:22,category:'entrees',station:'Grill',cookTime:18,allergens:[],dietary:['GF','DF'],modifiers:[{group:'Temperature',options:['Rare','Medium Rare','Medium']}],photo:'https://files.manuscdn.com/user_upload_by_module/session_file/310519663748878699/TkvXjsDNeDgRwgXw.jpg'},
+  {id:'i5',code:'EN02',name:'Pan-Seared Salmon',desc:'Atlantic salmon, lemon beurre blanc, asparagus, fingerling potatoes',price:34,cost:12,category:'entrees',station:'Sauté',cookTime:14,allergens:['Fish','Dairy'],dietary:['GF'],modifiers:[{group:'Temperature',options:['Medium Rare','Medium']}],photo:'https://files.manuscdn.com/user_upload_by_module/session_file/310519663748878699/FNJIFIUgfmvpWcMl.jpg'},
+  {id:'i6',code:'DE01',name:'Chocolate Studio Torte',desc:'Dark chocolate ganache, raspberry coulis, gold leaf, house ice cream',price:14,cost:3.5,category:'desserts',station:'Pastry',cookTime:3,allergens:['Dairy','Egg','Soy'],dietary:['Vegetarian'],modifiers:[],photo:'https://files.manuscdn.com/user_upload_by_module/session_file/310519663748878699/YcDsguujiKXtfUwE.jpg'},
+  {id:'i7',code:'DE02',name:'Crème Brûlée',desc:'Madagascar vanilla bean, caramelized sugar, seasonal berries',price:12,cost:2.8,category:'desserts',station:'Pastry',cookTime:2,allergens:['Dairy','Egg'],dietary:['GF','Vegetarian'],modifiers:[]},
+  {id:'i8',code:'CK01',name:'Pisco Sour',desc:'Pisco, lime, egg white, Angostura bitters',price:14,cost:4,category:'cocktails',station:'Bar',cookTime:3,allergens:['Egg'],dietary:['GF','DF'],modifiers:[],photo:'https://files.manuscdn.com/user_upload_by_module/session_file/310519663748878699/oOZJyknyvyCSDozl.jpg'},
+  {id:'i9',code:'CK02',name:'Chocolate Old Fashioned',desc:'Bourbon, cacao nib syrup, orange, Angostura',price:16,cost:5,category:'cocktails',station:'Bar',cookTime:3,allergens:[],dietary:['GF','DF','Vegan'],modifiers:[]},
+  {id:'i10',code:'BE01',name:'Local Lager',desc:'Crisp craft lager, 16oz draft',price:8,cost:2.5,category:'beer',station:'Bar',cookTime:1,allergens:['Gluten'],dietary:['DF'],modifiers:[]},
+  {id:'i11',code:'WN01',name:'Malbec Reserva',desc:'Bodega Andes, 2021, Mendoza — rich dark fruit, velvety tannins',price:52,cost:18,category:'wine',station:'Bar',cookTime:1,allergens:['Sulfites'],dietary:['GF','DF','Vegan'],modifiers:[{group:'Pour',options:['Glass $14','Bottle $52']}]},
+  {id:'i12',code:'WN02',name:'Chardonnay',desc:'Casa Blanca, 2022, Casablanca — tropical fruit, balanced oak',price:44,cost:15,category:'wine',station:'Bar',cookTime:1,allergens:['Sulfites'],dietary:['GF','DF','Vegan'],modifiers:[{group:'Pour',options:['Glass $12','Bottle $44']}]},
+  {id:'i13',code:'SS01',name:'Soup of the Day',desc:"Chef's seasonal creation — ask your server",price:10,cost:2.5,category:'soups-salads',station:'Sauté',cookTime:5,allergens:[],dietary:[],modifiers:[]},
+  {id:'i14',code:'SD01',name:'Truffle Fries',desc:'Hand-cut fries, truffle oil, parmesan, herbs',price:12,cost:3,category:'sides',station:'Fry',cookTime:6,allergens:['Dairy'],dietary:['Vegetarian','GF'],modifiers:[]}
+];
+
+var SEED_TASTING_MENUS = [
+  {
+    id:'tm1', name:"Chef's Tasting", subtitle:'7-Course Seasonal Journey',
+    price:145, duration:'~3 hours',
+    courses:[
+      {num:1, name:'Amuse-Bouche', desc:'Seasonal micro-bite from the chef'},
+      {num:2, name:'Ceviche Course', desc:'Corvina, leche de tigre, sweet potato crisp'},
+      {num:3, name:'Cold Plate', desc:'Tuna tartare, avocado mousse, sesame'},
+      {num:4, name:'Soup', desc:'Seasonal bisque, herb oil, crouton'},
+      {num:5, name:'Fish', desc:'Pan-seared salmon, beurre blanc, asparagus'},
+      {num:6, name:'Meat', desc:'Wagyu ribeye, chimichurri, roasted garlic'},
+      {num:7, name:'Dessert', desc:'Chocolate torte, raspberry, gold leaf'}
+    ],
+    pairings:[
+      {name:'Wine Pairing', desc:'Sommelier-selected wines per course', price:85},
+      {name:'Premium Pairing', desc:'Reserve & rare selections', price:145}
+    ],
+    active:true, mealPeriod:'dinner'
+  },
+  {
+    id:'tm2', name:'Chocolate Experience', subtitle:'5-Course Cacao Journey',
+    price:95, duration:'~2 hours',
+    courses:[
+      {num:1, name:'Cacao Amuse', desc:'White chocolate sphere, passion fruit'},
+      {num:2, name:'Savory Cacao', desc:'Mole-rubbed quail, cacao nib salad'},
+      {num:3, name:'Intermezzo', desc:'Dark chocolate sorbet, sea salt'},
+      {num:4, name:'Main', desc:'Cocoa-crusted lamb, cherry reduction'},
+      {num:5, name:'Grand Finale', desc:'Chocolate Studio signature torte'}
+    ],
+    pairings:[
+      {name:'Dessert Wine Pairing', desc:'Sweet wines & ports', price:65}
+    ],
+    active:true, mealPeriod:'dinner'
+  }
+];
+
+var SEED_PRIX_FIXE = [
+  {
+    id:'pf1', name:'Lunch Prix Fixe', desc:'Choose one from each course',
+    price:42, mealPeriod:'lunch', active:true,
+    courseGroups:[
+      {
+        label:'Appetizer', choose:1,
+        options:[
+          {name:'Soup of the Day', desc:'Seasonal creation', upcharge:0},
+          {name:'Tuna Tartare', desc:'Ahi tuna, avocado, ponzu', upcharge:0},
+          {name:'Peruvian Ceviche', desc:'Corvina, leche de tigre', upcharge:4}
+        ]
+      },
+      {
+        label:'Main Course', choose:1,
+        options:[
+          {name:'Pan-Seared Salmon', desc:'Beurre blanc, asparagus', upcharge:0},
+          {name:'Grilled Chicken', desc:'Herb-roasted, seasonal vegetables', upcharge:0},
+          {name:'Wagyu Ribeye', desc:'Chimichurri, roasted garlic', upcharge:18}
+        ]
+      },
+      {
+        label:'Dessert', choose:1,
+        options:[
+          {name:'Crème Brûlée', desc:'Madagascar vanilla', upcharge:0},
+          {name:'Chocolate Torte', desc:'Ganache, raspberry coulis', upcharge:0},
+          {name:'Cheese Plate', desc:'Artisanal selection', upcharge:6}
+        ]
+      }
+    ]
+  },
+  {
+    id:'pf2', name:'Sunday Brunch Prix Fixe', desc:'Three courses with a welcome cocktail',
+    price:55, mealPeriod:'brunch', active:true,
+    courseGroups:[
+      {
+        label:'Starter', choose:1,
+        options:[
+          {name:'Shrimp Ceviche', desc:'Mango, habanero, coconut', upcharge:0},
+          {name:'Avocado Toast', desc:'Poached egg, microgreens', upcharge:0}
+        ]
+      },
+      {
+        label:'Main', choose:1,
+        options:[
+          {name:'Eggs Benedict', desc:'Hollandaise, Canadian bacon', upcharge:0},
+          {name:'Steak & Eggs', desc:'Wagyu flat iron, sunny side', upcharge:12},
+          {name:'Lobster Omelette', desc:'Gruyère, chives, crème fraîche', upcharge:15}
+        ]
+      },
+      {
+        label:'Dessert', choose:1,
+        options:[
+          {name:'French Toast', desc:'Brioche, berries, maple', upcharge:0},
+          {name:'Chocolate Soufflé', desc:'Warm, with vanilla ice cream', upcharge:5}
+        ]
+      }
+    ]
+  }
+];
+
+// ─── Helpers ────────────────────────────────────────────────────
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function toast(msg, duration) {
+  var t = document.getElementById('toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration||3000);
+}
+
+// ─── Firebase load ──────────────────────────────────────────────
+var _menuReady = false;
+function mapCustomerItem(it){
+  it = it || {};
+  return Object.assign({}, it, {
+    category: (it.catIds && it.catIds[0]) || it.category || '',
+    photo: it.photoUrl || it.photo || '',
+    dietary: it.diet || it.dietary || [],
+    allergens: it.allergens || [],
+    desc: it.desc || it.description || '',
+    price: Number(it.price)||0,
+    active: it.active !== false
+  });
+}
+function fillTableSelect(){
+  var sel = document.getElementById('setup-table');
+  if (!sel) return;
+  var current = sel.value;
+  var tables = [];
+  var objs = STATE.roomObjs;
+  function addSeat(o){
+    if (!o) return;
+    if (o.type==='table' || o.type==='stool' || o.type==='outdoor' || o.type==='couch') {
+      if (o.num!=null && o.num!=='') tables.push(o);
+    }
+  }
+  if (Array.isArray(objs)) objs.forEach(addSeat);
+  else if (objs) Object.keys(objs).forEach(function(rid){ (objs[rid]||[]).forEach(addSeat); });
+  tables.sort(function(a,b){
+    var an=parseInt(a.num,10), bn=parseInt(b.num,10);
+    if (!isNaN(an) && !isNaN(bn) && an!==bn) return an-bn;
+    return String(a.num).localeCompare(String(b.num));
+  });
+  var html='<option value="">Select table</option>';
+  if (tables.length) {
+    tables.forEach(function(t){ html+='<option value="'+t.num+'">Table '+t.num+'</option>'; });
+  } else {
+    for (var i=1;i<=50;i++) html+='<option value="'+i+'">Table '+i+'</option>';
+  }
+  sel.innerHTML=html;
+  if (current) sel.value=current;
+}
+function loadFromFirebase() {
+  if (!fbReady) { useSeedData(); return; }
+
+  fbDb.collection('boh_shared').doc('menu').onSnapshot(function(doc){
+    if (doc.exists && doc.data() && doc.data().cats) {
+      STATE.menuLive = true;
+      var cats = (doc.data().cats||[]).filter(function(c){ return c.visible!==false; });
+      STATE.menuCategories = SPECIAL_NAV.concat(cats);
+      STATE.menuItems = (doc.data().items||[]).map(mapCustomerItem).filter(function(it){ return it.active !== false; });
+    } else if (!STATE.menuLive) {
+      STATE.menuCategories = SEED_CATEGORIES;
+      STATE.menuItems = SEED_ITEMS;
+    }
+    if(_menuReady) { renderNav(); }
+  }, function(){ if (!STATE.menuLive) { STATE.menuCategories = SEED_CATEGORIES; STATE.menuItems = SEED_ITEMS; } });
+
+  fbDb.collection('boh_shared').doc('tables').onSnapshot(function(doc){
+    if (doc.exists && doc.data()) {
+      STATE.rooms = doc.data().rooms || [];
+      STATE.roomObjs = doc.data().roomObjs || {};
+      fillTableSelect();
+    }
+  }, function(){});
+
+  fbDb.collection('boh_shared').doc('tasting_menus').onSnapshot(function(doc){
+    if (doc.exists && Array.isArray((doc.data()||{}).list)) {
+      STATE.tastingMenus = doc.data().list.filter(function(t){ return t && t.active !== false; });
+    } else {
+      STATE.tastingMenus = STATE.menuLive ? [] : SEED_TASTING_MENUS;
+    }
+    if(_menuReady && currentNav==='tasting') renderContent();
+  }, function(err){
+    console.error('Live tasting menu read failed',err);
+    if (!STATE.menuLive) STATE.tastingMenus = SEED_TASTING_MENUS;
+    if(_menuReady && currentNav==='tasting') renderContent();
+  });
+
+  fbDb.collection('boh_shared').doc('prix_fixe_menus').onSnapshot(function(doc){
+    if (doc.exists && Array.isArray((doc.data()||{}).list)) {
+      STATE.prixFixeMenus = doc.data().list.filter(function(p){ return p && p.active !== false; });
+    } else {
+      STATE.prixFixeMenus = STATE.menuLive ? [] : SEED_PRIX_FIXE;
+    }
+    if(_menuReady && currentNav==='prix-fixe') renderContent();
+  }, function(err){
+    console.error('Live prix fixe menu read failed',err);
+    if (!STATE.menuLive) STATE.prixFixeMenus = SEED_PRIX_FIXE;
+    if(_menuReady && currentNav==='prix-fixe') renderContent();
+  });
+
+  // Listen for messages
+  fbDb.collection('messages').onSnapshot(snap => {
+    STATE.messages = [];
+    snap.forEach(d => STATE.messages.push({id:d.id,...d.data()}));
+    showLatestMessage();
+  });
+}
+function useSeedData() {
+  STATE.menuCategories = SEED_CATEGORIES;
+  STATE.menuItems = SEED_ITEMS;
+  STATE.tastingMenus = SEED_TASTING_MENUS;
+  STATE.prixFixeMenus = SEED_PRIX_FIXE;
+}
+
+// ─── Setup ──────────────────────────────────────────────────────
+function setLang(lang, el) {
+  STATE.lang = lang;
+  document.querySelectorAll('.lang-card').forEach(c=>c.classList.remove('selected'));
+  if (el) el.classList.add('selected');
+}
+
+function openMenu() {
+  var sel = document.getElementById('setup-table');
+  if (sel.value) STATE.tableNum = parseInt(sel.value);
+  document.getElementById('menu-table-badge').textContent = 'Table '+STATE.tableNum;
+  showScreen('menu');
+  renderNav();
+  _menuReady = true;
+}
+
+// ─── Navigation ─────────────────────────────────────────────────
+var currentNav = null;
+
+function renderNav() {
+  var nav = document.getElementById('menu-nav');
+  var cats = STATE.menuCategories.length ? STATE.menuCategories : SEED_CATEGORIES;
+  var selectedStillVisible = cats.some(function(c){ return c.id === currentNav; });
+  if (!selectedStillVisible) currentNav = cats[0].id;
+  nav.innerHTML = cats.map((c,i) =>
+    '<div class="menu-nav-item'+(c.id===currentNav?' active':'')+'" data-cat="'+c.id+'" onclick="selectNav(\''+c.id+'\')">'+c.name+'</div>'
+  ).join('');
+  renderContent();
+}
+
+function selectNav(catId) {
+  currentNav = catId;
+  document.querySelectorAll('.menu-nav-item').forEach(t => t.classList.toggle('active', t.dataset.cat===catId));
+  renderContent();
+}
+
+// ─── Content Rendering ──────────────────────────────────────────
+function renderContent() {
+  var c = document.getElementById('menu-content');
+  if (currentNav === 'tasting') { renderTastingMenus(c); return; }
+  if (currentNav === 'prix-fixe') { renderPrixFixe(c); return; }
+  renderRegularMenu(c);
+}
+
+function renderRegularMenu(container) {
+  var items = (STATE.menuItems.length ? STATE.menuItems : (STATE.menuLive?[]:SEED_ITEMS)).filter(function(i){
+    if (i.catIds && i.catIds.length) return i.catIds.indexOf(currentNav)>-1;
+    return i.category===currentNav;
+  });
+  if (!items.length) {
+    container.innerHTML='<div style="text-align:center;padding:4rem 2rem;"><p style="color:var(--text-muted);font-size:0.85rem;">No items available</p></div>';
+    return;
+  }
+
+  // Check if any items have photos for featured display
+  var featured = items.filter(i => i.photo);
+  var regular = items.filter(i => !i.photo);
+
+  var cats = STATE.menuCategories.length ? STATE.menuCategories : SEED_CATEGORIES;
+  var catObj = cats.find(c=>c.id===currentNav);
+  var catName = catObj ? catObj.name : currentNav;
+
+  var html = '<div class="section-header"><div class="section-label">Menu</div><div class="section-title">'+catName+'</div></div>';
+
+  // Featured items with photos
+  if (featured.length) {
+    html += '<div class="featured-grid">';
+    html += featured.map(item =>
+      '<div class="photo-card'+(itemHasAllergen(item)?' has-allergen':'')+'" onclick="openDish(\''+item.id+'\')">'+
+        '<img src="'+item.photo+'" alt="'+item.name+'" loading="lazy">'+
+        '<div class="photo-card-overlay"></div>'+
+        '<div class="photo-card-price">$'+item.price+'</div>'+
+        '<div class="photo-card-info">'+
+          '<div class="photo-card-name">'+item.name+'</div>'+
+          '<div class="photo-card-desc">'+item.desc+'</div>'+
+        '</div>'+
+      '</div>'
+    ).join('');
+    html += '</div>';
+  }
+
+  // Regular items in elegant list
+  if (regular.length) {
+    html += '<div class="menu-grid">';
+    html += regular.map(item => {
+      var tags = (item.dietary||[]).slice(0,3).map(d=>'<span class="dish-tag">'+d+'</span>').join('');
+      var allergenTags = (item.allergens||[]).slice(0,2).map(a=>'<span class="dish-tag allergen">'+a+'</span>').join('');
+      var hasAllergen = itemHasAllergen(item);
+      return '<div class="dish-row'+(hasAllergen?' has-allergen':'')+'" onclick="openDish(\''+item.id+'\')">'+
+        '<div class="dish-info">'+
+          '<div class="dish-name">'+item.name+'</div>'+
+          '<div class="dish-desc">'+item.desc+'</div>'+
+          (tags||allergenTags ? '<div class="dish-tags-row">'+tags+allergenTags+'</div>' : '')+
+        '</div>'+
+        '<div class="dish-price">$'+item.price+'</div>'+
+      '</div>';
+    }).join('');
+    html += '</div>';
+  }
+
+  container.innerHTML = html;
+}
+
+function renderTastingMenus(container) {
+  var menus = STATE.tastingMenus.length ? STATE.tastingMenus : (STATE.menuLive?[]:SEED_TASTING_MENUS);
+  var html = '<div class="section-header"><div class="section-label">Experience</div><div class="section-title">Tasting Menus</div></div>';
+  html += '<div class="tasting-section">';
+  if (!menus.length) {
+    html += '<p style="color:var(--text-muted);padding:2rem 0;text-align:center;">No tasting menus from Back of House yet.</p>';
+  } else {
+  html += menus.map(tm =>
+    '<div class="tasting-card" onclick="openTasting(\''+tm.id+'\')">'+
+      '<div class="tasting-card-header">'+
+        '<div><div class="tasting-card-title">'+tm.name+'</div>'+
+        '<div class="tasting-card-subtitle">'+(tm.subtitle||'')+'</div></div>'+
+        '<div class="tasting-card-price">$'+tm.price+'<small>per person</small></div>'+
+      '</div>'+
+      '<ul class="tasting-courses-list">'+
+        (tm.courses||[]).slice(0,4).map(function(c,i){
+          return '<li><span class="course-num">'+(c.num||(i+1))+'</span>'+c.name+'</li>';
+        }).join('')+
+        ((tm.courses||[]).length>4 ? '<li style="color:var(--text-muted);font-style:italic;">+ '+(tm.courses.length-4)+' more courses</li>' : '')+
+      '</ul>'+
+      ((tm.pairings||[]).length ? tm.pairings.map(function(p){
+        return '<div class="tasting-pairing">🍷 '+p.name+' <span class="pairing-price">+$'+p.price+'</span></div>';
+      }).join('') : '')+
+    '</div>'
+  ).join('');
+  }
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+function getPfCourses(pf) {
+  // Handle both BOH format (courses) and seed format (courseGroups)
+  if (pf.courseGroups) return pf.courseGroups;
+  if (pf.courses) return pf.courses.map(c => ({label:c.label, choose:1, options:c.options}));
+  return [];
+}
+function getPfDesc(pf) { return pf.desc || pf.subtitle || ''; }
+
+function renderPrixFixe(container) {
+  var menus = STATE.prixFixeMenus.length ? STATE.prixFixeMenus : (STATE.menuLive?[]:SEED_PRIX_FIXE);
+  var html = '<div class="section-header"><div class="section-label">Prix Fixe</div><div class="section-title">Set Menus</div></div>';
+  html += menus.map(pf => {
+    var courses = getPfCourses(pf);
+    return '<div class="prix-fixe-card" onclick="openPrixFixe(\''+pf.id+'\')">'+ 
+      '<div class="prix-fixe-header">'+
+        '<div><div class="prix-fixe-title">'+pf.name+'</div>'+
+        '<div class="prix-fixe-desc">'+getPfDesc(pf)+'</div></div>'+
+        '<div class="prix-fixe-price">$'+pf.price+'<small>per person</small></div>'+
+      '</div>'+
+      '<div class="prix-fixe-courses">'+
+        courses.map(cg =>
+          '<div class="prix-fixe-course-group">'+
+            '<div class="prix-fixe-course-label">'+cg.label+' \u2014 choose '+(cg.choose||1)+'</div>'+
+            cg.options.map(o =>
+              '<div class="prix-fixe-option"><span>'+o.name+'</span>'+(o.upcharge?'<span class="upcharge">+$'+o.upcharge+'</span>':'')+'</div>'
+            ).join('')+
+          '</div>'
+        ).join('')+
+      '</div>'+
+    '</div>';
+  }).join('');
+  container.innerHTML = html;
+}
+
+// ─── Modals ─────────────────────────────────────────────────────
+function openDish(itemId) {
+  var item = (STATE.menuItems.length?STATE.menuItems:(STATE.menuLive?[]:SEED_ITEMS)).find(i=>i.id===itemId);
+  if (!item) return;
+  var modal = document.getElementById('dish-modal');
+  var content = document.getElementById('dish-modal-content');
+  var mods = (item.modifiers||[]).map(m =>
+    '<div class="modifier-group"><h4>'+m.group+'</h4>'+
+    m.options.map(o=>'<label class="modifier-option"><input type="radio" name="mod-'+m.group+'" value="'+o+'"> '+o+'</label>').join('')+
+    '</div>'
+  ).join('');
+  var allergenWarning = itemHasAllergen(item) ? '<div style="margin-top:1rem;padding:0.7rem 1rem;background:rgba(139,58,74,0.12);border:1px solid rgba(139,58,74,0.3);border-radius:6px;"><span style="color:var(--wine);font-size:0.75rem;font-weight:500;">\u26A0 Contains your allergen: '+(item.allergens||[]).filter(a=>STATE.customerAllergies.indexOf(a)>-1).join(', ')+'</span></div>' : '';
+  var allergens = (item.allergens||[]).length ? '<p style="margin-top:1rem;font-size:0.75rem;"><span style="color:var(--wine);">Allergens:</span> <span style="color:var(--text-secondary);">'+(item.allergens||[]).join(', ')+'</span></p>' : '';
+  var dietary = (item.dietary||[]).length ? '<p style="margin-top:0.3rem;color:var(--sage);font-size:0.72rem;">'+item.dietary.join(' · ')+'</p>' : '';
+  var photoHtml = item.photo ? '<img src="'+item.photo+'" style="width:100%;height:200px;object-fit:cover;border-radius:var(--radius);margin-bottom:1.2rem;">' : '';
+  content.innerHTML = '<button style="position:absolute;top:1rem;right:1.2rem;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);" onclick="closeDishModal()">×</button>'+
+    photoHtml+
+    '<h2>'+item.name+'</h2>'+
+    '<p style="color:var(--text-secondary);margin-bottom:0.5rem;font-size:0.85rem;font-weight:300;line-height:1.6;">'+item.desc+'</p>'+
+    '<p style="font-family:var(--font-display);font-size:1.3rem;color:var(--gold);margin-top:0.8rem;">$'+item.price.toFixed(2)+'</p>'+
+    allergenWarning+allergens+dietary+
+    '<p style="margin-top:0.8rem;font-size:0.7rem;color:var(--text-muted);">Preparation: '+(item.cookTime||item.cookMin||0)+' min · Station: '+(item.station||'')+'</p>'+
+    mods;
+  modal.classList.add('open');
+}
+function closeDishModal() { document.getElementById('dish-modal').classList.remove('open'); }
+
+function openTasting(tmId) {
+  var tm = (STATE.tastingMenus.length?STATE.tastingMenus:(STATE.menuLive?[]:SEED_TASTING_MENUS)).find(t=>t.id===tmId);
+  if (!tm) return;
+  var modal = document.getElementById('tasting-modal');
+  var content = document.getElementById('tasting-modal-content');
+  content.innerHTML = '<button style="position:absolute;top:1rem;right:1.2rem;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);" onclick="closeTastingModal()">×</button>'+
+    '<div class="section-label" style="margin-bottom:0.3rem;">Tasting Experience</div>'+
+    '<h2 style="font-family:var(--font-display);font-size:1.8rem;font-weight:300;">'+tm.name+'</h2>'+
+    '<p style="color:var(--text-secondary);font-size:0.8rem;margin-top:0.3rem;">'+tm.subtitle+' · '+tm.duration+'</p>'+
+    '<p style="font-family:var(--font-display);font-size:1.4rem;color:var(--gold);margin-top:1rem;">$'+tm.price+' <span style="font-size:0.7rem;color:var(--text-muted);font-family:var(--font-body);">per person</span></p>'+
+    '<div class="tasting-modal-courses">'+
+      tm.courses.map(function(c,i){
+        return '<div class="tasting-modal-course">'+
+          '<div class="tasting-modal-course-num">Course '+(c.num||(i+1))+'</div>'+
+          '<div class="tasting-modal-course-name">'+c.name+'</div>'+
+          '<div class="tasting-modal-course-desc">'+(c.desc||c.description||'')+'</div>'+
+        '</div>';
+      }).join('')+
+    '</div>'+
+    ((tm.pairings||[]).length ? '<div style="margin-top:1.5rem;padding-top:1rem;border-top:1px solid var(--border);">'+
+      '<div class="section-label" style="margin-bottom:0.8rem;">Wine Pairings</div>'+
+      tm.pairings.map(p =>
+        '<div style="display:flex;justify-content:space-between;align-items:center;padding:0.5rem 0;">'+
+          '<div><div style="font-size:0.85rem;color:var(--text-primary);">'+p.name+'</div>'+
+          '<div style="font-size:0.7rem;color:var(--text-muted);">'+p.desc+'</div></div>'+
+          '<div style="color:var(--gold);font-size:0.9rem;">+$'+p.price+'</div>'+
+        '</div>'
+      ).join('')+
+    '</div>' : '');
+  modal.classList.add('open');
+}
+function closeTastingModal() { document.getElementById('tasting-modal').classList.remove('open'); }
+
+function openPrixFixe(pfId) {
+  var pf = (STATE.prixFixeMenus.length?STATE.prixFixeMenus:(STATE.menuLive?[]:SEED_PRIX_FIXE)).find(p=>p.id===pfId);
+  if (!pf) return;
+  var modal = document.getElementById('tasting-modal');
+  var content = document.getElementById('tasting-modal-content');
+  var courses = getPfCourses(pf);
+  content.innerHTML = '<button style="position:absolute;top:1rem;right:1.2rem;background:none;border:none;font-size:1.5rem;cursor:pointer;color:var(--text-muted);" onclick="closeTastingModal()">×</button>'+
+    '<div class="section-label" style="margin-bottom:0.3rem;">Prix Fixe</div>'+
+    '<h2 style="font-family:var(--font-display);font-size:1.8rem;font-weight:300;">'+pf.name+'</h2>'+
+    '<p style="color:var(--text-secondary);font-size:0.8rem;margin-top:0.3rem;">'+getPfDesc(pf)+'</p>'+
+    '<p style="font-family:var(--font-display);font-size:1.4rem;color:var(--gold);margin-top:1rem;">$'+pf.price+' <span style="font-size:0.7rem;color:var(--text-muted);font-family:var(--font-body);">per person</span></p>'+
+    '<div style="margin-top:1.5rem;">'+
+      courses.map(cg =>
+        '<div style="margin-bottom:1.5rem;">'+
+          '<div class="prix-fixe-course-label">'+cg.label+' \u2014 choose '+(cg.choose||1)+'</div>'+
+          cg.options.map(o =>
+            '<div style="padding:0.6rem 0;border-bottom:1px solid var(--border);">'+
+              (o.photoUrl?'<img src="'+o.photoUrl+'" style="width:100%;height:120px;object-fit:cover;border-radius:6px;margin-bottom:0.4rem;">':'')+
+              '<div style="display:flex;justify-content:space-between;align-items:center;">'+
+                '<span style="font-size:0.85rem;color:var(--text-primary);">'+o.name+'</span>'+
+                (o.upcharge?'<span style="color:var(--gold);font-size:0.75rem;">+$'+o.upcharge+'</span>':'')+
+              '</div>'+
+              '<div style="font-size:0.72rem;color:var(--text-muted);margin-top:0.2rem;">'+(o.desc||'')+'</div>'+
+            '</div>'
+          ).join('')+
+        '</div>'
+      ).join('')+
+    '</div>';
+  modal.classList.add('open');
+}
+
+function switchLang(lang) {
+  STATE.lang = lang;
+  document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang===lang));
+  renderContent();
+}
+
+// ─── Call Server ────────────────────────────────────────────────
+function callServer() {
+  var call = { table:STATE.tableNum, time:Date.now(), status:'active' };
+  if (fbReady) fbDb.collection('calls').add(call);
+  toast('Server has been notified');
+}
+
+// ─── Messages from server ───────────────────────────────────────
+function showLatestMessage() {
+  var msgs = STATE.messages.filter(m=>m.table===STATE.tableNum&&m.from==='server').sort((a,b)=>b.time-a.time);
+  var area = document.getElementById('menu-msg-area');
+  if (area && msgs.length) area.innerHTML=msgs[0].text;
+  if (msgs.length && Date.now()-msgs[0].time < 10000) {
+    var notif = document.getElementById('msg-notification');
+    notif.textContent = msgs[0].text;
+    notif.classList.add('show');
+    setTimeout(()=>notif.classList.remove('show'), 5000);
+  }
+}
+
+// ─── Init ───────────────────────────────────────────────────────
+function init() {
+  fillTableSelect();
+  if(fbReady && fbAuth && !fbAuth.currentUser){
+    fbAuth.signInAnonymously().then(loadFromFirebase).catch(function(err){
+      console.error('iPad Firebase sign-in failed',err);
+      useSeedData();
+    });
+  } else {
+    loadFromFirebase();
+  }
+}
+document.addEventListener('DOMContentLoaded', init);
+
+// ─── Allergy Filter ─────────────────────────────────────────────
+var ALL_ALLERGENS = ['Gluten','Dairy','Egg','Peanut','Tree Nut','Shellfish','Fish','Soy','Sesame','Sulfites'];
+
+function openAllergyFilter() {
+  var modal = document.getElementById('allergy-modal');
+  var container = document.getElementById('allergy-checkboxes');
+  container.innerHTML = ALL_ALLERGENS.map(a =>
+    '<label class="allergy-check'+(STATE.customerAllergies.indexOf(a)>-1?' selected':'')+'">'+
+      '<input type="checkbox" value="'+a+'"'+(STATE.customerAllergies.indexOf(a)>-1?' checked':'')+' onchange="toggleAllergyCheck(this)"> '+a+
+    '</label>'
+  ).join('');
+  modal.classList.add('open');
+}
+function closeAllergyModal() { document.getElementById('allergy-modal').classList.remove('open'); }
+function toggleAllergyCheck(cb) {
+  cb.closest('.allergy-check').classList.toggle('selected', cb.checked);
+}
+function applyAllergyFilter() {
+  STATE.customerAllergies = Array.from(document.querySelectorAll('#allergy-checkboxes input:checked')).map(cb=>cb.value);
+  var btn = document.getElementById('allergy-btn');
+  btn.classList.toggle('active', STATE.customerAllergies.length > 0);
+  btn.textContent = STATE.customerAllergies.length ? 'Allergies ('+STATE.customerAllergies.length+')' : 'Allergies';
+  closeAllergyModal();
+  renderContent();
+  if (STATE.customerAllergies.length) toast('Menu updated — flagged items contain your allergens');
+}
+function clearAllergyFilter() {
+  STATE.customerAllergies = [];
+  document.querySelectorAll('#allergy-checkboxes input').forEach(cb=>{cb.checked=false;cb.closest('.allergy-check').classList.remove('selected');});
+  var btn = document.getElementById('allergy-btn');
+  btn.classList.remove('active');
+  btn.textContent = 'Allergies';
+  closeAllergyModal();
+  renderContent();
+  toast('Allergy filter cleared');
+}
+function itemHasAllergen(item) {
+  if (!STATE.customerAllergies.length) return false;
+  return (item.allergens||[]).some(a => STATE.customerAllergies.indexOf(a) > -1);
+}
+
+</script>
+</body>
+</html>
