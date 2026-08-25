@@ -498,6 +498,16 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .station-card .sc-print{margin-top:10px;}
 .stations-panel .sp-empty{color:var(--text-dim);font-size:13px;padding:8px 0;}
 
+/* ---------- Guest / VIP on tables (Req 7) ---------- */
+.f-table.vip{box-shadow:0 0 0 2px var(--gold),0 6px 18px rgba(201,168,76,0.35);}
+.f-table .f-vip{position:absolute;top:2px;right:4px;color:var(--gold);font-size:12px;line-height:1;}
+.f-table .f-guest{font-size:9px;color:var(--gold-soft);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding:0 3px;}
+.insp-guest{border-top:1px solid var(--border-soft);margin-top:6px;padding-top:8px;}
+.insp-guest .vip-toggle{display:flex;align-items:center;gap:8px;cursor:pointer;font-size:13px;color:var(--text);}
+.insp-guest .vip-toggle input{width:16px;height:16px;accent-color:var(--gold);}
+.insp-guest textarea.insp-input{resize:vertical;font-family:inherit;line-height:1.5;}
+.station-card .sc-tables .vip-mark{color:var(--gold);}
+
 /* ---------- Print view (Req 2) ---------- */
 #print-area{display:none;}
 .ps-doc{color:#111;background:#fff;font-family:'Inter',Arial,sans-serif;padding:24px 28px;}
@@ -507,6 +517,7 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .ps-card .ps-h{font-size:17px;font-weight:700;margin-bottom:6px;border-bottom:1px solid #e0e0e0;padding-bottom:4px;}
 .ps-card .ps-row{font-size:13px;margin:3px 0;color:#222;}
 .ps-card .ps-row b{color:#000;}
+.ps-card .ps-guest{margin-left:14px;color:#333;font-size:12px;}
 @media print{
   #root{display:none !important;}
   #print-area{display:block !important;}
@@ -1473,6 +1484,7 @@ var PALETTE=[
    any POS-authored/refined stations, reusing the Phase 1 guardrail logic. */
 function stationsView(){ return mergeStationSync(computeStations(), STATE.stations||[]); }
 function tableNumMap(){ var m={}; allTables().forEach(function(t){ m[t.id]=(t.num!==undefined&&t.num!==null)?t.num:''; }); return m; }
+function tableObjMap(){ var m={}; allTables().forEach(function(t){ m[t.id]=t; }); return m; }
 function roomNameById(id){ var r=(STATE.rooms||[]).filter(function(x){return x.id===id;})[0]; return r?r.name:(id||'—'); }
 function stationNumLabel(s){ return (s&&s.number!==undefined&&s.number!==null&&s.number!=='')?s.number:'—'; }
 function stationFM(s){ return (s&&(s.server||s.name))?(s.server||s.name):''; }
@@ -1483,17 +1495,33 @@ function stationTableNums(s,map){
   return nums;
 }
 function isPosStation(s){ return s&&s.id!=null&&String(s.id).charAt(0)!=='o'; }
+/* Resolve a station's tables to {num, vip, obj} entries, using BOH table objects
+   when available (so VIP/guest info shows) and falling back to number lookup for
+   POS-authored stations. */
+function stationTableEntries(s,numMap,objMap){
+  numMap=numMap||tableNumMap(); objMap=objMap||tableObjMap();
+  var entries=((s&&s.tableIds)?s.tableIds:[]).map(function(id){
+    var t=objMap[id];
+    if(t) return {num:t.num, vip:!!t.vip, obj:t};
+    var n=numMap[id];
+    if(n!==undefined&&n!==null&&n!=='') return {num:n, vip:false, obj:null};
+    return null;
+  }).filter(Boolean);
+  entries.sort(function(a,b){ return (parseInt(a.num,10)||0)-(parseInt(b.num,10)||0); });
+  return entries;
+}
 function renderStationsPanel(){
   var list=stationsView().slice().sort(function(a,b){ return (parseInt(stationNumLabel(a),10)||0)-(parseInt(stationNumLabel(b),10)||0); });
-  var map=tableNumMap();
+  var map=tableNumMap(), omap=tableObjMap();
   var cards=list.map(function(s){
-    var nums=stationTableNums(s,map);
+    var entries=stationTableEntries(s,map,omap);
     var fm=stationFM(s);
+    var tlist=entries.map(function(e){ return (e.vip?'<span class="vip-mark" title="VIP">\u2605</span>':'')+esc(e.num); }).join(', ');
     return '<div class="station-card">'+
       '<div class="sc-top"><span class="sc-num">Station '+esc(stationNumLabel(s))+'</span>'+
         '<span class="sc-room">'+esc(roomNameById(s.room))+'</span></div>'+
       '<div class="sc-fm">'+(fm?esc(fm):'<span class="muted">Unassigned</span>')+(isPosStation(s)?' <span class="sc-src">POS</span>':'')+'</div>'+
-      '<div class="sc-tables"><b>'+nums.length+'</b> table'+(nums.length===1?'':'s')+(nums.length?': '+nums.map(esc).join(', '):'')+'</div>'+
+      '<div class="sc-tables"><b>'+entries.length+'</b> table'+(entries.length===1?'':'s')+(entries.length?': '+tlist:'')+'</div>'+
       '<div class="sc-print"><button class="btn btn-ghost btn-sm no-print" onclick="printStations(\''+esc(String(s.id))+'\')">🖨 Print</button></div>'+
     '</div>';
   }).join('');
@@ -1506,15 +1534,22 @@ function renderStationsPanel(){
   '</div>';
 }
 function stationPrintDoc(list,heading){
-  var map=tableNumMap();
+  var map=tableNumMap(), omap=tableObjMap();
   var cards=list.map(function(s){
-    var nums=stationTableNums(s,map);
+    var entries=stationTableEntries(s,map,omap);
     var fm=stationFM(s);
+    var tlist=entries.map(function(e){ return (e.vip?'\u2605':'')+e.num; }).map(esc).join(', ');
+    var detail=entries.filter(function(e){ return e.obj&&tableHasGuestInfo(e.obj); }).map(function(e){
+      var t=e.obj, bits=[]; if(t.vip)bits.push('\u2605 VIP'); if(t.guestName)bits.push(t.guestName);
+      var ns=tableNotesArr(t); if(ns.length)bits.push(ns.join('; '));
+      return '<div class="ps-row ps-guest">\u2022 Table '+esc(t.num)+' — '+esc(bits.join(' — '))+'</div>';
+    }).join('');
     return '<div class="ps-card">'+
       '<div class="ps-h">Station '+esc(stationNumLabel(s))+(isPosStation(s)?' (POS)':'')+'</div>'+
       '<div class="ps-row"><b>Food Master:</b> '+(fm?esc(fm):'Unassigned')+'</div>'+
       '<div class="ps-row"><b>Room:</b> '+esc(roomNameById(s.room))+'</div>'+
-      '<div class="ps-row"><b>Tables ('+nums.length+'):</b> '+(nums.length?nums.map(esc).join(', '):'—')+'</div>'+
+      '<div class="ps-row"><b>Tables ('+entries.length+'):</b> '+(entries.length?tlist:'—')+'</div>'+
+      detail+
     '</div>';
   }).join('');
   return '<div class="ps-doc"><div class="ps-title">Epicurean House — '+esc(heading)+'</div>'+
@@ -1618,8 +1653,10 @@ function drawObj(canvas,o){
   var seatable=SEATABLE[o.type];
   if(o.type==='table'){
     var st=TABLE_STATUS[o.status||'open'];
-    node.innerHTML='<div class="f-table '+(o.shape||'round')+'" style="background:'+st.bg+';border-color:'+st.border+';color:'+st.text+'">'+
+    node.innerHTML='<div class="f-table '+(o.shape||'round')+(o.vip?' vip':'')+'" style="background:'+st.bg+';border-color:'+(o.vip?'var(--gold)':st.border)+';color:'+st.text+'">'+
+      (o.vip?'<span class="f-vip" title="VIP">\u2605</span>':'')+
       '<span class="f-tnum">'+esc(o.num)+'</span><span class="f-tsub">'+(o.seats||2)+' seats</span>'+
+      (o.guestName?'<span class="f-guest">'+esc(o.guestName)+'</span>':'')+
       (o.server?'<span class="f-svr">'+esc(serverName(o.server)||'—')+'</span>':'')+'</div>';
   } else if(o.type==='stool'){
     var ss=TABLE_STATUS[o.status||'open'];
@@ -1700,6 +1737,25 @@ function addResize(handle,node,o){
   handle.addEventListener('mousedown',down); handle.addEventListener('touchstart',down,{passive:false});
 }
 
+/* ============================================================
+   Req 7: guest / VIP / notes on tables (BOH inspector + floor + print;
+   POS surfaces them via tableNote). Stored on the table object:
+   guestName (string), guestId (optional link to STATE.guests), vip (bool),
+   notes (array of strings). POS reads these from boh_shared/tables.roomObjs. */
+function tableHasGuestInfo(o){ return !!(o&&(o.vip||o.guestName||o.guestId||(Array.isArray(o.notes)&&o.notes.length))); }
+function tableNotesArr(o){ if(!o)return []; if(Array.isArray(o.notes))return o.notes.filter(Boolean); if(o.notes)return [String(o.notes)]; return []; }
+function guestDatalist(){ return '<datalist id="guest-names">'+(STATE.guests||[]).map(function(g){ return '<option value="'+esc(g.name||'')+'">'; }).join('')+'</datalist>'; }
+function setTableGuest(id,name){ var o=findObj(id); if(!o)return; name=(name||'').trim(); o.guestName=name; var g=(STATE.guests||[]).filter(function(x){ return (x.name||'').toLowerCase()===name.toLowerCase(); })[0]; o.guestId=g?g.id:''; saveFloor(); renderFloor(); }
+function toggleTableVip(id,val){ var o=findObj(id); if(!o)return; o.vip=!!val; saveFloor(); renderFloor(); }
+function setTableNotes(id,text){ var o=findObj(id); if(!o)return; o.notes=(text||'').split('\n').map(function(s){ return s.trim(); }).filter(Boolean); saveFloor(); renderFloor(); }
+function guestFieldsHtml(o){
+  var notesText=tableNotesArr(o).join('\n');
+  return '<div class="insp-guest">'+
+    field('Guest name','<input class="insp-input" list="guest-names" value="'+esc(o.guestName||'')+'" placeholder="Guest seated here" onchange="setTableGuest(\''+o.id+'\',this.value)">')+
+    '<div class="insp-field"><label class="vip-toggle"><input type="checkbox" '+(o.vip?'checked':'')+' onchange="toggleTableVip(\''+o.id+'\',this.checked)"> <span>\u2605 VIP guest</span></label></div>'+
+    field('Guest notes (one per line)','<textarea class="insp-input" rows="3" placeholder="Allergies, seating preference, occasion\u2026" onchange="setTableNotes(\''+o.id+'\',this.value)">'+esc(notesText)+'</textarea>')+
+  '</div>'+guestDatalist();
+}
 /* ---- inspector (edit mode) / override (live mode) ---- */
 function renderInspector(){
   var box=$('inspector'); if(!box)return;
@@ -1721,6 +1777,7 @@ function renderInspector(){
   } else {
     html+=field('Label','<input class="insp-input" value="'+esc(o.label||'')+'" onchange="upd(\''+o.id+'\',\'label\',this.value)">');
   }
+  if(SEATABLE[o.type]){ html+=guestFieldsHtml(o); }
   html+=field('Size (W \u00d7 H)','<div class="insp-row"><input class="insp-input" type="number" value="'+o.w+'" onchange="upd(\''+o.id+'\',\'w\',parseInt(this.value))"><input class="insp-input" type="number" value="'+o.h+'" onchange="upd(\''+o.id+'\',\'h\',parseInt(this.value))"></div>');
   if(o.type!=='waiterstation'){
     html+=field('Rotation','<select class="insp-input" onchange="upd(\''+o.id+'\',\'rot\',parseInt(this.value))">'+[0,45,90,135,180].map(function(d){return '<option value="'+d+'"'+((o.rot||0)==d?' selected':'')+'>'+d+'\u00b0</option>';}).join('')+'</select>');
@@ -1742,6 +1799,7 @@ function renderLiveInspector(box,o){
     '<div class="insp-field"><label>Current status</label>'+
       '<div style="padding:8px 11px;border-radius:9px;background:'+st.bg+';border:1px solid '+st.border+';color:'+st.text+';font-weight:700;font-size:13px">'+st.label+'</div></div>'+
     field('Food master','<select class="insp-input" onchange="setServer(\''+o.id+'\',this.value)">'+fmOpts+'</select>')+
+    guestFieldsHtml(o)+
     '<div class="insp-field"><label>Set status</label>'+statusBtns+'</div>'+
     '<div class="insp-btns"><button class="btn btn-ghost btn-sm" onclick="clearTable(\''+o.id+'\')">Clear / Reset table</button></div>'+
     '<div class="mini-note" style="margin-top:10px">Manager override applies immediately to POS &amp; bar screens.</div>';
