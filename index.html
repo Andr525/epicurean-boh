@@ -1388,8 +1388,13 @@ function curObjs(){ if(!STATE.roomObjs[FLOOR.room])STATE.roomObjs[FLOOR.room]=[]
 function allTables(){ var out=[]; for(var r in STATE.roomObjs){ (STATE.roomObjs[r]||[]).forEach(function(o){ if(SEATABLE[o.type]){ out.push(o); } }); } return out; }
 function findObj(id){ var o=curObjs().filter(function(x){return x.id===id;})[0]; return o||null; }
 function serverName(id){ var s=STATE.staff.filter(function(x){return x.id===id;})[0]; return s?s.name:''; }
-function posStaff(){ return STATE.staff.filter(function(s){ var r=(s.code||'')[0]; return r==='3'||r==='5'; }); }
-function waiterStaff(){ return STATE.staff.filter(function(s){ var r=(s.code||'')[0]; return r==='3'||r==='4'||r==='5'; }); }
+/* Assignment lists exclude inactive/terminated staff so section and table
+   pickers only show current employees. keepId always keeps an already-assigned
+   person visible (even if later deactivated) so an existing selection is never
+   silently dropped. Legacy records without a status are treated as active. */
+function activeForAssign(list, keepId){ return list.filter(function(s){ return s.status!=='inactive' || (keepId!=null && s.id===keepId); }); }
+function posStaff(keepId){ return activeForAssign(STATE.staff.filter(function(s){ var r=(s.code||'')[0]; return r==='3'||r==='5'; }), keepId); }
+function waiterStaff(keepId){ return activeForAssign(STATE.staff.filter(function(s){ var r=(s.code||'')[0]; return r==='3'||r==='4'||r==='5'; }), keepId); }
 function waiterRoleShort(code){ var r=(code||'')[0]; return r==='3'?'FM':r==='4'?'FOH':r==='5'?'Mgr':'Staff'; }
 
 /* palette definition */
@@ -1605,7 +1610,7 @@ function renderInspector(){
     html+=field('Seats','<input class="insp-input" type="number" min="1" max="20" value="'+(o.seats||1)+'" onchange="upd(\''+o.id+'\',\'seats\',parseInt(this.value))">');
   } else if(o.type==='waiterstation'){
     html+=field('Station number','<input class="insp-input" type="number" step="1" min="0" value="'+esc((o.num!==undefined&&o.num!==null)?o.num:'')+'" onchange="upd(\''+o.id+'\',\'num\',this.value===\'\'?\'\':parseInt(this.value,10))">');
-    var wOpts='<option value="">\u2014 Unassigned \u2014</option>'+waiterStaff().map(function(s){ return '<option value="'+s.id+'"'+(o.server===s.id?' selected':'')+'>'+esc(s.name)+' ('+waiterRoleShort(s.code)+')</option>'; }).join('');
+    var wOpts='<option value="">\u2014 Unassigned \u2014</option>'+waiterStaff(o.server).map(function(s){ return '<option value="'+s.id+'"'+(o.server===s.id?' selected':'')+'>'+esc(s.name)+' ('+waiterRoleShort(s.code)+')</option>'; }).join('');
     html+=field('Assigned Food Master','<select class="insp-input" onchange="upd(\''+o.id+'\',\'server\',this.value)">'+wOpts+'</select>');
   } else {
     html+=field('Label','<input class="insp-input" value="'+esc(o.label||'')+'" onchange="upd(\''+o.id+'\',\'label\',this.value)">');
@@ -1626,7 +1631,7 @@ function renderLiveInspector(box,o){
       'background:'+(on?s.bg:'transparent')+';border:1px solid '+(on?s.border:'var(--border-soft)')+';color:'+(on?s.text:'var(--text-dim)')+'" '+
       'onclick="setStatus(\''+o.id+'\',\''+k+'\')">'+s.label+'</button>';
   }).join('');
-  var fmOpts='<option value="">— Unassigned —</option>'+posStaff().map(function(s){ return '<option value="'+s.id+'"'+(o.server===s.id?' selected':'')+'>'+esc(s.name)+' ('+((s.code||'')[0]==='5'?'Mgr':'FM')+')</option>'; }).join('');
+  var fmOpts='<option value="">— Unassigned —</option>'+posStaff(o.server).map(function(s){ return '<option value="'+s.id+'"'+(o.server===s.id?' selected':'')+'>'+esc(s.name)+' ('+((s.code||'')[0]==='5'?'Mgr':'FM')+')</option>'; }).join('');
   box.innerHTML='<h4>Table '+esc(o.num)+'</h4>'+
     '<div class="insp-field"><label>Current status</label>'+
       '<div style="padding:8px 11px;border-radius:9px;background:'+st.bg+';border:1px solid '+st.border+';color:'+st.text+';font-weight:700;font-size:13px">'+st.label+'</div></div>'+
@@ -2104,8 +2109,8 @@ function staffForm(s){
       '<div class="field"><label>4-Digit Code</label><input class="input" id="sf-code" inputmode="numeric" maxlength="4" value="'+esc(s.code)+'" placeholder="e.g. 3001" oninput="onCodeInput()"></div>'+
     '</div>'+
     '<div id="sf-role-hint" style="margin:10px 0 4px">'+roleHint(s.code)+'</div>'+
-    '<div class="field" style="margin-top:8px"><label>Starting Hourly Rate ($)</label><input class="input" id="sf-wage" type="number" min="0" step="0.5" value="'+(s.wage||15)+'"></div>'+
-    '<div class="mini-note">This creates the record. Open it afterward to add jobcodes, contact details, dependents, reviews and more.</div>';
+    '<div class="field" style="margin-top:8px"><label>Starting Hourly Rate ($) — optional</label><input class="input" id="sf-wage" type="number" min="0" step="0.5" value="'+(s.wage||15)+'"></div>'+
+    '<div class="mini-note">Only a name and 4-digit code are required. This creates the record — open it afterward to add jobcodes, contact details, dependents, reviews and more.</div>';
 }
 function roleHint(code){
   var r=roleFromCode(code); if(!code)return '<span class="mini-note" style="margin:0">Enter a code — the first digit sets base access.</span>';
