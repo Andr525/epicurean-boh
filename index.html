@@ -479,10 +479,44 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .pf-preview-panel .pf-prev-item .name{font-size:14px;}
 .pf-preview-panel .pf-prev-item .up{color:var(--gold);font-size:13px;}
 @media(max-width:700px){.tasting-grid{grid-template-columns:1fr;}.course-edit-row{grid-template-columns:24px 1fr 1fr 100px 30px;}.pairing-edit-row{grid-template-columns:1fr 1fr 80px 30px;}}
+
+/* ---------- Food Master Station list (Req 2) ---------- */
+.stations-panel{margin-top:16px;background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--border);border-radius:16px;padding:18px 20px;box-shadow:var(--shadow-sm);}
+.stations-panel .sp-head{display:flex;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap;}
+.stations-panel .sp-title{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--text);}
+.stations-panel .sp-count{font-size:12px;color:var(--text-dim);background:rgba(201,168,76,0.1);border:1px solid var(--border);border-radius:20px;padding:3px 10px;}
+.stations-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
+.station-card{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:13px 15px;}
+.station-card .sc-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
+.station-card .sc-num{font-weight:700;color:var(--gold);font-size:15px;}
+.station-card .sc-room{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;}
+.station-card .sc-fm{font-size:14px;color:var(--text);margin-bottom:8px;}
+.station-card .sc-fm .muted{color:var(--text-faint);font-style:italic;}
+.station-card .sc-tables{font-size:12px;color:var(--text-dim);line-height:1.6;}
+.station-card .sc-tables b{color:var(--text);}
+.station-card .sc-src{font-size:10px;color:var(--blue);text-transform:uppercase;letter-spacing:1px;}
+.station-card .sc-print{margin-top:10px;}
+.stations-panel .sp-empty{color:var(--text-dim);font-size:13px;padding:8px 0;}
+
+/* ---------- Print view (Req 2) ---------- */
+#print-area{display:none;}
+.ps-doc{color:#111;background:#fff;font-family:'Inter',Arial,sans-serif;padding:24px 28px;}
+.ps-title{font-family:'Cormorant Garamond',Georgia,serif;font-size:26px;font-weight:700;margin-bottom:2px;}
+.ps-sub{font-size:12px;color:#555;margin-bottom:18px;border-bottom:1px solid #ccc;padding-bottom:10px;}
+.ps-card{border:1px solid #bbb;border-radius:8px;padding:12px 14px;margin-bottom:12px;page-break-inside:avoid;}
+.ps-card .ps-h{font-size:17px;font-weight:700;margin-bottom:6px;border-bottom:1px solid #e0e0e0;padding-bottom:4px;}
+.ps-card .ps-row{font-size:13px;margin:3px 0;color:#222;}
+.ps-card .ps-row b{color:#000;}
+@media print{
+  #root{display:none !important;}
+  #print-area{display:block !important;}
+  @page{margin:14mm;}
+}
 </style>
 </head>
 <body>
 <div id="root"></div>
+<div id="print-area" aria-hidden="true"></div>
 <div id="modal-root"></div>
 <div id="toast"></div>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
@@ -1432,6 +1466,75 @@ var PALETTE=[
   ]}
 ];
 
+/* ============================================================
+   Req 2: Food Master Station list + printing (additive, read-only)
+   ============================================================ */
+/* Live, non-mutating view of stations: current BOH floor boxes merged with
+   any POS-authored/refined stations, reusing the Phase 1 guardrail logic. */
+function stationsView(){ return mergeStationSync(computeStations(), STATE.stations||[]); }
+function tableNumMap(){ var m={}; allTables().forEach(function(t){ m[t.id]=(t.num!==undefined&&t.num!==null)?t.num:''; }); return m; }
+function roomNameById(id){ var r=(STATE.rooms||[]).filter(function(x){return x.id===id;})[0]; return r?r.name:(id||'—'); }
+function stationNumLabel(s){ return (s&&s.number!==undefined&&s.number!==null&&s.number!=='')?s.number:'—'; }
+function stationFM(s){ return (s&&(s.server||s.name))?(s.server||s.name):''; }
+function stationTableNums(s,map){
+  map=map||tableNumMap();
+  var nums=(s&&s.tableIds?s.tableIds:[]).map(function(id){ return map[id]; }).filter(function(v){ return v!==undefined&&v!==null&&v!==''; });
+  nums.sort(function(a,b){ return (parseInt(a,10)||0)-(parseInt(b,10)||0); });
+  return nums;
+}
+function isPosStation(s){ return s&&s.id!=null&&String(s.id).charAt(0)!=='o'; }
+function renderStationsPanel(){
+  var list=stationsView().slice().sort(function(a,b){ return (parseInt(stationNumLabel(a),10)||0)-(parseInt(stationNumLabel(b),10)||0); });
+  var map=tableNumMap();
+  var cards=list.map(function(s){
+    var nums=stationTableNums(s,map);
+    var fm=stationFM(s);
+    return '<div class="station-card">'+
+      '<div class="sc-top"><span class="sc-num">Station '+esc(stationNumLabel(s))+'</span>'+
+        '<span class="sc-room">'+esc(roomNameById(s.room))+'</span></div>'+
+      '<div class="sc-fm">'+(fm?esc(fm):'<span class="muted">Unassigned</span>')+(isPosStation(s)?' <span class="sc-src">POS</span>':'')+'</div>'+
+      '<div class="sc-tables"><b>'+nums.length+'</b> table'+(nums.length===1?'':'s')+(nums.length?': '+nums.map(esc).join(', '):'')+'</div>'+
+      '<div class="sc-print"><button class="btn btn-ghost btn-sm no-print" onclick="printStations(\''+esc(String(s.id))+'\')">🖨 Print</button></div>'+
+    '</div>';
+  }).join('');
+  return '<div class="stations-panel no-print" id="stations-panel-host">'+
+    '<div class="sp-head"><span class="sp-title">Food Master Stations</span>'+
+      '<span class="sp-count">'+list.length+' station'+(list.length===1?'':'s')+'</span>'+
+      '<div style="flex:1"></div>'+
+      '<button class="btn btn-gold btn-sm" onclick="printStations()">🖨 Print all stations</button></div>'+
+    (list.length?'<div class="stations-grid">'+cards+'</div>':'<div class="sp-empty">No Food Master Stations yet. Add a Food Master Station zone from the palette and place tables inside it.</div>')+
+  '</div>';
+}
+function stationPrintDoc(list,heading){
+  var map=tableNumMap();
+  var cards=list.map(function(s){
+    var nums=stationTableNums(s,map);
+    var fm=stationFM(s);
+    return '<div class="ps-card">'+
+      '<div class="ps-h">Station '+esc(stationNumLabel(s))+(isPosStation(s)?' (POS)':'')+'</div>'+
+      '<div class="ps-row"><b>Food Master:</b> '+(fm?esc(fm):'Unassigned')+'</div>'+
+      '<div class="ps-row"><b>Room:</b> '+esc(roomNameById(s.room))+'</div>'+
+      '<div class="ps-row"><b>Tables ('+nums.length+'):</b> '+(nums.length?nums.map(esc).join(', '):'—')+'</div>'+
+    '</div>';
+  }).join('');
+  return '<div class="ps-doc"><div class="ps-title">Epicurean House — '+esc(heading)+'</div>'+
+    '<div class="ps-sub">Generated '+esc(new Date().toLocaleString())+'</div>'+cards+'</div>';
+}
+/* Keep the station list in sync with in-place floor edits (add/move/assign/
+   delete/renumber) without a full page re-render. renderFloor() runs after every
+   floor mutation, so refreshing here covers all of them. */
+function refreshStationsPanel(){ var host=$('stations-panel-host'); if(host){ host.outerHTML=renderStationsPanel(); } }
+function printStations(id){
+  var list=stationsView().slice().sort(function(a,b){ return (parseInt(stationNumLabel(a),10)||0)-(parseInt(stationNumLabel(b),10)||0); });
+  var heading='Food Master Stations';
+  if(id!==undefined&&id!==null){
+    list=list.filter(function(s){ return String(s.id)===String(id); });
+    if(list.length) heading='Food Master Station '+stationNumLabel(list[0]);
+  }
+  var area=$('print-area'); if(!area)return;
+  area.innerHTML=stationPrintDoc(list,heading);
+  window.print();
+}
 function PAGE_floor(){
   if(!can('floor'))return lockedPage('Floor & Tables');
   var roomTabs=STATE.rooms.map(function(rm){
@@ -1466,7 +1569,8 @@ function PAGE_floor(){
         '<div class="floor-canvas-wrap"><div class="floor-canvas" id="floor-canvas"></div></div>'+
         '<div class="inspector" id="inspector"><h4>Properties</h4><div class="insp-empty">Select an object on the floor to edit it, or add one from the palette on the left.</div></div>'+
       '</div>'+
-      '<div class="mini-note">Drag to move · drag the gold handle to resize · click to select. Layout saves to your shared database and feeds the food masters&rsquo; POS and bar screens.</div>';
+      '<div class="mini-note">Drag to move · drag the gold handle to resize · click to select. Layout saves to your shared database and feeds the food masters&rsquo; POS and bar screens.</div>'+
+      renderStationsPanel();
     return {title:'Floor Plan',sub:'Design your rooms',body:body,bind:bindFloor};
   } else {
     var legend='<div class="status-legend">'+STATUS_ORDER.map(function(k){ var s=TABLE_STATUS[k]; return '<div class="status-key"><span class="status-dot" style="background:'+s.bg+';border-color:'+s.border+'"></span>'+s.label+'</div>'; }).join('')+'</div>';
@@ -1475,7 +1579,8 @@ function PAGE_floor(){
         '<div class="floor-canvas-wrap"><div class="floor-canvas live" id="floor-canvas"></div></div>'+
         '<div class="inspector" id="inspector"><h4>Table</h4><div class="insp-empty">Tap a table to set its status, assign a food master, or override an error.</div></div>'+
       '</div>'+
-      '<div class="mini-note">This is the live view your food masters and bar screens see. As a manager you can override any table &mdash; change status, reassign the food master, or clear it.</div>';
+      '<div class="mini-note">This is the live view your food masters and bar screens see. As a manager you can override any table &mdash; change status, reassign the food master, or clear it.</div>'+
+      renderStationsPanel();
     return {title:'Live Service',sub:'Real-time table status & manager override',body:body,bind:bindFloor};
   }
 }
@@ -1503,6 +1608,7 @@ function renderFloor(){
   objs.forEach(function(o){ if(o.type==='waiterstation') drawObj(canvas,o); });
   objs.forEach(function(o){ if(o.type!=='waiterstation') drawObj(canvas,o); });
   renderInspector();
+  refreshStationsPanel();
 }
 
 function drawObj(canvas,o){
