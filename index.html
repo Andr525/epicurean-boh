@@ -498,6 +498,15 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .station-card .sc-print{margin-top:10px;}
 .stations-panel .sp-empty{color:var(--text-dim);font-size:13px;padding:8px 0;}
 
+/* ---------- Rotation + flexible shapes (Req 4) ---------- */
+.rotate-handle{position:absolute;top:-28px;left:50%;margin-left:-8px;width:16px;height:16px;border-radius:50%;background:var(--blue);border:2px solid var(--bg);cursor:grab;z-index:6;box-shadow:0 2px 6px rgba(0,0,0,0.4);}
+.rotate-handle:active{cursor:grabbing;}
+.rotate-handle:after{content:'';position:absolute;left:50%;top:100%;width:2px;height:14px;margin-left:-1px;background:var(--blue);}
+.insp-rot .insp-range{flex:1;align-self:center;accent-color:var(--gold);}
+.insp-rot .insp-input[type=number]{max-width:74px;}
+.f-lshape{width:100%;height:100%;background:linear-gradient(180deg,rgba(201,168,76,0.22),rgba(201,168,76,0.12));border:1.5px solid var(--gold-soft);clip-path:polygon(0 0,42% 0,42% 58%,100% 58%,100% 100%,0 100%);}
+.floor-obj.selected .f-lshape{border-color:var(--gold);}
+
 /* ---------- Guest / VIP on tables (Req 7) ---------- */
 .f-table.vip{box-shadow:0 0 0 2px var(--gold),0 6px 18px rgba(201,168,76,0.35);}
 .f-table .f-vip{position:absolute;top:2px;right:4px;color:var(--gold);font-size:12px;line-height:1;}
@@ -1463,6 +1472,7 @@ var PALETTE=[
   {group:'Structure', items:[
     {t:'wall-h',  i:'\u2501', l:'Wall (horizontal)'},
     {t:'wall-v',  i:'\u2503', l:'Wall (vertical)'},
+    {t:'lshape',  i:'\u2517', l:'L-shape wall'},
     {t:'curve',   i:'\u2312', l:'Curved wall'},
     {t:'door',    i:'\uD83D\uDEAA', l:'Door'},
     {t:'plant',   i:'\uD83C\uDF3F', l:'Plant / divider'}
@@ -1687,6 +1697,8 @@ function drawObj(canvas,o){
     node.innerHTML='<div class="f-label">'+esc(o.label||'Label')+'</div>';
   } else if(o.type==='curve'){
     node.innerHTML='<div class="f-curve"></div>';
+  } else if(o.type==='lshape'){
+    node.innerHTML='<div class="f-lshape"></div>';
   } else if(o.type==='stage'){
     node.innerHTML='<div class="f-zone" style="background:rgba(155,90,200,0.14);border:2px solid #B98AD8;color:#C79FE4"><span class="zi">\uD83C\uDFBC</span>'+esc(o.label||'Orchestra')+'</div>';
   } else if(o.type==='kitchen'){
@@ -1703,7 +1715,10 @@ function drawObj(canvas,o){
 
   if(FLOOR.mode==='edit'){
     makeDraggable(node,o);
-    if(FLOOR.sel===o.id){ var h=el('div',{class:'resize-handle'}); addResize(h,node,o); node.appendChild(h); }
+    if(FLOOR.sel===o.id){
+      var h=el('div',{class:'resize-handle'}); addResize(h,node,o); node.appendChild(h);
+      if(o.type!=='waiterstation'){ var rh=el('div',{class:'rotate-handle',title:'Drag to rotate'}); addRotate(rh,node,o); node.appendChild(rh); }
+    }
   } else {
     if(seatable){ node.addEventListener('click',function(e){ e.stopPropagation(); FLOOR.sel=o.id; renderInspector(); document.querySelectorAll('.floor-obj').forEach(function(n){}); }); }
     else { node.setAttribute('data-static','1'); }
@@ -1714,7 +1729,7 @@ function drawObj(canvas,o){
 function pt(e){ var t=e.touches?e.touches[0]:e; return {x:t.clientX,y:t.clientY}; }
 function makeDraggable(node,o){
   var sx,sy,ox,oy,moved,dragging=false;
-  function down(e){ if(e.target.classList.contains('resize-handle'))return; e.preventDefault(); dragging=true;moved=false; var p=pt(e); sx=p.x;sy=p.y;ox=o.x;oy=o.y; node.classList.add('dragging');
+  function down(e){ if(e.target.classList.contains('resize-handle')||e.target.classList.contains('rotate-handle'))return; e.preventDefault(); dragging=true;moved=false; var p=pt(e); sx=p.x;sy=p.y;ox=o.x;oy=o.y; node.classList.add('dragging');
     document.addEventListener('mousemove',move);document.addEventListener('mouseup',up);document.addEventListener('touchmove',move,{passive:false});document.addEventListener('touchend',up); }
   function move(e){ if(!dragging)return; e.preventDefault(); var p=pt(e); var dx=p.x-sx,dy=p.y-sy; if(Math.abs(dx)+Math.abs(dy)>3)moved=true;
     o.x=Math.max(0,Math.round((ox+dx)/10)*10); o.y=Math.max(0,Math.round((oy+dy)/10)*10);
@@ -1736,6 +1751,28 @@ function addResize(handle,node,o){
     saveFloor(); renderInspector(); }
   handle.addEventListener('mousedown',down); handle.addEventListener('touchstart',down,{passive:false});
 }
+/* Req 4: free 360° rotation via a drag handle. Angle is measured from the
+   object's on-screen center to the pointer; the handle sits above the object
+   (local up = 0°), so +90° maps pointer-right to 0. Rotation is visual only
+   (CSS transform), so click/drag hit-testing still maps to the rotated element. */
+function addRotate(handle,node,o){
+  var rot=false;
+  function center(){ var r=node.getBoundingClientRect(); return {x:r.left+r.width/2, y:r.top+r.height/2}; }
+  function down(e){ e.preventDefault(); e.stopPropagation(); rot=true;
+    document.addEventListener('mousemove',move);document.addEventListener('mouseup',up);document.addEventListener('touchmove',move,{passive:false});document.addEventListener('touchend',up); }
+  function move(e){ if(!rot)return; e.preventDefault(); var p=pt(e); var c=center();
+    var deg=Math.atan2(p.y-c.y,p.x-c.x)*180/Math.PI+90; deg=Math.round((deg%360+360)%360);
+    o.rot=deg; node.style.transform='rotate('+deg+'deg)'; }
+  function up(){ if(!rot)return; rot=false;
+    document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',up);document.removeEventListener('touchmove',move);document.removeEventListener('touchend',up);
+    saveFloor(); renderInspector(); }
+  handle.addEventListener('mousedown',down); handle.addEventListener('touchstart',down,{passive:false});
+}
+/* Live preview while dragging the rotation slider — updates transform + the
+   numeric field without a full save/re-render on every input event. */
+function liveRot(id,val){ var o=findObj(id); if(!o)return; o.rot=((parseInt(val,10)||0)%360+360)%360;
+  var node=document.querySelector('.floor-obj[data-id="'+id+'"]'); if(node)node.style.transform='rotate('+o.rot+'deg)';
+  var num=document.getElementById('rot-num-'+id); if(num)num.value=o.rot; }
 
 /* ============================================================
    Req 7: guest / VIP / notes on tables (BOH inspector + floor + print;
@@ -1780,7 +1817,12 @@ function renderInspector(){
   if(SEATABLE[o.type]){ html+=guestFieldsHtml(o); }
   html+=field('Size (W \u00d7 H)','<div class="insp-row"><input class="insp-input" type="number" value="'+o.w+'" onchange="upd(\''+o.id+'\',\'w\',parseInt(this.value))"><input class="insp-input" type="number" value="'+o.h+'" onchange="upd(\''+o.id+'\',\'h\',parseInt(this.value))"></div>');
   if(o.type!=='waiterstation'){
-    html+=field('Rotation','<select class="insp-input" onchange="upd(\''+o.id+'\',\'rot\',parseInt(this.value))">'+[0,45,90,135,180].map(function(d){return '<option value="'+d+'"'+((o.rot||0)==d?' selected':'')+'>'+d+'\u00b0</option>';}).join('')+'</select>');
+    var rv=(o.rot||0);
+    html+=field('Rotation ('+'\u2b6e'+' drag handle for any angle)',
+      '<div class="insp-row insp-rot">'+
+        '<input class="insp-input" id="rot-num-'+o.id+'" type="number" min="0" max="359" value="'+rv+'" onchange="upd(\''+o.id+'\',\'rot\',((parseInt(this.value,10)||0)%360+360)%360)">'+
+        '<input class="insp-range" type="range" min="0" max="359" value="'+rv+'" oninput="liveRot(\''+o.id+'\',this.value)" onchange="upd(\''+o.id+'\',\'rot\',parseInt(this.value,10))">'+
+      '</div>');
   }
   html+='<div class="insp-btns"><button class="btn btn-ghost btn-sm" onclick="dupObj(\''+o.id+'\')">Duplicate</button>'+
     '<button class="btn btn-danger btn-sm" onclick="delObj(\''+o.id+'\')">Delete</button></div>';
@@ -1827,6 +1869,7 @@ function addFloorObj(palType){
     'kiosk':{type:'kiosk',w:80,h:80,label:'Kiosk'},
     'wall-h':{type:'wall',w:220,h:12,label:''},
     'wall-v':{type:'wall',w:12,h:220,label:''},
+    'lshape':{type:'lshape',w:140,h:140,label:''},
     'curve':{type:'curve',w:120,h:60,label:''},
     'door':{type:'door',w:50,h:50,label:'Door'},
     'plant':{type:'plant',w:44,h:44,label:''},
