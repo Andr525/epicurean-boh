@@ -1407,7 +1407,7 @@ var PALETTE=[
   {group:'Service', items:[
     {t:'bar',     i:'\uD83C\uDF78', l:'Bar counter'},
     {t:'host',    i:'\uD83D\uDCCD', l:'Host stand'},
-    {t:'station', i:'\uD83D\uDCE6', l:'Server station'},
+    {t:'station', i:'\uD83D\uDCE6', l:'Sideboard'},
     {t:'kiosk',   i:'\uD83D\uDED2', l:'Kiosk'}
   ]},
   {group:'Structure', items:[
@@ -1418,7 +1418,7 @@ var PALETTE=[
     {t:'plant',   i:'\uD83C\uDF3F', l:'Plant / divider'}
   ]},
   {group:'Zones', items:[
-    {t:'waiterstation',i:'\uD83E\uDDCD', l:'Waiter station'},
+    {t:'waiterstation',i:'\uD83E\uDDCD', l:'Food Master Station'},
     {t:'stage',   i:'\uD83C\uDFBC', l:'Stage / orchestra'},
     {t:'kitchen', i:'\uD83D\uDD25', l:'Kitchen'},
     {t:'privateroom',i:'\uD83C\uDFDB', l:'Private dining'},
@@ -1606,7 +1606,7 @@ function renderInspector(){
   } else if(o.type==='waiterstation'){
     html+=field('Station number','<input class="insp-input" type="number" step="1" min="0" value="'+esc((o.num!==undefined&&o.num!==null)?o.num:'')+'" onchange="upd(\''+o.id+'\',\'num\',this.value===\'\'?\'\':parseInt(this.value,10))">');
     var wOpts='<option value="">\u2014 Unassigned \u2014</option>'+waiterStaff().map(function(s){ return '<option value="'+s.id+'"'+(o.server===s.id?' selected':'')+'>'+esc(s.name)+' ('+waiterRoleShort(s.code)+')</option>'; }).join('');
-    html+=field('Assigned waiter','<select class="insp-input" onchange="upd(\''+o.id+'\',\'server\',this.value)">'+wOpts+'</select>');
+    html+=field('Assigned Food Master','<select class="insp-input" onchange="upd(\''+o.id+'\',\'server\',this.value)">'+wOpts+'</select>');
   } else {
     html+=field('Label','<input class="insp-input" value="'+esc(o.label||'')+'" onchange="upd(\''+o.id+'\',\'label\',this.value)">');
   }
@@ -1635,7 +1635,7 @@ function renderLiveInspector(box,o){
     '<div class="insp-btns"><button class="btn btn-ghost btn-sm" onclick="clearTable(\''+o.id+'\')">Clear / Reset table</button></div>'+
     '<div class="mini-note" style="margin-top:10px">Manager override applies immediately to POS &amp; bar screens.</div>';
 }
-function objLabel(t){ var map={wall:'Wall',bar:'Bar Counter',door:'Door',plant:'Plant',host:'Host Stand',station:'Server Station',waiterstation:'Waiter Station',label:'Text Label',curve:'Curved Wall',stage:'Stage',kitchen:'Kitchen',privateroom:'Private Dining',kiosk:'Kiosk',store:'Coffee Studio'}; return map[t]||t; }
+function objLabel(t){ var map={wall:'Wall',bar:'Bar Counter',door:'Door',plant:'Plant',host:'Host Stand',station:'Sideboard',waiterstation:'Food Master Station',label:'Text Label',curve:'Curved Wall',stage:'Stage',kitchen:'Kitchen',privateroom:'Private Dining',kiosk:'Kiosk',store:'Coffee Studio'}; return map[t]||t; }
 function field(label,inner){ return '<div class="insp-field"><label>'+label+'</label>'+inner+'</div>'; }
 function shapeOpt(sh){ return ['round','square','rect'].map(function(s){ return '<option value="'+s+'"'+(sh===s?' selected':'')+'>'+(s==='rect'?'Rectangle':s.charAt(0).toUpperCase()+s.slice(1))+'</option>'; }).join(''); }
 
