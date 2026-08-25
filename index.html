@@ -1018,7 +1018,7 @@ function computeStations(){
       });
       var num=parseInt(o.num,10); if(isNaN(num)) num=(o.num===''||o.num===undefined?null:o.num);
       var s=STATE.staff.filter(function(p){return p.id===o.server;})[0];
-      out.push({
+      var station={
         id:o.id,
         number:num,
         room:r,
@@ -1026,12 +1026,43 @@ function computeStations(){
         server: s?s.name:'',
         serverCode: s?(s.code||''):'',
         tableIds:tableIds
-      });
+      };
+      if(Array.isArray(o.points) && o.points.length>=3) station.points=o.points;
+      out.push(station);
     });
   }
   return out;
 }
-function saveFloor(){ lsSet('eh_rooms',STATE.rooms); lsSet('eh_rooms_objs',STATE.roomObjs); var stations=computeStations(); STATE.stations=stations; lsSet('eh_stations',stations); fbSetDoc('boh_shared','tables',{rooms:STATE.rooms,roomObjs:STATE.roomObjs,stations:stations,updatedAt:Date.now()}); }
+/* Guardrail: a BOH floor save must not wipe station data authored elsewhere.
+   - stations still present on the BOH floor keep any polygon `points` refined on
+     the POS (until BOH can author polygons itself);
+   - stations created on the POS (ids not produced by the BOH floor, e.g. "st-…")
+     are preserved so a BOH Save Layout does not delete them.
+   BOH floor-object ids are generated as "o"+timestamp (see addFloorObj), so a
+   deleted BOH station box (id starting with "o") is intentionally dropped rather
+   than resurrected. */
+function mergeStationSync(computed, prior){
+  var out=(computed||[]).slice();
+  var priorById={};
+  (prior||[]).forEach(function(s){ if(s&&s.id!=null) priorById[String(s.id)]=s; });
+  out.forEach(function(c){
+    var p=priorById[String(c.id)];
+    if(p && !(Array.isArray(c.points)&&c.points.length>=3) && Array.isArray(p.points)&&p.points.length>=3){
+      c.points=p.points;
+    }
+  });
+  var computedIds={};
+  out.forEach(function(c){ if(c&&c.id!=null) computedIds[String(c.id)]=1; });
+  (prior||[]).forEach(function(p){
+    if(!p||p.id==null) return;
+    var id=String(p.id);
+    if(computedIds[id]) return;          // still represented by a BOH floor box
+    if(id.charAt(0)==='o') return;       // a BOH floor station that was removed → drop it
+    out.push(p);                         // externally-authored (POS) station → keep it
+  });
+  return out;
+}
+function saveFloor(){ lsSet('eh_rooms',STATE.rooms); lsSet('eh_rooms_objs',STATE.roomObjs); var stations=mergeStationSync(computeStations(),STATE.stations); STATE.stations=stations; lsSet('eh_stations',stations); fbSetDoc('boh_shared','tables',{rooms:STATE.rooms,roomObjs:STATE.roomObjs,stations:stations,updatedAt:Date.now()}); }
 function saveGuests(){ lsSet('eh_guests',STATE.guests); fbSetDoc('boh_shared','guests',{list:STATE.guests,updatedAt:Date.now()}); }
 function withoutEmbeddedPhotos(value){
   if(value==null || typeof value!=='object') return value;
