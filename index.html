@@ -498,6 +498,12 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .station-card .sc-print{margin-top:10px;}
 .stations-panel .sp-empty{color:var(--text-dim);font-size:13px;padding:8px 0;}
 
+/* ---------- Irregular station polygons (Req 5) ---------- */
+.ws-poly{position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;pointer-events:none;}
+.ws-poly polygon{fill:rgba(201,168,76,0.10);stroke:var(--gold);stroke-width:2;stroke-dasharray:6 4;}
+.f-waiterstation.poly{border:none;background:transparent;box-shadow:none;}
+.vertex-handle{position:absolute;width:15px;height:15px;margin-left:-8px;margin-top:-8px;border-radius:50%;background:var(--blue);border:2px solid var(--bg);cursor:move;z-index:7;box-shadow:0 2px 6px rgba(0,0,0,0.5);}
+
 /* ---------- Rotation + flexible shapes (Req 4) ---------- */
 .rotate-handle{position:absolute;top:-28px;left:50%;margin-left:-8px;width:16px;height:16px;border-radius:50%;background:var(--blue);border:2px solid var(--bg);cursor:grab;z-index:6;box-shadow:0 2px 6px rgba(0,0,0,0.4);}
 .rotate-handle:active{cursor:grabbing;}
@@ -1054,21 +1060,42 @@ var SESSION = { user:null }; // {name, role, perms, isOwner}
 
 function saveStaff(){ lsSet('eh_staff',STATE.staff); fbSetDoc('boh_shared','staff_clock',{list:STATE.staff,updatedAt:Date.now()}); }
 function savePunches(){ lsSet('eh_punches',STATE.punches); fbSetDoc('boh_shared','punches',{list:STATE.punches.slice(-800),updatedAt:Date.now()}); }
+/* Req 5: irregular station boundaries. A Food Master Station may carry a polygon
+   `points[]` (absolute canvas coords, same space as tables & the POS). Ray-cast
+   point-in-polygon mirrors the POS so containment matches on both apps. */
+function pointInPoly(x,y,pts){
+  if(!pts||pts.length<3)return false; var inside=false;
+  for(var i=0,j=pts.length-1;i<pts.length;j=i++){
+    var xi=+pts[i].x,yi=+pts[i].y,xj=+pts[j].x,yj=+pts[j].y;
+    var hit=((yi>y)!==(yj>y))&&(x<(xj-xi)*(y-yi)/((yj-yi)||1e-9)+xi);
+    if(hit)inside=!inside;
+  }
+  return inside;
+}
+function wsHasPoly(o){ return !!(o&&Array.isArray(o.points)&&o.points.length>=3); }
+function wsRectPoints(o){ var w=o.w||0,h=o.h||0; return [{x:o.x,y:o.y},{x:o.x+w,y:o.y},{x:o.x+w,y:o.y+h},{x:o.x,y:o.y+h}]; }
+function wsPolyPoints(o){ return wsHasPoly(o)?o.points:wsRectPoints(o); }
+function bboxOf(pts){ var xs=pts.map(function(p){return +p.x;}),ys=pts.map(function(p){return +p.y;});
+  var minX=Math.min.apply(null,xs),minY=Math.min.apply(null,ys),maxX=Math.max.apply(null,xs),maxY=Math.max.apply(null,ys);
+  return {x:minX,y:minY,w:Math.max(8,maxX-minX),h:Math.max(8,maxY-minY)}; }
+function wsRecalcBox(o){ if(!wsHasPoly(o))return; var bb=bboxOf(o.points); o.x=bb.x;o.y=bb.y;o.w=bb.w;o.h=bb.h; }
 /* Derive waiter stations from the floor objects: each station box exports its
    number, room, geometry, assigned waiter, and the ids of tables whose centers
-   fall inside the box. POS reads boh_shared/tables.stations. */
+   fall inside the box (or polygon). POS reads boh_shared/tables.stations. */
 function computeStations(){
   var out=[];
   for(var r in STATE.roomObjs){
     var arr=STATE.roomObjs[r]||[];
     arr.forEach(function(o){
       if(o.type!=='waiterstation')return;
+      var poly=wsHasPoly(o)?o.points:null;
       var x0=o.x, y0=o.y, x1=o.x+(o.w||0), y1=o.y+(o.h||0);
       var tableIds=[];
       arr.forEach(function(t){
         if(!SEATABLE[t.type])return;
         var cx=t.x+(t.w||0)/2, cy=t.y+(t.h||0)/2;
-        if(cx>=x0&&cx<=x1&&cy>=y0&&cy<=y1) tableIds.push(t.id);
+        var inside=poly?pointInPoly(cx,cy,poly):(cx>=x0&&cx<=x1&&cy>=y0&&cy<=y1);
+        if(inside) tableIds.push(t.id);
       });
       var num=parseInt(o.num,10); if(isNaN(num)) num=(o.num===''||o.num===undefined?null:o.num);
       var s=STATE.staff.filter(function(p){return p.id===o.server;})[0];
@@ -1423,7 +1450,7 @@ function lockedPage(name){
 /* ============================================================
    PAGE: FLOOR & TABLES  (Aloha-grade floor plan editor)
    ============================================================ */
-var FLOOR={ room:'main', sel:null, mode:'edit' };
+var FLOOR={ room:'main', sel:null, mode:'edit', editPts:null };
 
 /* status taxonomy — feeds POS + bar screens */
 var TABLE_STATUS={
@@ -1692,7 +1719,14 @@ function drawObj(canvas,o){
   } else if(o.type==='waiterstation'){
     var wsNum=(o.num!==undefined&&o.num!==null&&o.num!=='')?o.num:'\u2014';
     var wsName=o.server?serverName(o.server):'';
-    node.innerHTML='<div class="f-waiterstation"><span class="ws-tag">Station '+esc(wsNum)+(wsName?' \u00b7 '+esc(wsName):'')+'</span></div>';
+    var wsTag='<span class="ws-tag">Station '+esc(wsNum)+(wsName?' \u00b7 '+esc(wsName):'')+'</span>';
+    if(wsHasPoly(o)){
+      var local=o.points.map(function(p){ return (p.x-o.x)+','+(p.y-o.y); }).join(' ');
+      node.innerHTML='<svg class="ws-poly" viewBox="0 0 '+(o.w||1)+' '+(o.h||1)+'" preserveAspectRatio="none"><polygon points="'+local+'"/></svg>'+
+        '<div class="f-waiterstation poly">'+wsTag+'</div>';
+    } else {
+      node.innerHTML='<div class="f-waiterstation">'+wsTag+'</div>';
+    }
   } else if(o.type==='label'){
     node.innerHTML='<div class="f-label">'+esc(o.label||'Label')+'</div>';
   } else if(o.type==='curve'){
@@ -1715,9 +1749,17 @@ function drawObj(canvas,o){
 
   if(FLOOR.mode==='edit'){
     makeDraggable(node,o);
+    var isPolyWs=(o.type==='waiterstation'&&wsHasPoly(o));
     if(FLOOR.sel===o.id){
-      var h=el('div',{class:'resize-handle'}); addResize(h,node,o); node.appendChild(h);
+      if(!isPolyWs){ var h=el('div',{class:'resize-handle'}); addResize(h,node,o); node.appendChild(h); }
       if(o.type!=='waiterstation'){ var rh=el('div',{class:'rotate-handle',title:'Drag to rotate'}); addRotate(rh,node,o); node.appendChild(rh); }
+    }
+    if(o.type==='waiterstation'&&FLOOR.editPts===o.id){
+      wsPolyPoints(o).forEach(function(p,idx){
+        var vh=el('div',{class:'vertex-handle','data-i':idx,title:'Drag to move · double-click to remove'});
+        vh.style.left=(p.x-o.x)+'px'; vh.style.top=(p.y-o.y)+'px';
+        addVertexDrag(vh,node,o,idx); node.appendChild(vh);
+      });
     }
   } else {
     if(seatable){ node.addEventListener('click',function(e){ e.stopPropagation(); FLOOR.sel=o.id; renderInspector(); document.querySelectorAll('.floor-obj').forEach(function(n){}); }); }
@@ -1729,14 +1771,14 @@ function drawObj(canvas,o){
 function pt(e){ var t=e.touches?e.touches[0]:e; return {x:t.clientX,y:t.clientY}; }
 function makeDraggable(node,o){
   var sx,sy,ox,oy,moved,dragging=false;
-  function down(e){ if(e.target.classList.contains('resize-handle')||e.target.classList.contains('rotate-handle'))return; e.preventDefault(); dragging=true;moved=false; var p=pt(e); sx=p.x;sy=p.y;ox=o.x;oy=o.y; node.classList.add('dragging');
+  function down(e){ if(e.target.classList.contains('resize-handle')||e.target.classList.contains('rotate-handle')||e.target.classList.contains('vertex-handle'))return; e.preventDefault(); dragging=true;moved=false; var p=pt(e); sx=p.x;sy=p.y;ox=o.x;oy=o.y; node.classList.add('dragging');
     document.addEventListener('mousemove',move);document.addEventListener('mouseup',up);document.addEventListener('touchmove',move,{passive:false});document.addEventListener('touchend',up); }
   function move(e){ if(!dragging)return; e.preventDefault(); var p=pt(e); var dx=p.x-sx,dy=p.y-sy; if(Math.abs(dx)+Math.abs(dy)>3)moved=true;
     o.x=Math.max(0,Math.round((ox+dx)/10)*10); o.y=Math.max(0,Math.round((oy+dy)/10)*10);
     node.style.left=o.x+'px'; node.style.top=o.y+'px'; }
   function up(){ if(!dragging)return; dragging=false; node.classList.remove('dragging');
     document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',up);document.removeEventListener('touchmove',move);document.removeEventListener('touchend',up);
-    if(moved){ saveFloor(); } else { FLOOR.sel=o.id; renderFloor(); } }
+    if(moved){ if(wsHasPoly(o)){ var dx=o.x-ox, dy=o.y-oy; o.points=o.points.map(function(p){ return {x:p.x+dx,y:p.y+dy}; }); } saveFloor(); renderFloor(); } else { FLOOR.sel=o.id; renderFloor(); } }
   node.addEventListener('mousedown',down); node.addEventListener('touchstart',down,{passive:false});
 }
 function addResize(handle,node,o){
@@ -1773,6 +1815,44 @@ function addRotate(handle,node,o){
 function liveRot(id,val){ var o=findObj(id); if(!o)return; o.rot=((parseInt(val,10)||0)%360+360)%360;
   var node=document.querySelector('.floor-obj[data-id="'+id+'"]'); if(node)node.style.transform='rotate('+o.rot+'deg)';
   var num=document.getElementById('rot-num-'+id); if(num)num.value=o.rot; }
+
+/* Req 5: pointer position in floor-canvas coordinates (same space as object x/y). */
+function canvasPt(e){ var c=$('floor-canvas'); if(!c)return {x:0,y:0}; var r=c.getBoundingClientRect(); var t=e.touches?e.touches[0]:e; return {x:t.clientX-r.left, y:t.clientY-r.top}; }
+/* Live-update a station's polygon + vertex handles during a vertex drag without a
+   full re-render (box origin is only recalculated on drop, avoiding jitter). */
+function updateWsPolyLive(o){
+  var node=document.querySelector('.floor-obj[data-id="'+o.id+'"]'); if(!node)return;
+  var poly=node.querySelector('.ws-poly polygon');
+  if(poly) poly.setAttribute('points', o.points.map(function(p){ return (p.x-o.x)+','+(p.y-o.y); }).join(' '));
+  o.points.forEach(function(p,i){ var vh=node.querySelector('.vertex-handle[data-i="'+i+'"]'); if(vh){ vh.style.left=(p.x-o.x)+'px'; vh.style.top=(p.y-o.y)+'px'; } });
+}
+function addVertexDrag(handle,node,o,idx){
+  var vt=false,moved=false;
+  function down(e){ e.preventDefault(); e.stopPropagation(); vt=true; moved=false; if(!wsHasPoly(o)) o.points=wsRectPoints(o);
+    document.addEventListener('mousemove',move);document.addEventListener('mouseup',up);document.addEventListener('touchmove',move,{passive:false});document.addEventListener('touchend',up); }
+  function move(e){ if(!vt)return; e.preventDefault(); moved=true; var p=canvasPt(e);
+    o.points[idx]={x:Math.max(0,Math.round(p.x/10)*10), y:Math.max(0,Math.round(p.y/10)*10)};
+    updateWsPolyLive(o); }
+  /* Only persist/re-render on an actual drag. A click without movement leaves the
+     handle in place so a following click can register as a dblclick (remove). */
+  function up(){ if(!vt)return; vt=false;
+    document.removeEventListener('mousemove',move);document.removeEventListener('mouseup',up);document.removeEventListener('touchmove',move);document.removeEventListener('touchend',up);
+    if(moved){ wsRecalcBox(o); saveFloor(); renderFloor(); } }
+  handle.addEventListener('mousedown',down); handle.addEventListener('touchstart',down,{passive:false});
+  handle.addEventListener('dblclick',function(e){ e.preventDefault(); e.stopPropagation(); removeStationPoint(o.id,idx); });
+}
+function startEditPts(id){ var o=findObj(id); if(!o)return; if(!wsHasPoly(o)) o.points=wsRectPoints(o); FLOOR.editPts=id; FLOOR.sel=id; saveFloor(); renderFloor(); }
+function stopEditPts(){ FLOOR.editPts=null; renderFloor(); }
+function addStationPoint(id){ var o=findObj(id); if(!o)return; if(!wsHasPoly(o)) o.points=wsRectPoints(o);
+  var pts=o.points, best=-1, bi=0;
+  for(var i=0;i<pts.length;i++){ var a=pts[i],b=pts[(i+1)%pts.length]; var d=Math.hypot(b.x-a.x,b.y-a.y); if(d>best){best=d;bi=i;} }
+  var a=pts[bi],b=pts[(bi+1)%pts.length];
+  pts.splice(bi+1,0,{x:Math.round((a.x+b.x)/2), y:Math.round((a.y+b.y)/2)});
+  wsRecalcBox(o); saveFloor(); renderFloor(); }
+function removeStationPoint(id,idx){ var o=findObj(id); if(!o||!wsHasPoly(o))return;
+  if(o.points.length<=3){ toast('A station needs at least 3 points','error'); return; }
+  o.points.splice(idx,1); wsRecalcBox(o); saveFloor(); renderFloor(); }
+function resetStationRect(id){ var o=findObj(id); if(!o)return; delete o.points; saveFloor(); renderFloor(); }
 
 /* ============================================================
    Req 7: guest / VIP / notes on tables (BOH inspector + floor + print;
@@ -1811,6 +1891,17 @@ function renderInspector(){
     html+=field('Station number','<input class="insp-input" type="number" step="1" min="0" value="'+esc((o.num!==undefined&&o.num!==null)?o.num:'')+'" onchange="upd(\''+o.id+'\',\'num\',this.value===\'\'?\'\':parseInt(this.value,10))">');
     var wOpts='<option value="">\u2014 Unassigned \u2014</option>'+waiterStaff(o.server).map(function(s){ return '<option value="'+s.id+'"'+(o.server===s.id?' selected':'')+'>'+esc(s.name)+' ('+waiterRoleShort(s.code)+')</option>'; }).join('');
     html+=field('Assigned Food Master','<select class="insp-input" onchange="upd(\''+o.id+'\',\'server\',this.value)">'+wOpts+'</select>');
+    if(FLOOR.editPts===o.id){
+      html+='<div class="insp-field"><label>Boundary shape</label>'+
+        '<button class="btn btn-gold btn-sm" style="width:100%" onclick="stopEditPts()">\u2713 Done editing points</button>'+
+        '<div class="insp-btns" style="margin-top:8px"><button class="btn btn-ghost btn-sm" onclick="addStationPoint(\''+o.id+'\')">+ Add point</button>'+
+        '<button class="btn btn-ghost btn-sm" onclick="resetStationRect(\''+o.id+'\')">Reset to rectangle</button></div>'+
+        '<div class="mini-note">Drag the blue dots to shape the station. Double-click a dot to remove it (min 3).</div></div>';
+    } else {
+      html+='<div class="insp-field"><label>Boundary shape</label>'+
+        '<button class="btn btn-ghost btn-sm" style="width:100%" onclick="startEditPts(\''+o.id+'\')">'+(wsHasPoly(o)?'Edit boundary points ('+o.points.length+')':'\u25f1 Make irregular shape')+'</button>'+
+        (wsHasPoly(o)?'<div class="mini-note">Irregular polygon with '+o.points.length+' points.</div>':'<div class="mini-note">Currently a rectangle. Create an irregular boundary that follows the room.</div>')+'</div>';
+    }
   } else {
     html+=field('Label','<input class="insp-input" value="'+esc(o.label||'')+'" onchange="upd(\''+o.id+'\',\'label\',this.value)">');
   }
