@@ -533,10 +533,24 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .ps-card .ps-row{font-size:13px;margin:3px 0;color:#222;}
 .ps-card .ps-row b{color:#000;}
 .ps-card .ps-guest{margin-left:14px;color:#333;font-size:12px;}
+.pf-map-wrap{page-break-inside:avoid;margin:0 0 18px;}
+.pf-map-head{font-size:15px;font-weight:700;margin:0 0 6px;color:#111;}
+.pf-map-meta{font-size:12px;color:#333;margin:0 0 8px;}
+.pf-map{position:relative;background:#f4efe2;border:1px solid #333;overflow:hidden;margin:0 auto;}
+.pf-obj{position:absolute;box-sizing:border-box;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;font-size:9px;font-weight:700;color:#1a1306;}
+.pf-table{border:2px solid #333;background:#fff;}
+.pf-table.round{border-radius:50%;}
+.pf-table.square,.pf-table.rect{border-radius:6px;}
+.pf-wall{background:#4a3d26;}
+.pf-station{border:2px dashed #8a6a12;background:rgba(201,168,76,0.18);}
+.pf-station-tag{position:absolute;top:4px;left:6px;background:#c9a84c;color:#1a1306;font-size:9px;font-weight:700;padding:1px 6px;border-radius:4px;white-space:nowrap;}
+.pf-label{color:#444;text-transform:uppercase;letter-spacing:.04em;}
 @media print{
   #root{display:none !important;}
   #print-area{display:block !important;}
-  @page{margin:14mm;}
+  @page{margin:12mm;}
+  .pf-map-wrap{page-break-after:always;}
+  .pf-map-wrap:last-child{page-break-after:auto;}
 }
 </style>
 </head>
@@ -601,9 +615,15 @@ function createNamedFirestoreAdapter(){
   function encodeValue(value){
     if(value===null || value===undefined) return {nullValue:null};
     if(value instanceof Date) return {timestampValue:value.toISOString()};
+    if(value && typeof value==='object' && (value._methodName==='FieldValue.serverTimestamp' || value._methodName==='serverTimestamp')){
+      return {timestampValue:new Date().toISOString()};
+    }
     if(Array.isArray(value)) return {arrayValue:{values:value.map(encodeValue)}};
     if(typeof value==='boolean') return {booleanValue:value};
-    if(typeof value==='number') return Number.isInteger(value)?{integerValue:String(value)}:{doubleValue:value};
+    if(typeof value==='number'){
+      if(!isFinite(value)) return {doubleValue:0};
+      return Number.isInteger(value)?{integerValue:String(value)}:{doubleValue:value};
+    }
     if(typeof value==='object') return {mapValue:{fields:encodeFields(value)}};
     return {stringValue:String(value)};
   }
@@ -611,6 +631,9 @@ function createNamedFirestoreAdapter(){
     var fields={};
     Object.keys(object||{}).forEach(function(key){ if(object[key]!==undefined) fields[key]=encodeValue(object[key]); });
     return fields;
+  }
+  function fieldMaskQuery(data){
+    return Object.keys(data||{}).filter(function(k){ return data[k]!==undefined; }).map(function(k){ return 'updateMask.fieldPaths='+encodeURIComponent(k); }).join('&');
   }
   function decodeValue(value){
     if(!value) return null;
@@ -645,14 +668,17 @@ function createNamedFirestoreAdapter(){
     });
   }
   function setDoc(collection,id,data,options){
-    var merged=Promise.resolve(data);
+    var url=docUrl(collection,id);
     if(options && options.merge){
-      merged=getDoc(collection,id).then(function(existing){ return existing.exists?Object.assign({},existing.data(),data):data; });
+      var mask=fieldMaskQuery(data);
+      if(mask) url+='?'+mask;
     }
-    return merged.then(function(payload){ return request('PATCH',docUrl(collection,id),{fields:encodeFields(payload)}); }).then(function(json){return docFrom(json,id);});
+    return request('PATCH',url,{fields:encodeFields(data)}).then(function(json){return docFrom(json,id);});
   }
   function updateDoc(collection,id,data){
-    return request('PATCH',docUrl(collection,id),{fields:encodeFields(data)}).then(function(json){return docFrom(json,id);});
+    var mask=fieldMaskQuery(data);
+    var url=docUrl(collection,id)+(mask?'?'+mask:'');
+    return request('PATCH',url,{fields:encodeFields(data)}).then(function(json){return docFrom(json,id);});
   }
   function addDoc(collection,data){
     var id='web_'+Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,10);
@@ -1105,6 +1131,7 @@ function computeStations(){
         room:r,
         x:o.x, y:o.y, w:o.w, h:o.h,
         server: s?s.name:'',
+        serverId: o.server||'',
         serverCode: s?(s.code||''):'',
         tableIds:tableIds
       };
@@ -1114,36 +1141,108 @@ function computeStations(){
   }
   return out;
 }
-/* Guardrail: a BOH floor save must not wipe station data authored elsewhere.
-   - stations still present on the BOH floor keep any polygon `points` refined on
-     the POS (until BOH can author polygons itself);
-   - stations created on the POS (ids not produced by the BOH floor, e.g. "st-…")
-     are preserved so a BOH Save Layout does not delete them.
-   BOH floor-object ids are generated as "o"+timestamp (see addFloorObj), so a
-   deleted BOH station box (id starting with "o") is intentionally dropped rather
-   than resurrected. */
+/* Stations are BOH-only overlays. The editor still draws them on the canvas,
+   but cloud storage keeps physical roomObjs and station overlays as separate
+   fields so a floor write cannot wipe station geometry and a station write
+   cannot wipe tables/walls. Polygon points from a prior overlay are kept if
+   the live box lost them; POS-authored leftover stations are not resurrected. */
 function mergeStationSync(computed, prior){
   var out=(computed||[]).slice();
   var priorById={};
   (prior||[]).forEach(function(s){ if(s&&s.id!=null) priorById[String(s.id)]=s; });
   out.forEach(function(c){
     var p=priorById[String(c.id)];
-    if(p && !(Array.isArray(c.points)&&c.points.length>=3) && Array.isArray(p.points)&&p.points.length>=3){
+    if(!p) return;
+    if(!(Array.isArray(c.points)&&c.points.length>=3) && Array.isArray(p.points)&&p.points.length>=3){
       c.points=p.points;
     }
-  });
-  var computedIds={};
-  out.forEach(function(c){ if(c&&c.id!=null) computedIds[String(c.id)]=1; });
-  (prior||[]).forEach(function(p){
-    if(!p||p.id==null) return;
-    var id=String(p.id);
-    if(computedIds[id]) return;          // still represented by a BOH floor box
-    if(id.charAt(0)==='o') return;       // a BOH floor station that was removed → drop it
-    out.push(p);                         // externally-authored (POS) station → keep it
+    if(!c.serverId && p.serverId) c.serverId=p.serverId;
+    if(!c.server && p.server) c.server=p.server;
+    if(!c.serverCode && p.serverCode) c.serverCode=p.serverCode;
   });
   return out;
 }
-function saveFloor(){ lsSet('eh_rooms',STATE.rooms); lsSet('eh_rooms_objs',STATE.roomObjs); var stations=mergeStationSync(computeStations(),STATE.stations); STATE.stations=stations; lsSet('eh_stations',stations); fbSetDoc('boh_shared','tables',{rooms:STATE.rooms,roomObjs:STATE.roomObjs,stations:stations,updatedAt:Date.now()}); }
+function cloneJson(v){ try{ return JSON.parse(JSON.stringify(v)); }catch(e){ return v; } }
+function asObjArray(v){
+  if(Array.isArray(v)) return v;
+  if(v && typeof v==='object'){
+    return Object.keys(v).sort(function(a,b){ return (parseInt(a,10)||0)-(parseInt(b,10)||0); })
+      .map(function(k){ return v[k]; }).filter(function(o){ return o && typeof o==='object'; });
+  }
+  return [];
+}
+function normalizeRoomObjs(raw){
+  if(!raw) return {};
+  if(Array.isArray(raw)) return {main:raw.slice()};
+  var out={};
+  Object.keys(raw).forEach(function(r){ out[r]=asObjArray(raw[r]); });
+  return out;
+}
+function physicalRoomObjs(roomObjs){
+  var src=normalizeRoomObjs(roomObjs);
+  var out={};
+  Object.keys(src).forEach(function(r){
+    out[r]=src[r].filter(function(o){ return o && o.type!=='waiterstation'; }).map(function(o){ return cloneJson(o); });
+  });
+  return out;
+}
+function stationToFloorObj(s){
+  var o={
+    id:s.id,
+    type:'waiterstation',
+    x:s.x||0, y:s.y||0, w:s.w||220, h:s.h||180,
+    num:(s.number!==undefined&&s.number!==null)?s.number:'',
+    server:s.serverId||'',
+    rot:0
+  };
+  if(Array.isArray(s.points)&&s.points.length>=3) o.points=cloneJson(s.points);
+  return o;
+}
+function hydrateStationOverlays(){
+  STATE.roomObjs=normalizeRoomObjs(STATE.roomObjs);
+  var seen={};
+  Object.keys(STATE.roomObjs).forEach(function(r){
+    (STATE.roomObjs[r]||[]).forEach(function(o){ if(o&&o.type==='waiterstation'&&o.id!=null) seen[String(o.id)]=1; });
+  });
+  (STATE.stations||[]).forEach(function(s){
+    if(!s||s.id==null) return;
+    if(seen[String(s.id)]) return;
+    if(s.x==null && !(Array.isArray(s.points)&&s.points.length>=3)) return;
+    var room=s.room || (STATE.rooms[0]&&STATE.rooms[0].id) || 'main';
+    if(!STATE.roomObjs[room]) STATE.roomObjs[room]=[];
+    STATE.roomObjs[room].push(stationToFloorObj(s));
+    seen[String(s.id)]=1;
+  });
+}
+var _floorSaveTimer=null;
+var _floorSaveChain=Promise.resolve();
+function persistFloorLocal(){
+  var stations=mergeStationSync(computeStations(),STATE.stations);
+  STATE.stations=stations;
+  lsSet('eh_rooms',STATE.rooms);
+  lsSet('eh_rooms_objs',STATE.roomObjs);
+  lsSet('eh_stations',stations);
+  return stations;
+}
+function flushFloorCloud(){
+  var rooms=cloneJson(STATE.rooms);
+  var physical=physicalRoomObjs(STATE.roomObjs);
+  var stations=persistFloorLocal();
+  var payload={rooms:rooms, roomObjs:physical, stations:cloneJson(stations), updatedAt:Date.now()};
+  _floorSaveChain=_floorSaveChain.then(function(){
+    return fbSetDoc('boh_shared','tables',payload);
+  }).catch(function(e){
+    console.error('Floor cloud save failed',e);
+    return false;
+  });
+  return _floorSaveChain;
+}
+function saveFloor(immediate){
+  persistFloorLocal();
+  if(_floorSaveTimer){ clearTimeout(_floorSaveTimer); _floorSaveTimer=null; }
+  if(immediate) return flushFloorCloud();
+  _floorSaveTimer=setTimeout(flushFloorCloud, 220);
+}
 function saveGuests(){ lsSet('eh_guests',STATE.guests); fbSetDoc('boh_shared','guests',{list:STATE.guests,updatedAt:Date.now()}); }
 function withoutEmbeddedPhotos(value){
   if(value==null || typeof value!=='object') return value;
@@ -1194,7 +1293,7 @@ function syncFromCloud(){
   return Promise.all([
     fbGetDoc('boh_shared','staff_clock').then(function(d){ if(d&&d.list&&d.list.length){ STATE.staff=mergeStaff(STATE.staff,d.list); lsSet('eh_staff',STATE.staff); } }),
     fbGetDoc('boh_shared','punches').then(function(d){ if(d&&d.list){ STATE.punches=d.list; lsSet('eh_punches',STATE.punches); } }),
-    fbGetDoc('boh_shared','tables').then(function(d){ if(d){ if(d.rooms&&d.rooms.length){STATE.rooms=d.rooms;lsSet('eh_rooms',STATE.rooms);} if(d.roomObjs){STATE.roomObjs=d.roomObjs;lsSet('eh_rooms_objs',STATE.roomObjs);} if(d.stations){STATE.stations=d.stations;lsSet('eh_stations',STATE.stations);} } }),
+    fbGetDoc('boh_shared','tables').then(function(d){ if(d){ if(d.rooms&&d.rooms.length){STATE.rooms=d.rooms;lsSet('eh_rooms',STATE.rooms);} if(d.roomObjs){STATE.roomObjs=normalizeRoomObjs(d.roomObjs);} if(d.stations){STATE.stations=d.stations;lsSet('eh_stations',STATE.stations);} hydrateStationOverlays(); lsSet('eh_rooms_objs',STATE.roomObjs); lsSet('eh_stations',STATE.stations); if(STATE.rooms.length && !STATE.rooms.filter(function(r){return r.id===FLOOR.room;})[0]) FLOOR.room=STATE.rooms[0].id; } }),
     fbGetDoc('boh_shared','guests').then(function(d){ if(d&&d.list){ STATE.guests=d.list; lsSet('eh_guests',STATE.guests); } }),
     fbGetDoc('boh_shared','menu').then(function(d){ if(d){ if(d.cats)STATE.menuCats=d.cats; if(d.items)STATE.menuItems=d.items; if(d.modGroups)STATE.modGroups=d.modGroups; lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups); } }),
     fbGetDoc('boh_shared','bar').then(function(d){ if(d&&d.list){ STATE.bar=d.list; lsSet('eh_bar',STATE.bar); } }),
@@ -1559,54 +1658,113 @@ function renderStationsPanel(){
         '<span class="sc-room">'+esc(roomNameById(s.room))+'</span></div>'+
       '<div class="sc-fm">'+(fm?esc(fm):'<span class="muted">Unassigned</span>')+(isPosStation(s)?' <span class="sc-src">POS</span>':'')+'</div>'+
       '<div class="sc-tables"><b>'+entries.length+'</b> table'+(entries.length===1?'':'s')+(entries.length?': '+tlist:'')+'</div>'+
-      '<div class="sc-print"><button class="btn btn-ghost btn-sm no-print" onclick="printStations(\''+esc(String(s.id))+'\')">🖨 Print</button></div>'+
+      '<div class="sc-print"><button class="btn btn-ghost btn-sm no-print" onclick="printStations(\''+esc(String(s.id))+'\')">🖨 Print station map</button></div>'+
     '</div>';
   }).join('');
   return '<div class="stations-panel no-print" id="stations-panel-host">'+
     '<div class="sp-head"><span class="sp-title">Food Master Stations</span>'+
       '<span class="sp-count">'+list.length+' station'+(list.length===1?'':'s')+'</span>'+
       '<div style="flex:1"></div>'+
-      '<button class="btn btn-gold btn-sm" onclick="printStations()">🖨 Print all stations</button></div>'+
+      '<button class="btn btn-gold btn-sm" onclick="printStations()">🖨 Print all station maps</button></div>'+
     (list.length?'<div class="stations-grid">'+cards+'</div>':'<div class="sp-empty">No Food Master Stations yet. Add a Food Master Station zone from the palette and place tables inside it.</div>')+
   '</div>';
 }
-function stationPrintDoc(list,heading){
-  var map=tableNumMap(), omap=tableObjMap();
-  var cards=list.map(function(s){
-    var entries=stationTableEntries(s,map,omap);
-    var fm=stationFM(s);
-    var tlist=entries.map(function(e){ return (e.vip?'\u2605':'')+e.num; }).map(esc).join(', ');
-    var detail=entries.filter(function(e){ return e.obj&&tableHasGuestInfo(e.obj); }).map(function(e){
-      var t=e.obj, bits=[]; if(t.vip)bits.push('\u2605 VIP'); if(t.guestName)bits.push(t.guestName);
-      var ns=tableNotesArr(t); if(ns.length)bits.push(ns.join('; '));
-      return '<div class="ps-row ps-guest">\u2022 Table '+esc(t.num)+' — '+esc(bits.join(' — '))+'</div>';
-    }).join('');
-    return '<div class="ps-card">'+
-      '<div class="ps-h">Station '+esc(stationNumLabel(s))+(isPosStation(s)?' (POS)':'')+'</div>'+
-      '<div class="ps-row"><b>Food Master:</b> '+(fm?esc(fm):'Unassigned')+'</div>'+
-      '<div class="ps-row"><b>Room:</b> '+esc(roomNameById(s.room))+'</div>'+
-      '<div class="ps-row"><b>Tables ('+entries.length+'):</b> '+(entries.length?tlist:'—')+'</div>'+
-      detail+
-    '</div>';
-  }).join('');
-  return '<div class="ps-doc"><div class="ps-title">Epicurean House — '+esc(heading)+'</div>'+
-    '<div class="ps-sub">Generated '+esc(new Date().toLocaleString())+'</div>'+cards+'</div>';
+function stationBBox(s){
+  var pts=(s&&Array.isArray(s.points)&&s.points.length>=3)?s.points:null;
+  if(pts){
+    var xs=pts.map(function(p){return +p.x||0;}), ys=pts.map(function(p){return +p.y||0;});
+    var minX=Math.min.apply(null,xs), minY=Math.min.apply(null,ys);
+    return {x:minX,y:minY,w:Math.max(8,Math.max.apply(null,xs)-minX),h:Math.max(8,Math.max.apply(null,ys)-minY)};
+  }
+  if(!s) return {x:0,y:0,w:1200,h:800};
+  return {x:s.x||0,y:s.y||0,w:s.w||220,h:s.h||180};
 }
-/* Keep the station list in sync with in-place floor edits (add/move/assign/
-   delete/renumber) without a full page re-render. renderFloor() runs after every
-   floor mutation, so refreshing here covers all of them. */
-function refreshStationsPanel(){ var host=$('stations-panel-host'); if(host){ host.outerHTML=renderStationsPanel(); } }
+function printObjHtml(o, ox, oy){
+  var left=(o.x||0)-ox, top=(o.y||0)-oy, w=o.w||70, h=o.h||70;
+  var rot=o.rot?('transform:rotate('+o.rot+'deg);'):'';
+  var style='left:'+left+'px;top:'+top+'px;width:'+w+'px;height:'+h+'px;'+rot;
+  if(o.type==='waiterstation'){
+    var label='Station '+((o.num!==undefined&&o.num!==null&&o.num!=='')?o.num:'—');
+    var fm=o.server?serverName(o.server):'';
+    if(fm) label+=' · '+fm;
+    if(wsHasPoly(o)){
+      var local=o.points.map(function(p){ return ((p.x||0)-o.x)+','+((p.y||0)-o.y); }).join(' ');
+      return '<div class="pf-obj pf-station" style="'+style+'background:transparent;border:none;">'+
+        '<svg viewBox="0 0 '+(w||1)+' '+(h||1)+'" preserveAspectRatio="none" style="position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;"><polygon points="'+local+'" fill="rgba(201,168,76,0.22)" stroke="#8a6a12" stroke-width="2" stroke-dasharray="6 4"/></svg>'+
+        '<span class="pf-station-tag">'+esc(label)+'</span></div>';
+    }
+    return '<div class="pf-obj pf-station" style="'+style+'"><span class="pf-station-tag">'+esc(label)+'</span></div>';
+  }
+  if(SEATABLE[o.type]){
+    var shape=o.shape||(o.type==='stool'?'round':(o.type==='couch'?'rect':'square'));
+    var inner=(o.vip?'★ ':'')+esc(o.num||'')+(o.guestName?' · '+esc(o.guestName):'');
+    return '<div class="pf-obj pf-table '+shape+'" style="'+style+'">'+inner+'</div>';
+  }
+  if(o.type==='wall'||o.type==='lshape') return '<div class="pf-obj pf-wall" style="'+style+'"></div>';
+  if(o.type==='bar') return '<div class="pf-obj pf-table rect" style="'+style+'">'+esc(o.label||'Bar')+'</div>';
+  if(o.type==='label') return '<div class="pf-obj pf-label" style="'+style+'">'+esc(o.label||'')+'</div>';
+  if(o.type==='host') return '<div class="pf-obj pf-table square" style="'+style+'">'+esc(o.label||'Host')+'</div>';
+  if(o.type==='station') return '<div class="pf-obj pf-table square" style="'+style+'">'+esc(o.label||'Sideboard')+'</div>';
+  return '<div class="pf-obj pf-table square" style="'+style+'">'+esc(o.label||o.type)+'</div>';
+}
+function geometricFloorHtml(roomId, station){
+  var room=(STATE.rooms||[]).filter(function(r){return r.id===roomId;})[0];
+  var objs=((STATE.roomObjs||{})[roomId]||[]).slice();
+  var clip={x:0,y:0,w:1200,h:800};
+  var heading=(room?room.name:roomId||'Room');
+  var meta='';
+  if(station){
+    clip=stationBBox(station);
+    var pad=28;
+    clip={x:clip.x-pad,y:clip.y-pad,w:clip.w+pad*2,h:clip.h+pad*2};
+    heading='Station '+stationNumLabel(station)+(room?' — '+room.name:'');
+    meta=(stationFM(station)?('Food Master: '+stationFM(station)+' · '):'Unassigned · ')+stationTableNums(station).length+' tables';
+  } else {
+    var stations=stationsView().filter(function(s){ return !s.room || s.room===roomId; });
+    var names=stations.map(function(s){ return 'St '+stationNumLabel(s)+(stationFM(s)?(' '+stationFM(s)):''); }).join(' · ');
+    meta=names||'No Food Master Stations in this room';
+  }
+  var layers='';
+  objs.filter(function(o){ return o.type==='waiterstation'; }).forEach(function(o){
+    if(station && String(o.id)!==String(station.id)) return;
+    layers+=printObjHtml(o, clip.x, clip.y);
+  });
+  objs.filter(function(o){ return o.type!=='waiterstation'; }).forEach(function(o){
+    var ox=o.x||0, oy=o.y||0, ow=o.w||70, oh=o.h||70;
+    if(ox+ow<clip.x || oy+oh<clip.y || ox>clip.x+clip.w || oy>clip.y+clip.h) return;
+    layers+=printObjHtml(o, clip.x, clip.y);
+  });
+  var maxPrintW=720;
+  var scale=Math.min(1, maxPrintW/Math.max(clip.w,1));
+  return '<div class="pf-map-wrap"><div class="pf-map-head">'+esc(heading)+'</div>'+
+    '<div class="pf-map-meta">'+esc(meta)+'</div>'+
+    '<div class="pf-map" style="width:'+(clip.w*scale)+'px;height:'+(clip.h*scale)+'px;">'+
+    '<div style="position:absolute;left:0;top:0;width:'+clip.w+'px;height:'+clip.h+'px;transform:scale('+scale+');transform-origin:0 0;">'+layers+'</div></div></div>';
+}
+function printRoomMap(){
+  var area=$('print-area'); if(!area)return;
+  var roomId=FLOOR.room;
+  var room=(STATE.rooms||[]).filter(function(r){return r.id===roomId;})[0];
+  area.innerHTML='<div class="ps-doc"><div class="ps-title">Epicurean House — '+(room?esc(room.name):'Floor')+'</div>'+
+    '<div class="ps-sub">Complete room map · '+esc(new Date().toLocaleString())+'</div>'+
+    geometricFloorHtml(roomId,null)+'</div>';
+  window.print();
+}
 function printStations(id){
   var list=stationsView().slice().sort(function(a,b){ return (parseInt(stationNumLabel(a),10)||0)-(parseInt(stationNumLabel(b),10)||0); });
-  var heading='Food Master Stations';
+  var heading='Food Master Station maps';
   if(id!==undefined&&id!==null){
     list=list.filter(function(s){ return String(s.id)===String(id); });
     if(list.length) heading='Food Master Station '+stationNumLabel(list[0]);
   }
   var area=$('print-area'); if(!area)return;
-  area.innerHTML=stationPrintDoc(list,heading);
+  var maps=list.map(function(s){ return geometricFloorHtml(s.room||FLOOR.room, s); }).join('');
+  if(!maps) maps='<div class="ps-card">No Food Master Stations to print.</div>';
+  area.innerHTML='<div class="ps-doc"><div class="ps-title">Epicurean House — '+esc(heading)+'</div>'+
+    '<div class="ps-sub">Generated '+esc(new Date().toLocaleString())+'</div>'+maps+'</div>';
   window.print();
 }
+function refreshStationsPanel(){ var host=$('stations-panel-host'); if(host){ host.outerHTML=renderStationsPanel(); } }
 function PAGE_floor(){
   if(!can('floor'))return lockedPage('Floor & Tables');
   var roomTabs=STATE.rooms.map(function(rm){
@@ -1620,7 +1778,8 @@ function PAGE_floor(){
       '<div class="room-tabs" id="room-tabs">'+roomTabs+
         (FLOOR.mode==='edit'?'<button class="btn btn-ghost btn-sm" onclick="addRoom()">+ Room</button>':'')+
       '</div>'+
-      '<button class="btn btn-gold btn-sm" onclick="saveFloor(); toast(\'Layout saved & synced to POS!\',\'success\');" style="margin-right:12px;">💾 Save Layout</button>'+
+      '<button class="btn btn-gold btn-sm" onclick="saveFloor(true).then(function(ok){ toast(ok===false?\'Cloud save failed — layout kept on this device\':\'Layout saved & synced to POS!\', ok===false?\'error\':\'success\'); });" style="margin-right:12px;">💾 Save Layout</button>'+
+      '<button class="btn btn-ghost btn-sm" onclick="printRoomMap()" style="margin-right:12px;">🖨 Print room</button>'+
       '<div style="flex:1"></div>'+
       '<div class="seg" id="mode-seg">'+
         '<button class="'+(FLOOR.mode==='edit'?'on':'')+'" data-mode="edit">Edit Layout</button>'+
@@ -2504,6 +2663,7 @@ function closeModal(){ $('modal-root').innerHTML=''; MODAL_OK=null; }
    BOOT
    ============================================================ */
 function boot(){
+  hydrateStationOverlays();
   var saved=sessionStorage.getItem('eh_boh_user'); if(saved){ try{ SESSION.user=JSON.parse(saved); }catch(e){} }
   render();
   syncFromCloud().then(function(){ if(SESSION.user)render(); });
