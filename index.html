@@ -2000,18 +2000,18 @@ function addVertexDrag(handle,node,o,idx){
   handle.addEventListener('mousedown',down); handle.addEventListener('touchstart',down,{passive:false});
   handle.addEventListener('dblclick',function(e){ e.preventDefault(); e.stopPropagation(); removeStationPoint(o.id,idx); });
 }
-function startEditPts(id){ var o=findObj(id); if(!o)return; if(!wsHasPoly(o)) o.points=wsRectPoints(o); FLOOR.editPts=id; FLOOR.sel=id; saveFloor(); renderFloor(); }
+function startEditPts(id){ var o=findObj(id); if(!o)return; if(!wsHasPoly(o)) o.points=wsRectPoints(o); FLOOR.editPts=id; FLOOR.sel=id; saveFloor(true); renderFloor(); }
 function stopEditPts(){ FLOOR.editPts=null; renderFloor(); }
 function addStationPoint(id){ var o=findObj(id); if(!o)return; if(!wsHasPoly(o)) o.points=wsRectPoints(o);
   var pts=o.points, best=-1, bi=0;
   for(var i=0;i<pts.length;i++){ var a=pts[i],b=pts[(i+1)%pts.length]; var d=Math.hypot(b.x-a.x,b.y-a.y); if(d>best){best=d;bi=i;} }
   var a=pts[bi],b=pts[(bi+1)%pts.length];
   pts.splice(bi+1,0,{x:Math.round((a.x+b.x)/2), y:Math.round((a.y+b.y)/2)});
-  wsRecalcBox(o); saveFloor(); renderFloor(); }
+  wsRecalcBox(o); saveFloor(true); renderFloor(); }
 function removeStationPoint(id,idx){ var o=findObj(id); if(!o||!wsHasPoly(o))return;
   if(o.points.length<=3){ toast('A station needs at least 3 points','error'); return; }
-  o.points.splice(idx,1); wsRecalcBox(o); saveFloor(); renderFloor(); }
-function resetStationRect(id){ var o=findObj(id); if(!o)return; delete o.points; saveFloor(); renderFloor(); }
+  o.points.splice(idx,1); wsRecalcBox(o); saveFloor(true); renderFloor(); }
+function resetStationRect(id){ var o=findObj(id); if(!o)return; delete o.points; saveFloor(true); renderFloor(); }
 
 /* ============================================================
    Req 7: guest / VIP / notes on tables (BOH inspector + floor + print;
@@ -2131,10 +2131,10 @@ function addFloorObj(palType){
   };
   var d=defs[palType]; if(!d)return;
   var o=Object.assign({id:'o'+Date.now().toString(36)+Math.floor(Math.random()*1000),x:220,y:200,rot:0},d);
-  curObjs().push(o); FLOOR.sel=o.id; saveFloor(); renderFloor(); toast('Added — drag to position','success');
+  curObjs().push(o); FLOOR.sel=o.id; saveFloor(true); renderFloor(); toast('Added — drag to position','success');
 }
-function dupObj(id){ var o=findObj(id); if(!o)return; var c=JSON.parse(JSON.stringify(o)); c.id='o'+Date.now().toString(36)+Math.floor(Math.random()*1000); c.x=(o.x||0)+30; c.y=(o.y||0)+30; if(SEATABLE[c.type]&&c.type==='table')c.num=nextTableNum(); curObjs().push(c); FLOOR.sel=c.id; saveFloor(); renderFloor(); toast('Duplicated','success'); }
-function delObj(id){ STATE.roomObjs[FLOOR.room]=curObjs().filter(function(x){return x.id!==id;}); FLOOR.sel=null; saveFloor(); renderFloor(); toast('Removed','success'); }
+function dupObj(id){ var o=findObj(id); if(!o)return; var c=JSON.parse(JSON.stringify(o)); c.id='o'+Date.now().toString(36)+Math.floor(Math.random()*1000); c.x=(o.x||0)+30; c.y=(o.y||0)+30; if(SEATABLE[c.type]&&c.type==='table')c.num=nextTableNum(); curObjs().push(c); FLOOR.sel=c.id; saveFloor(true); renderFloor(); toast('Duplicated','success'); }
+function delObj(id){ STATE.roomObjs[FLOOR.room]=curObjs().filter(function(x){return x.id!==id;}); FLOOR.sel=null; saveFloor(true); renderFloor(); toast('Removed','success'); }
 
 /* ---- live-service ops (manager override) ---- */
 function setStatus(id,k){ var o=findObj(id); if(!o)return; o.status=k; if(k==='open'){o.server='';} saveFloor(); renderFloor(); toast('Table '+o.num+' \u2192 '+TABLE_STATUS[k].label,'success'); }
@@ -2146,13 +2146,13 @@ function addRoom(){
   openModal('New Room','<div class="field"><label>Room Name</label><input class="input" id="new-room" placeholder="e.g. Terrace"></div>',
     'Add Room',function(){ var v=($('new-room').value||'').trim(); if(!v){toast('Enter a name','error');return false;}
       var id=v.toLowerCase().replace(/[^a-z0-9]+/g,'-')+'-'+Date.now().toString(36).slice(-3);
-      STATE.rooms.push({id:id,name:v}); STATE.roomObjs[id]=[]; FLOOR.room=id; FLOOR.sel=null; saveFloor(); render(); toast('Room added','success'); return true; });
+      STATE.rooms.push({id:id,name:v}); STATE.roomObjs[id]=[]; FLOOR.room=id; FLOOR.sel=null; saveFloor(true); render(); toast('Room added','success'); return true; });
 }
 function delRoom(id){
   if(STATE.rooms.length<=1){ toast('Keep at least one room','error'); return; }
   var rm=STATE.rooms.filter(function(r){return r.id===id;})[0];
   openModal('Delete Room','<div style="color:var(--text-dim);font-size:14px;line-height:1.6">Delete <b style="color:var(--text)">'+esc(rm?rm.name:id)+'</b> and everything in it? This cannot be undone.</div>',
-    'Delete Room',function(){ STATE.rooms=STATE.rooms.filter(function(r){return r.id!==id;}); delete STATE.roomObjs[id]; FLOOR.room=STATE.rooms[0].id; FLOOR.sel=null; saveFloor(); render(); toast('Room deleted','success'); return true; });
+    'Delete Room',function(){ STATE.rooms=STATE.rooms.filter(function(r){return r.id!==id;}); delete STATE.roomObjs[id]; FLOOR.room=STATE.rooms[0].id; FLOOR.sel=null; saveFloor(true); render(); toast('Room deleted','success'); return true; });
 }
 
 /* ============================================================
