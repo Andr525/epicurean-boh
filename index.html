@@ -581,8 +581,8 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .ps-pack.cols-3{grid-template-columns:1fr 1fr 1fr;}
 .ps-pack.cols-4{grid-template-columns:1fr 1fr 1fr 1fr;}
 .ps-pack .pf-map-wrap{margin:0;}
-.ps-pack .pf-map{width:100% !important;height:auto !important;aspect-ratio:var(--src-w, 1200px) / var(--src-h, 800px);container-type:inline-size;overflow:hidden;}
-.ps-pack .pf-map > .pf-map-src{transform:scale(calc(100cqw / var(--src-w, 1200px))) !important;transform-origin:0 0;}
+.ps-pack .pf-map{width:100% !important;max-width:100% !important;height:auto !important;aspect-ratio:var(--src-w, 1200px) / var(--src-h, 800px);}
+.ps-pack .pf-map svg{display:block;width:100%;height:100%;}
 .print-room-pick{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;color:var(--text);cursor:pointer;}
 @media print{
   #root{display:none !important;}
@@ -1846,8 +1846,11 @@ function geometricFloorHtml(roomId, station, opts){
   var scale=Math.min(1, maxPrintW/Math.max(clip.w,1));
   return '<div class="pf-map-wrap"><div class="pf-map-head">'+esc(heading)+'</div>'+
     '<div class="pf-map-meta">'+esc(meta)+'</div>'+
-    '<div class="pf-map" style="--src-w:'+clip.w+'px;--src-h:'+clip.h+'px;width:'+(clip.w*scale)+'px;height:'+(clip.h*scale)+'px;">'+
-    '<div class="pf-map-src" style="position:absolute;left:0;top:0;width:'+clip.w+'px;height:'+clip.h+'px;transform:scale('+scale+');transform-origin:0 0;">'+layers+'</div></div></div>';
+    '<div class="pf-map" style="--src-w:'+clip.w+'px;--src-h:'+clip.h+'px;width:'+(clip.w*scale)+'px;max-width:100%;aspect-ratio:'+clip.w+' / '+clip.h+';">'+
+    '<svg viewBox="0 0 '+clip.w+' '+clip.h+'" width="100%" height="100%" preserveAspectRatio="xMidYMid meet">'+
+    '<foreignObject x="0" y="0" width="'+clip.w+'" height="'+clip.h+'">'+
+    '<div xmlns="http://www.w3.org/1999/xhtml" class="pf-map-src" style="position:relative;width:'+clip.w+'px;height:'+clip.h+'px;overflow:hidden;">'+layers+'</div>'+
+    '</foreignObject></svg></div></div>';
 }
 function printDoc(title, sub, maps, extra){
   extra=extra||{};
