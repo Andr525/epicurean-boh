@@ -221,8 +221,12 @@ tbody tr:hover{background:rgba(24,43,69,0.4);}
   display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--blue);text-align:center;padding:4px;gap:4px;}
 .f-waiterstation{width:100%;height:100%;border:2px dashed var(--gold);border-radius:10px;
   background:rgba(201,168,76,0.07);position:relative;box-shadow:inset 0 0 30px rgba(201,168,76,0.05);}
-.f-waiterstation .ws-tag{position:absolute;top:6px;left:8px;font-size:10px;font-weight:700;letter-spacing:.04em;
-  color:var(--gold);background:rgba(11,20,32,0.72);border:1px solid var(--border-strong);border-radius:6px;padding:2px 7px;white-space:nowrap;}
+.ws-name-tag{position:absolute;z-index:45;font-size:11px;font-weight:700;letter-spacing:.04em;
+  color:var(--gold);background:rgba(11,20,32,0.9);border:1px solid var(--border-strong);border-radius:6px;
+  padding:3px 8px;white-space:nowrap;max-width:240px;overflow:hidden;text-overflow:ellipsis;
+  box-shadow:0 4px 14px rgba(0,0,0,0.45);user-select:none;pointer-events:none;}
+.floor-canvas:not(.live) .ws-name-tag{pointer-events:auto;cursor:grab;}
+.floor-canvas:not(.live) .ws-name-tag:active{cursor:grabbing;}
 .f-label{width:100%;height:100%;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;
   color:#1a1306;background:#fff;letter-spacing:.05em;text-transform:uppercase;border-radius:6px;border:1px solid rgba(0,0,0,0.12);}
 .f-couch{width:100%;height:100%;background:#5a4126;border-radius:18px 18px 6px 6px;border:2px solid #3f2d18;
@@ -583,6 +587,8 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .ps-pack .pf-map-wrap{margin:0;}
 .ps-pack .pf-map{width:100% !important;max-width:100% !important;height:auto !important;aspect-ratio:var(--src-w, 1200px) / var(--src-h, 800px);}
 .ps-pack .pf-map svg{display:block;width:100%;height:100%;}
+.ps-letter-fit{overflow:hidden;}
+.ps-letter-inner{transform-origin:top left;}
 .print-room-pick{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;color:var(--text);cursor:pointer;}
 @media print{
   #root{display:none !important;}
@@ -590,11 +596,12 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
   @page{size:letter landscape;margin:10mm;}
   .pf-map-wrap{page-break-after:always;}
   .pf-map-wrap:last-child{page-break-after:auto;}
-  .ps-doc.fit-page{padding:8px 12px;max-height:196mm;overflow:hidden;}
-  .ps-doc.fit-page .ps-title{font-size:16px;margin-bottom:0;}
-  .ps-doc.fit-page .ps-sub{margin-bottom:6px;padding-bottom:4px;font-size:11px;}
+  .ps-doc.fit-page{padding:0;max-height:none;overflow:visible;}
+  .ps-doc.fit-page .ps-title{font-size:14px;margin:0 0 2px;}
+  .ps-doc.fit-page .ps-sub{margin-bottom:4px;padding-bottom:3px;font-size:10px;}
   .ps-doc.fit-page .pf-map-wrap{page-break-after:auto !important;page-break-inside:avoid;margin:0;}
-  .ps-doc.fit-page .ps-pack{page-break-inside:avoid;max-height:172mm;overflow:hidden;}
+  .ps-doc.fit-page .ps-pack{page-break-inside:avoid;max-height:none;overflow:visible;}
+  .ps-doc.fit-page .ps-letter-fit{page-break-inside:avoid;}
 }
 </style>
 </head>
@@ -1179,6 +1186,8 @@ function computeStations(){
         serverCode: s?(s.code||''):'',
         tableIds:tableIds
       };
+      if(o.tagX!=null) station.tagX=+o.tagX;
+      if(o.tagY!=null) station.tagY=+o.tagY;
       if(Array.isArray(o.points) && o.points.length>=3) station.points=o.points;
       out.push(station);
     });
@@ -1203,6 +1212,8 @@ function mergeStationSync(computed, prior){
     if(!c.serverId && p.serverId) c.serverId=p.serverId;
     if(!c.server && p.server) c.server=p.server;
     if(!c.serverCode && p.serverCode) c.serverCode=p.serverCode;
+    if(c.tagX==null && p.tagX!=null) c.tagX=p.tagX;
+    if(c.tagY==null && p.tagY!=null) c.tagY=p.tagY;
   });
   return out;
 }
@@ -1240,6 +1251,8 @@ function stationToFloorObj(s){
     rot:0
   };
   if(Array.isArray(s.points)&&s.points.length>=3) o.points=cloneJson(s.points);
+  if(s.tagX!=null) o.tagX=+s.tagX;
+  if(s.tagY!=null) o.tagY=+s.tagY;
   return o;
 }
 function hydrateStationOverlays(){
@@ -1722,14 +1735,11 @@ function renderStationsPanel(){
         '<span class="sc-room">'+esc(roomNameById(s.room))+'</span></div>'+
       '<div class="sc-fm">'+(fm?esc(fm):'<span class="muted">Unassigned</span>')+(isPosStation(s)?' <span class="sc-src">POS</span>':'')+'</div>'+
       '<div class="sc-tables"><b>'+entries.length+'</b> table'+(entries.length===1?'':'s')+(entries.length?': '+tlist:'')+'</div>'+
-      '<div class="sc-print"><button class="btn btn-ghost btn-sm no-print" onclick="event.stopPropagation();printStations(\''+sid+'\')">🖨 Print station map</button></div>'+
     '</div>';
   }).join('');
   return '<div class="stations-panel no-print" id="stations-panel-host">'+
     '<div class="sp-head"><span class="sp-title">Food Master Stations</span>'+
-      '<span class="sp-count">'+list.length+' station'+(list.length===1?'':'s')+'</span>'+
-      '<div style="flex:1"></div>'+
-      '<button class="btn btn-gold btn-sm" onclick="printStations()">🖨 Print all station maps</button></div>'+
+      '<span class="sp-count">'+list.length+' station'+(list.length===1?'':'s')+'</span></div>'+
     (list.length?'<div class="stations-grid">'+cards+'</div>':'<div class="sp-empty">No Food Master Stations yet. Add a Food Master Station zone from the palette and place tables inside it.</div>')+
   '</div>';
 }
@@ -1790,13 +1800,16 @@ function printObjHtml(o, ox, oy){
     var label='Station '+((o.num!==undefined&&o.num!==null&&o.num!=='')?o.num:'—');
     var fm=o.server?serverName(o.server):'';
     if(fm) label+=' · '+fm;
+    var tagL=(o.tagX!=null)?(+o.tagX):6;
+    var tagT=(o.tagY!=null)?(+o.tagY):4;
+    var tagStyle='left:'+tagL+'px;top:'+tagT+'px;';
     if(wsHasPoly(o)){
       var local=o.points.map(function(p){ return ((p.x||0)-o.x)+','+((p.y||0)-o.y); }).join(' ');
       return '<div class="pf-obj pf-station" style="'+style+'background:transparent;border:none;">'+
         '<svg viewBox="0 0 '+(w||1)+' '+(h||1)+'" preserveAspectRatio="none" style="position:absolute;left:0;top:0;width:100%;height:100%;overflow:visible;"><polygon points="'+local+'" fill="rgba(201,168,76,0.22)" stroke="#8a6a12" stroke-width="2" stroke-dasharray="6 4"/></svg>'+
-        '<span class="pf-station-tag">'+esc(label)+'</span></div>';
+        '<span class="pf-station-tag" style="'+tagStyle+'">'+esc(label)+'</span></div>';
     }
-    return '<div class="pf-obj pf-station" style="'+style+'"><span class="pf-station-tag">'+esc(label)+'</span></div>';
+    return '<div class="pf-obj pf-station" style="'+style+'"><span class="pf-station-tag" style="'+tagStyle+'">'+esc(label)+'</span></div>';
   }
   if(SEATABLE[o.type]){
     var shape=o.shape||(o.type==='stool'?'round':(o.type==='couch'?'rect':'square'));
@@ -1829,6 +1842,17 @@ function geometricFloorHtml(roomId, station, opts){
     var stations=hideStations?[]:stationsView().filter(function(s){ return !s.room || s.room===roomId; });
     var names=stations.map(function(s){ return 'St '+stationNumLabel(s)+(stationFM(s)?(' '+stationFM(s)):''); }).join(' · ');
     meta=hideStations?'Printed without Food Master Stations':(names||'No Food Master Stations in this room');
+    objs.forEach(function(o){
+      var x=o.x||0, y=o.y||0, w=o.w||70, h=o.h||70;
+      clip.w=Math.max(clip.w, x+w+24);
+      clip.h=Math.max(clip.h, y+h+24);
+      if(wsHasPoly(o) && o.points){
+        o.points.forEach(function(p){
+          clip.w=Math.max(clip.w, (+p.x||0)+24);
+          clip.h=Math.max(clip.h, (+p.y||0)+24);
+        });
+      }
+    });
   }
   var layers='';
   if(!hideStations){
@@ -1852,12 +1876,49 @@ function geometricFloorHtml(roomId, station, opts){
     '<div xmlns="http://www.w3.org/1999/xhtml" class="pf-map-src" style="position:relative;width:'+clip.w+'px;height:'+clip.h+'px;overflow:hidden;">'+layers+'</div>'+
     '</foreignObject></svg></div></div>';
 }
+function printPageStyleEl(){
+  var el=$('print-page-style');
+  if(!el){ el=document.createElement('style'); el.id='print-page-style'; document.head.appendChild(el); }
+  return el;
+}
+function fitPrintToLetter(docEl){
+  if(!docEl) return;
+  var area=$('print-area');
+  area.style.cssText='display:block!important;position:absolute;left:0;top:0;width:1100px;opacity:0;pointer-events:none;z-index:-1;';
+  var nw=Math.max(docEl.scrollWidth, docEl.offsetWidth, 320);
+  var nh=Math.max(docEl.scrollHeight, docEl.offsetHeight, 240);
+  var mm=96/25.4;
+  var margin=10*mm;
+  var landW=11*96-2*margin, landH=8.5*96-2*margin;
+  var portW=8.5*96-2*margin, portH=11*96-2*margin;
+  var sL=Math.min(landW/nw, landH/nh);
+  var sP=Math.min(portW/nw, portH/nh);
+  var useLand=sL>=sP;
+  var s=Math.min(useLand?sL:sP, 1);
+  if(!(s>0) || !isFinite(s)) s=1;
+  var wrap=document.createElement('div');
+  wrap.className='ps-letter-fit';
+  wrap.style.width=Math.ceil(nw*s)+'px';
+  wrap.style.height=Math.ceil(nh*s)+'px';
+  var inner=document.createElement('div');
+  inner.className='ps-letter-inner';
+  inner.style.width=nw+'px';
+  inner.style.height=nh+'px';
+  inner.style.transform='scale('+s+')';
+  while(docEl.firstChild) inner.appendChild(docEl.firstChild);
+  wrap.appendChild(inner);
+  docEl.appendChild(wrap);
+  printPageStyleEl().textContent='@media print{@page{size:letter '+(useLand?'landscape':'portrait')+';margin:10mm;} .ps-doc.fit-page{padding:0;}}';
+  area.style.cssText='';
+}
 function printDoc(title, sub, maps, extra){
   extra=extra||{};
   var area=$('print-area'); if(!area)return;
   if(!maps) maps='<div class="ps-card">Nothing to print.</div>';
   area.innerHTML='<div class="ps-doc'+(extra.fitPage?' fit-page':'')+'"><div class="ps-title">Epicurean House — '+esc(title)+'</div>'+
     '<div class="ps-sub">'+esc(sub)+' · '+esc(new Date().toLocaleString())+'</div>'+maps+'</div>';
+  if(extra.fitPage) fitPrintToLetter(area.querySelector('.ps-doc'));
+  else printPageStyleEl().textContent='@media print{@page{size:letter landscape;margin:10mm;}}';
   window.print();
 }
 function printPackedRooms(roomIds, opts){
@@ -1883,7 +1944,7 @@ function printChooseRooms(){
     return '<label class="print-room-pick"><input type="checkbox" class="print-room-cb" value="'+esc(rm.id)+'" checked> '+esc(rm.name)+'</label>';
   }).join('');
   openModal('Print rooms on one page',
-    '<div class="mini-note" style="margin-top:0">Pick any rooms. They print together, scaled to fit a single landscape page.</div>'+
+    '<div class="mini-note" style="margin-top:0">Pick any rooms. They print together, scaled to fit one letter page (landscape or portrait, whichever fits).</div>'+
     checks+
     '<label class="print-room-pick" style="margin-top:10px;border-top:1px solid var(--border-soft);padding-top:10px;"><input type="checkbox" id="print-hide-st"> Hide Food Master Stations</label>',
     'Print one page',
@@ -1978,7 +2039,7 @@ function PAGE_floor(){
         '<div class="floor-canvas-wrap"><div class="floor-canvas" id="floor-canvas"></div></div>'+
         '<div class="inspector" id="inspector"><h4>Properties</h4><div class="insp-empty">Select an object on the floor to edit it, or add one from the palette on the left.</div></div>'+
       '</div>'+
-      '<div class="mini-note">Drag to move · drag the gold handle to resize · click to select. Layout saves to your shared database and feeds the food masters&rsquo; POS and bar screens.</div>'+
+      '<div class="mini-note">Drag to move · drag a Food Master name tag anywhere inside its station · drag the gold handle to resize · click to select. Layout saves to your shared database and feeds the food masters&rsquo; POS and bar screens.</div>'+
       renderStationsPanel();
     return {title:'Floor Plan',sub:'Design your rooms',body:body,bind:bindFloor};
   } else {
@@ -2016,6 +2077,7 @@ function renderFloor(){
   var objs=curObjs();
   objs.forEach(function(o){ if(o.type==='waiterstation') drawObj(canvas,o); });
   objs.forEach(function(o){ if(o.type!=='waiterstation') drawObj(canvas,o); });
+  drawStationNameTags(canvas);
   renderInspector();
   refreshStationsPanel();
 }
@@ -2054,15 +2116,12 @@ function drawObj(canvas,o){
   } else if(o.type==='station'){
     node.innerHTML='<div class="f-station"><span class="f-station-ico" title="Sideboard"></span>'+esc(o.label||'Sideboard')+'</div>';
   } else if(o.type==='waiterstation'){
-    var wsNum=(o.num!==undefined&&o.num!==null&&o.num!=='')?o.num:'\u2014';
-    var wsName=o.server?serverName(o.server):'';
-    var wsTag='<span class="ws-tag">Station '+esc(wsNum)+(wsName?' \u00b7 '+esc(wsName):'')+'</span>';
     if(wsHasPoly(o)){
       var local=o.points.map(function(p){ return (p.x-o.x)+','+(p.y-o.y); }).join(' ');
       node.innerHTML='<svg class="ws-poly" viewBox="0 0 '+(o.w||1)+' '+(o.h||1)+'" preserveAspectRatio="none"><polygon points="'+local+'"/></svg>'+
-        '<div class="f-waiterstation poly">'+wsTag+'</div>';
+        '<div class="f-waiterstation poly"></div>';
     } else {
-      node.innerHTML='<div class="f-waiterstation">'+wsTag+'</div>';
+      node.innerHTML='<div class="f-waiterstation"></div>';
     }
   } else if(o.type==='label'){
     node.innerHTML='<div class="f-label">'+esc(o.label||'Label')+'</div>';
@@ -2105,6 +2164,61 @@ function drawObj(canvas,o){
     else { node.setAttribute('data-static','1'); }
   }
   canvas.appendChild(node);
+}
+
+function stationTagText(o){
+  var wsNum=(o.num!==undefined&&o.num!==null&&o.num!=='')?o.num:'\u2014';
+  var wsName=o.server?serverName(o.server):'';
+  return 'Station '+wsNum+(wsName?' \u00b7 '+wsName:'');
+}
+function drawStationNameTags(canvas){
+  curObjs().forEach(function(o){
+    if(!o || o.type!=='waiterstation') return;
+    var tag=el('div',{class:'ws-name-tag','data-station':o.id,title:FLOOR.mode==='edit'?'Drag to place this name inside the station':''},esc(stationTagText(o)));
+    var tx=(o.tagX!=null)?+o.tagX:8;
+    var ty=(o.tagY!=null)?+o.tagY:6;
+    tag.style.left=(o.x+tx)+'px';
+    tag.style.top=(o.y+ty)+'px';
+    canvas.appendChild(tag);
+    var maxX=Math.max(0,(o.w||220)-Math.max(tag.offsetWidth,24));
+    var maxY=Math.max(0,(o.h||180)-Math.max(tag.offsetHeight,18));
+    tx=Math.max(0,Math.min(maxX, tx));
+    ty=Math.max(0,Math.min(maxY, ty));
+    tag.style.left=(o.x+tx)+'px';
+    tag.style.top=(o.y+ty)+'px';
+    if(FLOOR.mode==='edit') addTagDrag(tag,o);
+  });
+}
+function addTagDrag(tag,o){
+  var sx,sy,ox,oy,moved,dragging=false;
+  function down(e){
+    e.preventDefault(); e.stopPropagation();
+    dragging=true; moved=false;
+    var p=pt(e); sx=p.x; sy=p.y;
+    ox=(o.tagX!=null)?+o.tagX:8; oy=(o.tagY!=null)?+o.tagY:6;
+    document.addEventListener('mousemove',move); document.addEventListener('mouseup',up);
+    document.addEventListener('touchmove',move,{passive:false}); document.addEventListener('touchend',up);
+  }
+  function move(e){
+    if(!dragging)return; e.preventDefault(); e.stopPropagation();
+    var p=pt(e); var dx=p.x-sx, dy=p.y-sy;
+    if(Math.abs(dx)+Math.abs(dy)>2) moved=true;
+    var maxX=Math.max(0,(o.w||220)-Math.max(tag.offsetWidth,24));
+    var maxY=Math.max(0,(o.h||180)-Math.max(tag.offsetHeight,18));
+    o.tagX=Math.round(Math.max(0,Math.min(maxX, ox+dx)));
+    o.tagY=Math.round(Math.max(0,Math.min(maxY, oy+dy)));
+    tag.style.left=(o.x+o.tagX)+'px';
+    tag.style.top=(o.y+o.tagY)+'px';
+  }
+  function up(){
+    if(!dragging)return; dragging=false;
+    document.removeEventListener('mousemove',move); document.removeEventListener('mouseup',up);
+    document.removeEventListener('touchmove',move); document.removeEventListener('touchend',up);
+    if(moved){ saveFloor(true); toast('Name tag placed','success'); }
+    else { FLOOR.sel=o.id; renderFloor(); }
+  }
+  tag.addEventListener('mousedown',down);
+  tag.addEventListener('touchstart',down,{passive:false});
 }
 
 function pt(e){ var t=e.touches?e.touches[0]:e; return {x:t.clientX,y:t.clientY}; }
@@ -2241,6 +2355,7 @@ function renderInspector(){
         '<button class="btn btn-ghost btn-sm" style="width:100%" onclick="startEditPts(\''+o.id+'\')">'+(wsHasPoly(o)?'Edit boundary points ('+o.points.length+')':'\u25f1 Make irregular shape')+'</button>'+
         (wsHasPoly(o)?'<div class="mini-note">Irregular polygon with '+o.points.length+' points.</div>':'<div class="mini-note">Currently a rectangle. Create an irregular boundary that follows the room.</div>')+'</div>';
     }
+    html+='<div class="mini-note">Drag the gold name tag anywhere inside this station so it sits in empty space, not on tables. POS uses the same spot.</div>';
   } else {
     html+=field('Label','<input class="insp-input" value="'+esc(o.label||'')+'" onchange="upd(\''+o.id+'\',\'label\',this.value)">');
   }
