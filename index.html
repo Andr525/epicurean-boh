@@ -145,6 +145,18 @@ tbody tr:hover{background:rgba(24,43,69,0.4);}
 /* workspace: palette + canvas + inspector */
 .floor-workspace{display:grid;grid-template-columns:206px 1fr 250px;gap:14px;align-items:start;}
 .floor-workspace.live{grid-template-columns:1fr 250px;}
+.seating-rail{margin-top:16px;background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--border-soft);border-radius:14px;padding:14px 16px;}
+.seating-rail h3{font-family:'Cormorant Garamond',serif;font-size:18px;color:var(--gold);margin:0 0 8px;}
+.seating-rail .sr-sub{font-size:12px;color:var(--text-dim);margin-bottom:10px;}
+.sr-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:10px;}
+.sr-card{border:1px solid var(--border-soft);border-radius:10px;padding:10px 12px;background:rgba(24,43,69,0.35);}
+.sr-card .sr-h{font-size:14px;font-weight:800;margin-bottom:6px;}
+.sr-card .sr-row{font-size:12.5px;color:var(--text);margin:3px 0;line-height:1.4;}
+.sr-card .sr-note{font-size:11.5px;color:var(--text-dim);margin-left:8px;}
+.sr-card .sr-vip{color:var(--gold);font-weight:700;}
+.insp-turns{margin-top:8px;border-top:1px solid var(--border-soft);padding-top:8px;}
+.insp-turn{border:1px solid var(--border-soft);border-radius:8px;padding:8px;margin-bottom:8px;}
+.insp-turn .insp-row{gap:6px;}
 .palette{background:linear-gradient(180deg,var(--panel),var(--bg-2));border:1px solid var(--border-soft);
   border-radius:14px;padding:14px;box-shadow:var(--shadow-sm);max-height:620px;overflow-y:auto;}
 .palette-group{font-size:10px;font-weight:700;letter-spacing:1.2px;text-transform:uppercase;color:var(--text-faint);
@@ -576,6 +588,14 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .ps-pack.cols-4{grid-template-columns:1fr 1fr 1fr 1fr;}
 .ps-pack .pf-map-wrap{margin:0;display:flex;flex-direction:column;min-height:0;}
 .ps-pack .pf-map{flex:1;width:100%;min-height:0;}
+.ps-turns{color:#111;background:#fff;padding:16px 18px;page-break-before:always;break-before:page;}
+.ps-turns h2{font-family:'Cormorant Garamond',Georgia,serif;font-size:20px;margin:0 0 4px;}
+.ps-turns .ps-t-sub{font-size:11px;color:#555;margin-bottom:12px;}
+.ps-tcard{border:1px solid #bbb;border-radius:8px;padding:10px 12px;margin-bottom:8px;page-break-inside:avoid;}
+.ps-tcard .ps-th{font-size:15px;font-weight:800;margin-bottom:4px;}
+.ps-tcard .ps-trow{font-size:13px;margin:2px 0;}
+.ps-tcard .ps-tnote{font-size:12px;color:#333;margin-left:10px;}
+.ps-tcard .ps-tvip{color:#8a6a12;font-weight:700;}
 .print-room-pick{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;color:var(--text);cursor:pointer;}
 @media print{
   #root{display:none !important;}
@@ -606,6 +626,7 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
   .ps-doc.fit-page .ps-pack .pf-map-head{font-size:11px;margin:0 0 3px;}
   .ps-doc.fit-page .ps-pack .pf-map{aspect-ratio:auto;flex:1 1 auto;width:100%;height:100%;min-height:0;}
   .ps-doc.fit-page .ps-pack.cols-1 .pf-map-wrap{height:calc(6.4in - 38px);}
+  .ps-doc.ps-turns{height:auto;max-height:none;overflow:visible;page-break-before:always;break-before:page;}
 }
 </style>
 </head>
@@ -1237,11 +1258,23 @@ function normalizeRoomObjs(raw){
   Object.keys(raw).forEach(function(r){ out[r]=asObjArray(raw[r]); });
   return out;
 }
-function physicalRoomObjs(roomObjs){
+function stripDemoTurnsFromRooms(roomObjs){
   var src=normalizeRoomObjs(roomObjs);
   var out={};
   Object.keys(src).forEach(function(r){
-    out[r]=src[r].filter(function(o){ return o && o.type!=='waiterstation'; }).map(function(o){ return cloneJson(o); });
+    out[r]=(src[r]||[]).map(function(o){
+      var c=cloneJson(o);
+      if(c) delete c._demoTurns;
+      return c;
+    });
+  });
+  return out;
+}
+function physicalRoomObjs(roomObjs){
+  var src=stripDemoTurnsFromRooms(roomObjs);
+  var out={};
+  Object.keys(src).forEach(function(r){
+    out[r]=src[r].filter(function(o){ return o && o.type!=='waiterstation'; });
   });
   return out;
 }
@@ -1281,7 +1314,7 @@ function persistFloorLocal(){
   var stations=mergeStationSync(computeStations(),STATE.stations);
   STATE.stations=stations;
   lsSet('eh_rooms',STATE.rooms);
-  lsSet('eh_rooms_objs',STATE.roomObjs);
+  lsSet('eh_rooms_objs',stripDemoTurnsFromRooms(STATE.roomObjs));
   lsSet('eh_stations',stations);
   return stations;
 }
@@ -1829,22 +1862,11 @@ function printObjSvg(o, clip){
   var fs=Math.max(8, Math.min(w, h)*0.32);
   var sw='stroke-width="1.75" vector-effect="non-scaling-stroke"';
   if(o.type==='waiterstation'){
-    var label='Station '+((o.num!==undefined&&o.num!==null&&o.num!=='')?o.num:'—');
-    var fm=o.server?serverName(o.server):'';
-    if(fm) label+=' · '+fm;
-    var tagX=x+((o.tagX!=null)?+o.tagX:6);
-    var tagY=y+((o.tagY!=null)?+o.tagY:4);
-    var tfs=Math.max(9, Math.min(clip.w, clip.h)*0.016);
-    var tw=Math.max(48, label.length*tfs*0.62+10);
-    var th=tfs+8;
-    var body;
     if(wsHasPoly(o)){
       var pts=o.points.map(function(p){ return (+p.x||0)+','+(+p.y||0); }).join(' ');
-      body='<polygon points="'+pts+'" fill="rgba(201,168,76,0.22)" stroke="#8a6a12" '+sw+' stroke-dasharray="7 5"/>';
-    } else {
-      body='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="8" fill="rgba(201,168,76,0.18)" stroke="#8a6a12" '+sw+' stroke-dasharray="7 5"/>';
+      return '<polygon points="'+pts+'" fill="rgba(201,168,76,0.22)" stroke="#8a6a12" '+sw+' stroke-dasharray="7 5"/>';
     }
-    return '<g>'+body+'<rect x="'+tagX+'" y="'+tagY+'" width="'+tw+'" height="'+th+'" rx="4" fill="#c9a84c"/>'+svgText(tagX+tw/2, tagY+th/2, label, tfs)+'</g>';
+    return '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="8" fill="rgba(201,168,76,0.18)" stroke="#8a6a12" '+sw+' stroke-dasharray="7 5"/>';
   }
   if(o.type==='chair'){
     return '<g'+svgRot(o)+'>'+
@@ -1860,7 +1882,22 @@ function printObjSvg(o, clip){
   if(o.type==='host') label=o.label||'Host';
   if(o.type==='station') label=o.label||'Sideboard';
   if(o.type==='label') label=o.label||'';
-  if(SEATABLE[o.type]) label=(o.vip?'★ ':'')+(o.num||'')+(o.guestName?' · '+o.guestName:'');
+  if(o.type==='couch'){
+    var couchShape='<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="14" fill="#fff" stroke="#333" '+sw+'/>';
+    return '<g'+svgRot(o)+'>'+couchShape+'</g>';
+  }
+  if(SEATABLE[o.type]){
+    var seats=o.seats||(o.type==='stool'?1:2);
+    var numLabel=(o.vip?'★ ':'')+String(o.num||'');
+    var seatFs=Math.max(7, fs*0.72);
+    var shapeT=round
+      ? '<ellipse cx="'+(x+w/2)+'" cy="'+(y+h/2)+'" rx="'+(w/2)+'" ry="'+(h/2)+'" fill="#fff" stroke="#333" '+sw+'/>'
+      : '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="6" fill="#fff" stroke="#333" '+sw+'/>';
+    return '<g'+svgRot(o)+'>'+shapeT+
+      svgText(x+w/2, y+h/2-fs*0.28, numLabel, fs)+
+      svgText(x+w/2, y+h/2+fs*0.62, String(seats), seatFs)+
+      '</g>';
+  }
   var fill='#fff', stroke='#333', color='#1a1306';
   if(o.type==='kitchen'){ fill='rgba(224,122,107,0.16)'; stroke='#E07A6B'; color='#E07A6B'; label=o.label||'Kitchen'; }
   else if(o.type==='privateroom'){ fill='rgba(155,196,226,0.16)'; stroke='#9BC4E2'; color='#1a1306'; label=o.label||'Private Dining'; }
@@ -1873,6 +1910,20 @@ function printObjSvg(o, clip){
     ? '<ellipse cx="'+(x+w/2)+'" cy="'+(y+h/2)+'" rx="'+(w/2)+'" ry="'+(h/2)+'" fill="'+fill+'" stroke="'+stroke+'" '+sw+'/>'
     : '<rect x="'+x+'" y="'+y+'" width="'+w+'" height="'+h+'" rx="'+(o.type==='couch'?14:6)+'" fill="'+fill+'" stroke="'+stroke+'" '+sw+'/>';
   return '<g'+svgRot(o)+'>'+shape+svgText(x+w/2, y+h/2, label, fs, color)+'</g>';
+}
+function printStationTagSvg(o, clip){
+  var x=o.x||0, y=o.y||0;
+  var label='Station '+((o.num!==undefined&&o.num!==null&&o.num!=='')?o.num:'—');
+  var fm=o.server?serverName(o.server):'';
+  if(fm) label+=' · '+fm;
+  var tagX=x+((o.tagX!=null)?+o.tagX:6);
+  var tagY=y+((o.tagY!=null)?+o.tagY:4);
+  var tfs=Math.max(11, Math.min(clip.w, clip.h)*0.018);
+  var tw=Math.max(56, label.length*tfs*0.62+12);
+  var th=tfs+10;
+  return '<g class="pf-station-tag">'+
+    '<rect x="'+tagX+'" y="'+tagY+'" width="'+tw+'" height="'+th+'" rx="4" fill="#c9a84c" stroke="#1a1306" stroke-width="1.25" vector-effect="non-scaling-stroke"/>'+
+    svgText(tagX+tw/2, tagY+th/2, label, tfs)+'</g>';
 }
 function geometricFloorHtml(roomId, station, opts){
   opts=opts||{};
@@ -1894,11 +1945,12 @@ function geometricFloorHtml(roomId, station, opts){
     meta=hideStations?'Printed without Food Master Stations':(names||'No Food Master Stations in this room');
     clip=contentClip(objs, hideStations);
   }
-  var layers='';
+  var layers='', tags='';
   if(!hideStations){
     objs.filter(function(o){ return o.type==='waiterstation'; }).forEach(function(o){
       if(station && String(o.id)!==String(station.id)) return;
       layers+=printObjSvg(o, clip);
+      tags+=printStationTagSvg(o, clip);
     });
   }
   objs.filter(function(o){ return o.type!=='waiterstation'; }).forEach(function(o){
@@ -1906,6 +1958,7 @@ function geometricFloorHtml(roomId, station, opts){
     if(ox+ow<clip.x || oy+oh<clip.y || ox>clip.x+clip.w || oy>clip.y+clip.h) return;
     layers+=printObjSvg(o, clip);
   });
+  layers+=tags;
   var vb=clip.x+' '+clip.y+' '+clip.w+' '+clip.h;
   return '<div class="pf-map-wrap"><div class="pf-map-head">'+esc(heading)+'</div>'+
     '<div class="pf-map-meta">'+esc(meta)+'</div>'+
@@ -1919,12 +1972,18 @@ function printPageStyleEl(){
   if(!el){ el=document.createElement('style'); el.id='print-page-style'; document.head.appendChild(el); }
   return el;
 }
+function closePrintMenu(){
+  var m=$('print-menu');
+  if(m) m.open=false;
+}
 function printDoc(title, sub, maps, extra){
   extra=extra||{};
+  closePrintMenu();
   var area=$('print-area'); if(!area)return;
   if(!maps) maps='<div class="ps-card">Nothing to print.</div>';
   area.innerHTML='<div class="ps-doc'+(extra.fitPage?' fit-page':'')+'"><div class="ps-title">Epicurean House — '+esc(title)+'</div>'+
-    '<div class="ps-sub">'+esc(sub)+' · '+esc(new Date().toLocaleString())+'</div>'+maps+'</div>';
+    '<div class="ps-sub">'+esc(sub)+' · '+esc(new Date().toLocaleString())+'</div>'+maps+'</div>'+
+    (extra.summary?('<div class="ps-doc ps-turns">'+extra.summary+'</div>'):'');
   printPageStyleEl().textContent=extra.fitPage
     ? '@media print{@page{size:landscape;margin:0.4in;} html,body,#print-area,.ps-doc{width:100%!important;max-width:100%!important;}}'
     : '@media print{@page{size:landscape;margin:0.5in;}}';
@@ -1947,12 +2006,13 @@ function printPackedRooms(roomIds, opts){
   var names=ids.map(function(id){ return roomNameById(id); }).join(', ');
   var title=n===1?(names+' — one page'):(n===rooms.length?'Entire restaurant — one page':(n+' rooms — one page'));
   printDoc(title, 'Fitted to a single page'+(opts.hideStations?' · no stations':'')+' · '+names,
-    '<div class="ps-pack cols-'+cols+'">'+maps+'</div>', {fitPage:true});
+    '<div class="ps-pack cols-'+cols+'">'+maps+'</div>', {fitPage:true, summary:seatingSummaryHtml(ids)});
 }
 function printThisRoomOnePage(opts){
   printPackedRooms([FLOOR.room], opts||{});
 }
 function printChooseRooms(){
+  closePrintMenu();
   var rooms=STATE.rooms||[];
   if(!rooms.length){ toast('No rooms to print','error'); return; }
   var checks=rooms.map(function(rm){
@@ -2055,7 +2115,7 @@ function PAGE_floor(){
         '<div class="inspector" id="inspector"><h4>Properties</h4><div class="insp-empty">Select an object on the floor to edit it, or add one from the palette on the left.</div></div>'+
       '</div>'+
       '<div class="mini-note">Drag to move · drag a Food Master name tag anywhere inside its station · drag the gold handle to resize · click to select. Layout saves to your shared database and feeds the food masters&rsquo; POS and bar screens.</div>'+
-      renderStationsPanel();
+      renderStationsPanel()+renderSeatingRail();
     return {title:'Floor Plan',sub:'Design your rooms',body:body,bind:bindFloor};
   } else {
     var legend='<div class="status-legend">'+STATUS_ORDER.map(function(k){ var s=TABLE_STATUS[k]; return '<div class="status-key"><span class="status-dot" style="background:'+s.bg+';border-color:'+s.border+'"></span>'+s.label+'</div>'; }).join('')+'</div>';
@@ -2065,13 +2125,19 @@ function PAGE_floor(){
         '<div class="inspector" id="inspector"><h4>Table</h4><div class="insp-empty">Tap a table to set its status, assign a food master, or override an error.</div></div>'+
       '</div>'+
       '<div class="mini-note">This is the live view your food masters and bar screens see. As a manager you can override any table &mdash; change status, reassign the food master, or clear it.</div>'+
-      renderStationsPanel();
+      renderStationsPanel()+renderSeatingRail();
     return {title:'Live Service',sub:'Real-time table status & manager override',body:body,bind:bindFloor};
   }
 }
 
 function bindFloor(){
   renderFloor();
+  var printMenu=$('print-menu');
+  if(printMenu){
+    printMenu.addEventListener('click',function(e){
+      if(e.target.closest && e.target.closest('.print-menu-list button')) closePrintMenu();
+    }, true);
+  }
   document.querySelectorAll('#room-tabs .room-tab').forEach(function(tab){
     tab.addEventListener('click',function(e){
       if(e.target.getAttribute('data-delroom')){ e.stopPropagation(); delRoom(e.target.getAttribute('data-delroom')); return; }
@@ -2088,6 +2154,7 @@ function bindFloor(){
 }
 
 function renderFloor(){
+  ensureDemoTurns();
   var canvas=$('floor-canvas'); if(!canvas)return; canvas.innerHTML='';
   var objs=curObjs();
   objs.forEach(function(o){ if(o.type==='waiterstation') drawObj(canvas,o); });
@@ -2095,6 +2162,7 @@ function renderFloor(){
   drawStationNameTags(canvas);
   renderInspector();
   refreshStationsPanel();
+  var rail=$('seating-rail'); if(rail) rail.outerHTML=renderSeatingRail();
 }
 
 function drawObj(canvas,o){
@@ -2327,18 +2395,132 @@ function resetStationRect(id){ var o=findObj(id); if(!o)return; delete o.points;
    POS surfaces them via tableNote). Stored on the table object:
    guestName (string), guestId (optional link to STATE.guests), vip (bool),
    notes (array of strings). POS reads these from boh_shared/tables.roomObjs. */
-function tableHasGuestInfo(o){ return !!(o&&(o.vip||o.guestName||o.guestId||(Array.isArray(o.notes)&&o.notes.length))); }
+function tableHasGuestInfo(o){ return !!(o&&(o.vip||o.guestName||o.guestId||(Array.isArray(o.notes)&&o.notes.length)||(Array.isArray(o.turns)&&o.turns.length))); }
 function tableNotesArr(o){ if(!o)return []; if(Array.isArray(o.notes))return o.notes.filter(Boolean); if(o.notes)return [String(o.notes)]; return []; }
+var DEMO_TABLE_TURNS={
+  '22':[
+    {time:'5:00 PM', name:'Harrison Chen', party:6, vip:false, notes:'Anniversary · prefer window'},
+    {time:'7:00 PM', name:'UK Prime Minister', party:4, vip:true, notes:'Security detail · quiet corner'}
+  ],
+  '8':[{time:'6:00 PM', name:'Maya Patel', party:2, vip:false, notes:'Gluten-free bread'}],
+  '7':[
+    {time:'5:30 PM', name:'Luis Ortega', party:4, vip:false, notes:''},
+    {time:'8:00 PM', name:'The Chen party', party:5, vip:false, notes:'High chair'}
+  ],
+  '1':[{time:'6:15 PM', name:'Sofia Alvarez', party:2, vip:false, notes:'Celebrating a promotion'}],
+  '23':[{time:'7:30 PM', name:'James Whitaker', party:8, vip:true, notes:'Wine pairing already discussed'}]
+};
+function ensureDemoTurns(){
+  var used={};
+  allTables().forEach(function(o){
+    if(!o || o.type==='couch') return;
+    if(Array.isArray(o.turns)&&o.turns.length) return;
+    var key=String(o.num);
+    if(DEMO_TABLE_TURNS[key] && !used[key]){ o._demoTurns=DEMO_TABLE_TURNS[key]; used[key]=1; }
+  });
+  var leftover=Object.keys(DEMO_TABLE_TURNS).filter(function(k){ return !used[k]; });
+  allTables().forEach(function(o){
+    if(!leftover.length) return;
+    if(!o || o.type==='couch') return;
+    if((Array.isArray(o.turns)&&o.turns.length) || o._demoTurns) return;
+    var k=leftover.shift();
+    o._demoTurns=DEMO_TABLE_TURNS[k];
+  });
+}
+function tableTurns(o){
+  if(o && Array.isArray(o.turns) && o.turns.length) return o.turns;
+  if(o && o._demoTurns && o._demoTurns.length) return o._demoTurns;
+  return [];
+}
+function cloneTurns(list){ return (list||[]).map(function(t){ return {time:t.time||'', name:t.name||'', party:+t.party||2, vip:!!t.vip, notes:t.notes||''}; }); }
+function seatingSummaryHtml(roomIds){
+  ensureDemoTurns();
+  var ids=(roomIds&&roomIds.length)?roomIds:(STATE.rooms||[]).map(function(r){return r.id;});
+  var cards='';
+  ids.forEach(function(rid){
+    var room=(STATE.rooms||[]).filter(function(r){return r.id===rid;})[0];
+    ((STATE.roomObjs||{})[rid]||[]).forEach(function(o){
+      if(!SEATABLE[o.type] || o.type==='couch') return;
+      var turns=tableTurns(o);
+      if(!turns.length && !tableNotesArr(o).length && !o.guestName) return;
+      var rows=turns.map(function(t){
+        return '<div class="ps-trow">'+(t.time?esc(t.time)+' · ':'')+(t.vip?'<span class="ps-tvip">VIP </span>':'')+esc(t.name||'Guest')+', '+(t.party||'?')+'ppl'+(t.notes?('<div class="ps-tnote">'+esc(t.notes)+'</div>'):'')+'</div>';
+      }).join('');
+      if(!rows && o.guestName) rows='<div class="ps-trow">'+esc(o.guestName)+(o.vip?' · VIP':'')+'</div>';
+      var extra=tableNotesArr(o).map(function(n){ return '<div class="ps-tnote">'+esc(n)+'</div>'; }).join('');
+      cards+='<div class="ps-tcard"><div class="ps-th">Table '+esc(o.num)+' · '+(o.seats||2)+' seats'+(room?' · '+esc(room.name):'')+'</div>'+rows+extra+'</div>';
+    });
+  });
+  if(!cards) cards='<div class="ps-tcard">No guest seatings on file yet. Add times and names on each table in Floor &amp; Tables.</div>';
+  return '<h2>Tonight’s seatings</h2><div class="ps-t-sub">Names, times, party size, and notes from the table. Next seating is the later time on the same table.</div>'+cards;
+}
+function renderSeatingRail(){
+  ensureDemoTurns();
+  var cards='';
+  (STATE.rooms||[]).forEach(function(rm){
+    ((STATE.roomObjs||{})[rm.id]||[]).forEach(function(o){
+      if(!SEATABLE[o.type] || o.type==='couch') return;
+      var turns=tableTurns(o);
+      if(!turns.length) return;
+      var rows=turns.map(function(t){
+        return '<div class="sr-row">'+(t.time?esc(t.time)+' · ':'')+(t.vip?'<span class="sr-vip">VIP </span>':'')+esc(t.name||'Guest')+', '+(t.party||'?')+'ppl'+(t.notes?'<div class="sr-note">'+esc(t.notes)+'</div>':'')+'</div>';
+      }).join('');
+      cards+='<div class="sr-card"><div class="sr-h">Table '+esc(o.num)+' · '+(o.seats||2)+' seats · '+esc(rm.name)+'</div>'+rows+'</div>';
+    });
+  });
+  return '<div class="seating-rail" id="seating-rail"><h3>Tonight’s seatings</h3><div class="sr-sub">Who sits, at what time, party size, and notes. Demo names show until you replace them on the table.</div>'+(cards?'<div class="sr-grid">'+cards+'</div>':'<div class="sr-sub">No seatings yet. Select a table and add tonight’s times.</div>')+'</div>';
+}
 function guestDatalist(){ return '<datalist id="guest-names">'+(STATE.guests||[]).map(function(g){ return '<option value="'+esc(g.name||'')+'">'; }).join('')+'</datalist>'; }
 function setTableGuest(id,name){ var o=findObj(id); if(!o)return; name=(name||'').trim(); o.guestName=name; var g=(STATE.guests||[]).filter(function(x){ return (x.name||'').toLowerCase()===name.toLowerCase(); })[0]; o.guestId=g?g.id:''; saveFloor(); renderFloor(); }
 function toggleTableVip(id,val){ var o=findObj(id); if(!o)return; o.vip=!!val; saveFloor(); renderFloor(); }
 function setTableNotes(id,text){ var o=findObj(id); if(!o)return; o.notes=(text||'').split('\n').map(function(s){ return s.trim(); }).filter(Boolean); saveFloor(); renderFloor(); }
+function ownTableTurns(o){
+  if(!o) return [];
+  if(!Array.isArray(o.turns)) o.turns=cloneTurns(tableTurns(o));
+  return o.turns;
+}
+function setTableTurn(id, idx, field, val){
+  var o=findObj(id); if(!o)return;
+  var list=ownTableTurns(o);
+  if(!list[idx]) return;
+  if(field==='party') list[idx].party=Math.max(1, parseInt(val,10)||1);
+  else if(field==='vip') list[idx].vip=!!val;
+  else list[idx][field]=val;
+  o._demoTurns=null;
+  saveFloor(); renderFloor();
+}
+function addTableTurn(id){
+  var o=findObj(id); if(!o)return;
+  ownTableTurns(o).push({time:'', name:'', party:o.seats||2, vip:false, notes:''});
+  o._demoTurns=null;
+  saveFloor(); renderInspector();
+}
+function removeTableTurn(id, idx){
+  var o=findObj(id); if(!o)return;
+  ownTableTurns(o).splice(idx,1);
+  o._demoTurns=null;
+  saveFloor(); renderInspector(); renderFloor();
+}
 function guestFieldsHtml(o){
   var notesText=tableNotesArr(o).join('\n');
+  ensureDemoTurns();
+  var turns=tableTurns(o);
+  var turnHtml='<div class="insp-turns"><label>Tonight’s seatings</label>';
+  turns.forEach(function(t,i){
+    turnHtml+='<div class="insp-turn">'+
+      '<div class="insp-row"><input class="insp-input" placeholder="5:00 PM" value="'+esc(t.time||'')+'" onchange="setTableTurn(\''+o.id+'\','+i+',\'time\',this.value)">'+
+      '<input class="insp-input" type="number" min="1" max="30" title="Party size" value="'+(t.party||2)+'" onchange="setTableTurn(\''+o.id+'\','+i+',\'party\',this.value)"></div>'+
+      '<input class="insp-input" placeholder="Guest name" value="'+esc(t.name||'')+'" onchange="setTableTurn(\''+o.id+'\','+i+',\'name\',this.value)">'+
+      '<label class="vip-toggle"><input type="checkbox" '+(t.vip?'checked':'')+' onchange="setTableTurn(\''+o.id+'\','+i+',\'vip\',this.checked)"> VIP</label>'+
+      '<input class="insp-input" placeholder="Notes" value="'+esc(t.notes||'')+'" onchange="setTableTurn(\''+o.id+'\','+i+',\'notes\',this.value)">'+
+      '<button type="button" class="btn btn-ghost btn-sm" onclick="removeTableTurn(\''+o.id+'\','+i+')">Remove</button></div>';
+  });
+  turnHtml+='<button type="button" class="btn btn-ghost btn-sm" onclick="addTableTurn(\''+o.id+'\')">+ Add seating</button></div>';
   return '<div class="insp-guest">'+
     field('Guest name','<input class="insp-input" list="guest-names" value="'+esc(o.guestName||'')+'" placeholder="Guest seated here" onchange="setTableGuest(\''+o.id+'\',this.value)">')+
     '<div class="insp-field"><label class="vip-toggle"><input type="checkbox" '+(o.vip?'checked':'')+' onchange="toggleTableVip(\''+o.id+'\',this.checked)"> <span>\u2605 VIP guest</span></label></div>'+
     field('Guest notes (one per line)','<textarea class="insp-input" rows="3" placeholder="Allergies, seating preference, occasion\u2026" onchange="setTableNotes(\''+o.id+'\',this.value)">'+esc(notesText)+'</textarea>')+
+    turnHtml+
   '</div>'+guestDatalist();
 }
 /* ---- inspector (edit mode) / override (live mode) ---- */
