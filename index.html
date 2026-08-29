@@ -154,14 +154,23 @@ tbody tr:hover{background:rgba(24,43,69,0.4);}
   border-radius:9px;border:1px solid var(--border-soft);background:rgba(24,43,69,0.4);color:var(--text-dim);
   font-size:12.5px;font-weight:500;cursor:pointer;transition:all .13s var(--ease-out);font-family:'Inter';}
 .pal-btn:hover{border-color:var(--border-strong);color:var(--text);background:rgba(24,43,69,0.8);transform:translateX(2px);}
-.pal-btn .pi{font-size:15px;width:20px;text-align:center;flex-shrink:0;}
-.pal-btn[data-add="label"] .pi{background:#fff;color:#111;border-radius:5px;width:22px;height:20px;
-  display:inline-flex;align-items:center;justify-content:center;box-shadow:0 0 0 1px #fff;}
+.pal-btn .pi{font-size:15px;width:22px;height:20px;text-align:center;flex-shrink:0;display:inline-flex;align-items:center;justify-content:center;}
+.pal-btn[data-add="label"] .pi{background:#fff;color:#111;border-radius:5px;box-shadow:0 0 0 1px #fff;}
+.pal-btn .pal-chair-ico,.pal-btn .pal-sideboard-ico{width:22px;height:22px;overflow:visible;}
+.pal-chair-ico{width:22px;height:22px;background:#fff;border-radius:5px;position:relative;box-shadow:0 0 0 1px #fff;flex-shrink:0;}
+.pal-chair-ico:before{content:'';position:absolute;left:22%;right:22%;top:8%;height:34%;border:2px solid #8a6a12;border-bottom:none;border-radius:7px 7px 0 0;background:#f3e6c4;}
+.pal-chair-ico:after{content:'';position:absolute;left:12%;right:12%;top:38%;bottom:12%;border:2px solid #8a6a12;border-radius:5px;background:#efe0b8;}
+.pal-sideboard-ico{width:22px;height:20px;background:#fff;border-radius:4px;position:relative;box-shadow:0 0 0 1px #fff;flex-shrink:0;}
+.pal-sideboard-ico:before{content:'';position:absolute;inset:3px;border:1.5px solid #1a1306;border-radius:2px;background:#fff;}
+.pal-sideboard-ico:after{content:'';position:absolute;left:5px;right:5px;top:9px;height:1.5px;background:#1a1306;box-shadow:0 5px 0 #1a1306;}
 .f-chair{width:100%;height:100%;position:relative;}
 .f-chair-back{position:absolute;left:18%;right:18%;top:6%;height:36%;
   border:2.5px solid var(--gold);border-bottom:none;border-radius:10px 10px 0 0;background:rgba(201,168,76,0.22);}
 .f-chair-seat{position:absolute;left:10%;right:10%;top:40%;bottom:10%;
   border:2.5px solid var(--gold);border-radius:8px;background:rgba(201,168,76,0.18);}
+.f-station-ico{width:28px;height:22px;background:#fff;border-radius:4px;border:1.5px solid #1a1306;position:relative;flex-shrink:0;}
+.f-station-ico:before{content:'';position:absolute;left:4px;right:4px;top:6px;height:1.5px;background:#1a1306;}
+.f-station-ico:after{content:'';position:absolute;left:4px;right:4px;top:12px;height:1.5px;background:#1a1306;}
 .print-menu{position:relative;display:inline-block;margin-right:12px;}
 .print-menu>summary{list-style:none;cursor:pointer;}
 .print-menu>summary::-webkit-details-marker{display:none;}
@@ -209,7 +218,7 @@ tbody tr:hover{background:rgba(24,43,69,0.4);}
 .f-host{width:100%;height:100%;background:var(--panel-3);border:1.5px solid var(--gold);border-radius:8px;
   display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:var(--gold);letter-spacing:.06em;}
 .f-station{width:100%;height:100%;background:rgba(155,196,226,0.12);border:2px dashed var(--blue);border-radius:8px;
-  display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--blue);text-align:center;padding:4px;gap:2px;}
+  display:flex;flex-direction:column;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--blue);text-align:center;padding:4px;gap:4px;}
 .f-waiterstation{width:100%;height:100%;border:2px dashed var(--gold);border-radius:10px;
   background:rgba(201,168,76,0.07);position:relative;box-shadow:inset 0 0 30px rgba(201,168,76,0.05);}
 .f-waiterstation .ws-tag{position:absolute;top:6px;left:8px;font-size:10px;font-weight:700;letter-spacing:.04em;
@@ -501,7 +510,10 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .stations-panel .sp-title{font-family:'Cormorant Garamond',serif;font-size:22px;color:var(--text);}
 .stations-panel .sp-count{font-size:12px;color:var(--text-dim);background:rgba(201,168,76,0.1);border:1px solid var(--border);border-radius:20px;padding:3px 10px;}
 .stations-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:12px;}
-.station-card{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:13px 15px;}
+.station-card{background:var(--panel-2);border:1px solid var(--border-soft);border-radius:12px;padding:13px 28px 13px 15px;position:relative;cursor:pointer;}
+.station-card:hover{border-color:var(--gold);}
+.station-card .sc-x{position:absolute;top:6px;right:6px;width:24px;height:24px;border:none;background:transparent;color:var(--text-faint);font-size:18px;line-height:1;cursor:pointer;border-radius:6px;}
+.station-card .sc-x:hover{color:var(--red);background:rgba(224,122,107,0.16);}
 .station-card .sc-top{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:6px;}
 .station-card .sc-num{font-weight:700;color:var(--gold);font-size:15px;}
 .station-card .sc-room{font-size:11px;color:var(--text-faint);text-transform:uppercase;letter-spacing:1px;}
@@ -563,12 +575,26 @@ textarea.input{resize:vertical;font-size:14px;line-height:1.5;}
 .pf-chair{border:none;background:transparent;}
 .pf-chair-back{position:absolute;left:18%;right:18%;top:6%;height:36%;border:2px solid #333;border-bottom:none;border-radius:8px 8px 0 0;background:#eee;}
 .pf-chair-seat{position:absolute;left:10%;right:10%;top:40%;bottom:10%;border:2px solid #333;border-radius:6px;background:#f7f7f7;}
+.ps-pack{display:grid;gap:10px;align-items:start;}
+.ps-pack.cols-1{grid-template-columns:1fr;}
+.ps-pack.cols-2{grid-template-columns:1fr 1fr;}
+.ps-pack.cols-3{grid-template-columns:1fr 1fr 1fr;}
+.ps-pack.cols-4{grid-template-columns:1fr 1fr 1fr 1fr;}
+.ps-pack .pf-map-wrap{margin:0;}
+.ps-pack .pf-map{width:100% !important;height:auto !important;aspect-ratio:var(--src-w, 1200px) / var(--src-h, 800px);container-type:inline-size;overflow:hidden;}
+.ps-pack .pf-map > .pf-map-src{transform:scale(calc(100cqw / var(--src-w, 1200px))) !important;transform-origin:0 0;}
+.print-room-pick{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:14px;color:var(--text);cursor:pointer;}
 @media print{
   #root{display:none !important;}
   #print-area{display:block !important;}
-  @page{margin:12mm;}
+  @page{size:letter landscape;margin:10mm;}
   .pf-map-wrap{page-break-after:always;}
   .pf-map-wrap:last-child{page-break-after:auto;}
+  .ps-doc.fit-page{padding:8px 12px;max-height:196mm;overflow:hidden;}
+  .ps-doc.fit-page .ps-title{font-size:16px;margin-bottom:0;}
+  .ps-doc.fit-page .ps-sub{margin-bottom:6px;padding-bottom:4px;font-size:11px;}
+  .ps-doc.fit-page .pf-map-wrap{page-break-after:auto !important;page-break-inside:avoid;margin:0;}
+  .ps-doc.fit-page .ps-pack{page-break-inside:avoid;max-height:172mm;overflow:hidden;}
 }
 </style>
 </head>
@@ -1622,13 +1648,13 @@ var PALETTE=[
   ]},
   {group:'Seating', items:[
     {t:'stool',   i:'\u25cf', l:'Bar stool'},
-    {t:'chair',   i:'\uD83E\uDE91', l:'Chair'},
+    {t:'chair',   i:'chair', l:'Chair'},
     {t:'outdoor', i:'\u2600', l:'Outdoor seat'}
   ]},
   {group:'Service', items:[
     {t:'bar',     i:'\uD83C\uDF78', l:'Bar counter'},
     {t:'host',    i:'\uD83D\uDCCD', l:'Host stand'},
-    {t:'station', i:'\uD83D\uDCE6', l:'Sideboard'},
+    {t:'station', i:'sideboard', l:'Sideboard'},
     {t:'kiosk',   i:'\uD83D\uDED2', l:'Kiosk'}
   ]},
   {group:'Structure', items:[
@@ -1689,12 +1715,14 @@ function renderStationsPanel(){
     var entries=stationTableEntries(s,map,omap);
     var fm=stationFM(s);
     var tlist=entries.map(function(e){ return (e.vip?'<span class="vip-mark" title="VIP">\u2605</span>':'')+esc(e.num); }).join(', ');
-    return '<div class="station-card">'+
+    var sid=esc(String(s.id));
+    return '<div class="station-card" onclick="editStationFromCard(\''+sid+'\')">'+
+      '<button type="button" class="sc-x" title="Delete station" onclick="deleteStationFromCard(\''+sid+'\',event)">\u00d7</button>'+
       '<div class="sc-top"><span class="sc-num">Station '+esc(stationNumLabel(s))+'</span>'+
         '<span class="sc-room">'+esc(roomNameById(s.room))+'</span></div>'+
       '<div class="sc-fm">'+(fm?esc(fm):'<span class="muted">Unassigned</span>')+(isPosStation(s)?' <span class="sc-src">POS</span>':'')+'</div>'+
       '<div class="sc-tables"><b>'+entries.length+'</b> table'+(entries.length===1?'':'s')+(entries.length?': '+tlist:'')+'</div>'+
-      '<div class="sc-print"><button class="btn btn-ghost btn-sm no-print" onclick="printStations(\''+esc(String(s.id))+'\')">🖨 Print station map</button></div>'+
+      '<div class="sc-print"><button class="btn btn-ghost btn-sm no-print" onclick="event.stopPropagation();printStations(\''+sid+'\')">🖨 Print station map</button></div>'+
     '</div>';
   }).join('');
   return '<div class="stations-panel no-print" id="stations-panel-host">'+
@@ -1704,6 +1732,45 @@ function renderStationsPanel(){
       '<button class="btn btn-gold btn-sm" onclick="printStations()">🖨 Print all station maps</button></div>'+
     (list.length?'<div class="stations-grid">'+cards+'</div>':'<div class="sp-empty">No Food Master Stations yet. Add a Food Master Station zone from the palette and place tables inside it.</div>')+
   '</div>';
+}
+function findStationAcrossRooms(id){
+  id=String(id||'');
+  for(var r in STATE.roomObjs){
+    var o=(STATE.roomObjs[r]||[]).filter(function(x){ return String(x.id)===id; })[0];
+    if(o) return {obj:o, room:r};
+  }
+  return null;
+}
+function editStationFromCard(id){
+  var hit=findStationAcrossRooms(id);
+  if(!hit){
+    var st=(stationsView()||[]).filter(function(s){ return String(s.id)===String(id); })[0];
+    if(st && st.room){ FLOOR.room=st.room; FLOOR.sel=null; FLOOR.mode='edit'; render(); toast('This station is on '+roomNameById(st.room)); return; }
+    toast('Station not found on the floor','error'); return;
+  }
+  FLOOR.room=hit.room; FLOOR.sel=hit.obj.id; FLOOR.mode='edit';
+  render();
+  requestAnimationFrame(function(){
+    var node=document.querySelector('#floor-canvas .floor-obj[data-id="'+hit.obj.id+'"]');
+    if(node && node.scrollIntoView) node.scrollIntoView({block:'center', inline:'center', behavior:'smooth'});
+  });
+}
+function deleteStationFromCard(id, ev){
+  if(ev){ ev.preventDefault(); ev.stopPropagation(); }
+  var st=(stationsView()||[]).filter(function(s){ return String(s.id)===String(id); })[0];
+  var label='Station '+(st?stationNumLabel(st):'');
+  openModal('Delete '+label,
+    '<div style="color:var(--text-dim);font-size:14px;line-height:1.6">Remove <b style="color:var(--text)">'+esc(label)+'</b> from the floor? Tables stay in place; only the Food Master Station overlay is deleted.</div>',
+    'Delete station',
+    function(){
+      var hit=findStationAcrossRooms(id);
+      if(hit){
+        STATE.roomObjs[hit.room]=(STATE.roomObjs[hit.room]||[]).filter(function(x){ return String(x.id)!==String(id); });
+      }
+      STATE.stations=(STATE.stations||[]).filter(function(s){ return String(s.id)!==String(id); });
+      if(FLOOR.sel && String(FLOOR.sel)===String(id)) FLOOR.sel=null;
+      saveFloor(true); render(); toast(label+' deleted','success'); return true;
+    });
 }
 function stationBBox(s){
   var pts=(s&&Array.isArray(s.points)&&s.points.length>=3)?s.points:null;
@@ -1779,15 +1846,50 @@ function geometricFloorHtml(roomId, station, opts){
   var scale=Math.min(1, maxPrintW/Math.max(clip.w,1));
   return '<div class="pf-map-wrap"><div class="pf-map-head">'+esc(heading)+'</div>'+
     '<div class="pf-map-meta">'+esc(meta)+'</div>'+
-    '<div class="pf-map" style="width:'+(clip.w*scale)+'px;height:'+(clip.h*scale)+'px;">'+
-    '<div style="position:absolute;left:0;top:0;width:'+clip.w+'px;height:'+clip.h+'px;transform:scale('+scale+');transform-origin:0 0;">'+layers+'</div></div></div>';
+    '<div class="pf-map" style="--src-w:'+clip.w+'px;--src-h:'+clip.h+'px;width:'+(clip.w*scale)+'px;height:'+(clip.h*scale)+'px;">'+
+    '<div class="pf-map-src" style="position:absolute;left:0;top:0;width:'+clip.w+'px;height:'+clip.h+'px;transform:scale('+scale+');transform-origin:0 0;">'+layers+'</div></div></div>';
 }
-function printDoc(title, sub, maps){
+function printDoc(title, sub, maps, extra){
+  extra=extra||{};
   var area=$('print-area'); if(!area)return;
   if(!maps) maps='<div class="ps-card">Nothing to print.</div>';
-  area.innerHTML='<div class="ps-doc"><div class="ps-title">Epicurean House — '+esc(title)+'</div>'+
+  area.innerHTML='<div class="ps-doc'+(extra.fitPage?' fit-page':'')+'"><div class="ps-title">Epicurean House — '+esc(title)+'</div>'+
     '<div class="ps-sub">'+esc(sub)+' · '+esc(new Date().toLocaleString())+'</div>'+maps+'</div>';
   window.print();
+}
+function printPackedRooms(roomIds, opts){
+  opts=opts||{};
+  var rooms=STATE.rooms||[];
+  var ids=(roomIds&&roomIds.length)?roomIds.slice():rooms.map(function(r){return r.id;});
+  if(!ids.length){ toast('No rooms to print','error'); return; }
+  var n=ids.length;
+  var cols=n===1?1:(n<=2?2:(n<=6?3:4));
+  var maps=ids.map(function(id){ return geometricFloorHtml(id,null,opts); }).join('');
+  var names=ids.map(function(id){ return roomNameById(id); }).join(', ');
+  var title=n===1?(names+' — one page'):(n===rooms.length?'Entire restaurant — one page':(n+' rooms — one page'));
+  printDoc(title, 'Fitted to a single page'+(opts.hideStations?' · no stations':'')+' · '+names,
+    '<div class="ps-pack cols-'+cols+'">'+maps+'</div>', {fitPage:true});
+}
+function printThisRoomOnePage(opts){
+  printPackedRooms([FLOOR.room], opts||{});
+}
+function printChooseRooms(){
+  var rooms=STATE.rooms||[];
+  if(!rooms.length){ toast('No rooms to print','error'); return; }
+  var checks=rooms.map(function(rm){
+    return '<label class="print-room-pick"><input type="checkbox" class="print-room-cb" value="'+esc(rm.id)+'" checked> '+esc(rm.name)+'</label>';
+  }).join('');
+  openModal('Print rooms on one page',
+    '<div class="mini-note" style="margin-top:0">Pick any rooms. They print together, scaled to fit a single landscape page.</div>'+
+    checks+
+    '<label class="print-room-pick" style="margin-top:10px;border-top:1px solid var(--border-soft);padding-top:10px;"><input type="checkbox" id="print-hide-st"> Hide Food Master Stations</label>',
+    'Print one page',
+    function(){
+      var ids=[].slice.call(document.querySelectorAll('.print-room-cb:checked')).map(function(el){ return el.value; });
+      if(!ids.length){ toast('Pick at least one room','error'); return false; }
+      printPackedRooms(ids, {hideStations:!!$('print-hide-st')&&$('print-hide-st').checked});
+      return true;
+    });
 }
 function printRoomMap(opts){
   opts=opts||{};
@@ -1825,12 +1927,13 @@ function printMenuHtml(){
   return '<details class="print-menu no-print" id="print-menu">'+
     '<summary class="btn btn-ghost btn-sm">🖨 Print</summary>'+
     '<div class="print-menu-list">'+
-      '<button type="button" onclick="printRoomMap()">This room (with stations)</button>'+
-      '<button type="button" onclick="printRoomMap({hideStations:true})">This room (no stations)</button>'+
-      '<button type="button" onclick="printAllRooms()">Entire restaurant (with stations)</button>'+
-      '<button type="button" onclick="printAllRooms({hideStations:true})">Entire restaurant (no stations)</button>'+
-      '<button type="button" onclick="printStations()">All stations together</button>'+
-      '<button type="button" onclick="printSelectedStation()">This station / stations in this room</button>'+
+      '<button type="button" onclick="printThisRoomOnePage()">This room — one page</button>'+
+      '<button type="button" onclick="printPackedRooms()">Entire restaurant — one page</button>'+
+      '<button type="button" onclick="printChooseRooms()">Choose rooms — one page</button>'+
+      '<button type="button" onclick="printThisRoomOnePage({hideStations:true})">This room — one page, no stations</button>'+
+      '<button type="button" onclick="printPackedRooms(null,{hideStations:true})">Entire restaurant — one page, no stations</button>'+
+      '<button type="button" onclick="printStations()">All stations (separate pages)</button>'+
+      '<button type="button" onclick="printSelectedStation()">This station only</button>'+
     '</div></details>';
 }
 function refreshStationsPanel(){ var host=$('stations-panel-host'); if(host){ host.outerHTML=renderStationsPanel(); } }
@@ -1860,7 +1963,10 @@ function PAGE_floor(){
   if(FLOOR.mode==='edit'){
     var palHTML=PALETTE.map(function(g){
       return '<div class="palette-group">'+g.group+'</div>'+g.items.map(function(it){
-        return '<button class="pal-btn" data-add="'+it.t+'"><span class="pi">'+it.i+'</span>'+it.l+'</button>';
+        var ico=it.t==='chair'?'<span class="pi pal-chair-ico" aria-hidden="true"></span>':
+          (it.t==='station'?'<span class="pi pal-sideboard-ico" aria-hidden="true"></span>':
+          '<span class="pi">'+it.i+'</span>');
+        return '<button class="pal-btn" data-add="'+it.t+'">'+ico+it.l+'</button>';
       }).join('');
     }).join('');
     body=toolbar+
@@ -1943,7 +2049,7 @@ function drawObj(canvas,o){
   } else if(o.type==='host'){
     node.innerHTML='<div class="f-host">'+esc(o.label||'HOST')+'</div>';
   } else if(o.type==='station'){
-    node.innerHTML='<div class="f-station"><span style="font-size:14px">\uD83D\uDCE6</span>'+esc(o.label||'Station')+'</div>';
+    node.innerHTML='<div class="f-station"><span class="f-station-ico" title="Sideboard"></span>'+esc(o.label||'Sideboard')+'</div>';
   } else if(o.type==='waiterstation'){
     var wsNum=(o.num!==undefined&&o.num!==null&&o.num!=='')?o.num:'\u2014';
     var wsName=o.server?serverName(o.server):'';
@@ -2183,10 +2289,10 @@ function addFloorObj(palType){
     'couch':{type:'couch',w:150,h:60,num:'Booth',seats:4,status:'open',server:''},
     'stool':{type:'stool',w:40,h:40,num:'S',seats:1,status:'open',server:''},
     'outdoor':{type:'outdoor',w:70,h:70,num:'P',seats:2,status:'open',server:''},
-    'chair':{type:'chair',w:36,h:40,label:'Chair'},
+    'chair':{type:'chair',w:44,h:48,label:'Chair'},
     'bar':{type:'bar',w:220,h:80,label:'Bar Counter'},
     'host':{type:'host',w:70,h:44,label:'Host'},
-    'station':{type:'station',w:80,h:60,label:'Station'},
+    'station':{type:'station',w:80,h:60,label:'Sideboard'},
     'waiterstation':{type:'waiterstation',w:220,h:180,num:nextStationNum(),server:''},
     'kiosk':{type:'kiosk',w:80,h:80,label:'Kiosk'},
     'wall-h':{type:'wall',w:220,h:12,label:''},
@@ -2371,7 +2477,7 @@ function saveProfile(id){
   s.name=name; s.code=code; s.status=$('pf-status').value;
   var hd=$('pf-hired').value; if(hd)s.hired=new Date(hd).getTime();
   s.contact={ address:$('pf-address').value.trim(), city:$('pf-city').value.trim(), state:$('pf-state').value.trim(), zip:$('pf-zip').value.trim(), phone:$('pf-phone').value.trim(), email:$('pf-email').value.trim(), emName:$('pf-emname').value.trim(), emPhone:$('pf-emphone').value.trim() };
-  persistStaff(); render(); toast('Profile saved','success');
+  persistStaff(); EMP.openId=null; render(); toast('Profile saved','success');
 }
 
 /* ---- Tab: Jobcodes & Access ---- */
@@ -2397,7 +2503,7 @@ function saveJobs(id){
   var s=empById(id); if(!s)return;
   s.jobs=(s.jobs||[]).map(function(j,i){ return { code:$('job-code-'+i).value, access:$('job-acc-'+i).value, rate:parseFloat($('job-rate-'+i).value)||0 }; });
   s.perms=collectPermsInline(s);
-  persistStaff(); render(); toast('Jobcodes saved','success');
+  persistStaff(); EMP.openId=null; render(); toast('Jobcodes saved','success');
 }
 function managerPermsBlock(s){
   var isMgr=(s.code||'')[0]==='5' || (s.jobs||[]).some(function(j){return j.access==='Manager'||j.access==='Full';});
