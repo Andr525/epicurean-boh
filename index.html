@@ -880,6 +880,7 @@ function showPhotoPreview(input, url){
   }
 }
 </script>
+<script src="scalini-dining.js"></script>
 <input type="file" id="photo-file-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
 <script>
 /* ============================================================
@@ -3626,88 +3627,58 @@ function decrementStock(type,rid,qty){
    ============================================================ */
 
 /* ---- STATE extensions ---- */
-if(!STATE.tastingMenus) STATE.tastingMenus = lsGet('eh_tasting_menus', seedTastingMenus());
-if(!STATE.prixFixeMenus) STATE.prixFixeMenus = lsGet('eh_prix_fixe_menus', seedPrixFixeMenus());
+STATE.tastingMenus = lsGet('eh_tasting_menus', seedTastingMenus());
+STATE.prixFixeMenus = lsGet('eh_prix_fixe_menus', seedPrixFixeMenus());
+ensureScaliniDiningMenus();
 
-function seedTastingMenus(){
-  return [
-    {
-      id:'tm_chef7', name:"Chef's Tasting", subtitle:'7-Course Seasonal Journey',
-      price:145, duration:'~3 hours', courses:[
-        {num:1, name:'Amuse-Bouche', desc:'Seasonal micro-bite from the chef', station:'Cold / Garde Manger'},
-        {num:2, name:'Ceviche Course', desc:'Corvina, leche de tigre, sweet potato crisp', station:'Cold / Garde Manger'},
-        {num:3, name:'Cold Plate', desc:'Tuna tartare, avocado mousse, sesame', station:'Cold / Garde Manger'},
-        {num:4, name:'Soup', desc:'Seasonal bisque, herb oil, crouton', station:'Sauté'},
-        {num:5, name:'Fish', desc:'Pan-seared salmon, beurre blanc, asparagus', station:'Sauté'},
-        {num:6, name:'Meat', desc:'Wagyu ribeye, chimichurri, roasted garlic', station:'Grill'},
-        {num:7, name:'Dessert', desc:'Chocolate torte, raspberry, gold leaf', station:'Pastry'}
-      ],
-      pairings:[
-        {id:'p1', name:'Wine Pairing', desc:'Sommelier-selected wines per course', price:85},
-        {id:'p2', name:'Premium Pairing', desc:'Reserve & rare selections', price:145}
-      ],
-      active:true, service:'dinner', createdAt:Date.now()
-    },
-    {
-      id:'tm_choc5', name:'Chocolate Experience', subtitle:'5-Course Cacao Journey',
-      price:95, duration:'~2 hours', courses:[
-        {num:1, name:'Cacao Amuse', desc:'White chocolate sphere, passion fruit', station:'Pastry'},
-        {num:2, name:'Savory Cacao', desc:'Cacao-rubbed short rib, mole negro', station:'Grill'},
-        {num:3, name:'Intermezzo', desc:'Dark chocolate sorbet, mint', station:'Pastry'},
-        {num:4, name:'Main', desc:'Duck breast, cacao jus, root vegetables', station:'Sauté'},
-        {num:5, name:'Grand Finale', desc:'Chocolate Studio signature torte, gold leaf', station:'Pastry'}
-      ],
-      pairings:[
-        {id:'p3', name:'Dessert Wine Pairing', desc:'Sweet wines & ports per course', price:65}
-      ],
-      active:true, service:'dinner', createdAt:Date.now()
-    }
-  ];
+function scaliniBundle(){
+  return (typeof EPICUREAN_SCALINI !== 'undefined' && EPICUREAN_SCALINI) ? EPICUREAN_SCALINI : null;
 }
-
+function cloneScalini(value){
+  return JSON.parse(JSON.stringify(value));
+}
+function seedTastingMenus(){
+  var bundle=scaliniBundle();
+  if(bundle && bundle.tasting) return [cloneScalini(bundle.tasting)];
+  return [];
+}
 function seedPrixFixeMenus(){
-  return [
-    {
-      id:'pf_lunch', name:'Lunch Prix Fixe', subtitle:'Choose one from each course',
-      price:42, courses:[
-        {id:'pfc1', label:'Appetizer', options:[
-          {id:'pfo1', name:'Soup of the Day', upcharge:0},
-          {id:'pfo2', name:'Tuna Tartare', upcharge:0},
-          {id:'pfo3', name:'Peruvian Ceviche', upcharge:4}
-        ]},
-        {id:'pfc2', label:'Main Course', options:[
-          {id:'pfo4', name:'Pan-Seared Salmon', upcharge:0},
-          {id:'pfo5', name:'Grilled Chicken', upcharge:0},
-          {id:'pfo6', name:'Wagyu Ribeye', upcharge:18}
-        ]},
-        {id:'pfc3', label:'Dessert', options:[
-          {id:'pfo7', name:'Crème Brûlée', upcharge:0},
-          {id:'pfo8', name:'Chocolate Torte', upcharge:0},
-          {id:'pfo9', name:'Cheese Plate', upcharge:6}
-        ]}
-      ],
-      active:true, service:'lunch', createdAt:Date.now()
-    },
-    {
-      id:'pf_brunch', name:'Sunday Brunch Prix Fixe', subtitle:'Three courses with a welcome cocktail',
-      price:55, courses:[
-        {id:'pfc4', label:'Starter', options:[
-          {id:'pfo10', name:'Shrimp Ceviche', upcharge:0},
-          {id:'pfo11', name:'Avocado Toast', upcharge:0}
-        ]},
-        {id:'pfc5', label:'Main', options:[
-          {id:'pfo12', name:'Eggs Benedict', upcharge:0},
-          {id:'pfo13', name:'Steak & Eggs', upcharge:12},
-          {id:'pfo14', name:'Lobster Omelette', upcharge:15}
-        ]},
-        {id:'pfc6', label:'Dessert', options:[
-          {id:'pfo15', name:'French Toast', upcharge:0},
-          {id:'pfo16', name:'Chocolate Soufflé', upcharge:5}
-        ]}
-      ],
-      active:true, service:'brunch', createdAt:Date.now()
-    }
-  ];
+  var bundle=scaliniBundle();
+  if(bundle && bundle.prixFixe) return [cloneScalini(bundle.prixFixe)];
+  return [];
+}
+function hasDishPhotos(menu){
+  var dishes=menu && menu.dishes;
+  if(Array.isArray(dishes) && dishes.some(function(d){ return d && d.photoUrl; })) return true;
+  var courses=menu && menu.courses;
+  if(!Array.isArray(courses)) return false;
+  return courses.some(function(c){
+    return (c.options||[]).some(function(o){ return o && o.photoUrl; }) || !!(c && c.photoUrl);
+  });
+}
+function ensureScaliniDiningMenus(){
+  var bundle=scaliniBundle();
+  if(!bundle) return false;
+  var dummyPf={}; (bundle.dummyPrixFixeIds||[]).forEach(function(id){ dummyPf[id]=1; });
+  var dummyTm={}; (bundle.dummyTastingIds||[]).forEach(function(id){ dummyTm[id]=1; });
+  var changed=false;
+  STATE.prixFixeMenus=(STATE.prixFixeMenus||[]).filter(function(p){ return p && !dummyPf[p.id]; });
+  STATE.tastingMenus=(STATE.tastingMenus||[]).filter(function(t){ return t && !dummyTm[t.id]; });
+  var pfSeed=cloneScalini(bundle.prixFixe);
+  var tmSeed=cloneScalini(bundle.tasting);
+  var pfIdx=-1;
+  STATE.prixFixeMenus.forEach(function(p,i){ if(p.id===pfSeed.id) pfIdx=i; });
+  if(pfIdx<0){ STATE.prixFixeMenus.unshift(pfSeed); changed=true; }
+  else if(!hasDishPhotos(STATE.prixFixeMenus[pfIdx])){ STATE.prixFixeMenus[pfIdx]=pfSeed; changed=true; }
+  var tmIdx=-1;
+  STATE.tastingMenus.forEach(function(t,i){ if(t.id===tmSeed.id) tmIdx=i; });
+  if(tmIdx<0){ STATE.tastingMenus.unshift(tmSeed); changed=true; }
+  else if(!hasDishPhotos(STATE.tastingMenus[tmIdx])){ STATE.tastingMenus[tmIdx]=tmSeed; changed=true; }
+  if(changed){
+    lsSet('eh_prix_fixe_menus', STATE.prixFixeMenus);
+    lsSet('eh_tasting_menus', STATE.tastingMenus);
+  }
+  return changed;
 }
 
 /* ---- Save functions ---- */
@@ -3734,6 +3705,7 @@ function normalizePrixFixeList(list){
     pf.courses=pf.courses.map(function(course){
       course=course||{};
       course.options=Array.isArray(course.options)?course.options:[];
+      if(!course.mode) course.mode=course.fireEach?'auto':'choose';
       return course;
     });
     pf.dishes=Array.isArray(pf.dishes)?pf.dishes:[];
@@ -3747,7 +3719,12 @@ syncFromCloud = function(){
     return Promise.all([
       fbGetDoc('boh_shared','tasting_menus').then(function(d){ if(d&&d.list){ STATE.tastingMenus=normalizeTastingList(d.list); lsSet('eh_tasting_menus',STATE.tastingMenus); } }),
       fbGetDoc('boh_shared','prix_fixe_menus').then(function(d){ if(d&&d.list){ STATE.prixFixeMenus=normalizePrixFixeList(d.list); lsSet('eh_prix_fixe_menus',STATE.prixFixeMenus); } })
-    ]);
+    ]).then(function(){
+      if(ensureScaliniDiningMenus()){
+        saveTastingMenus();
+        savePrixFixeMenus();
+      }
+    });
   });
 };
 
@@ -4033,6 +4010,7 @@ function openPrixFixeEditor(id){
       '</div>'+
       '<span style="font-size:12px;color:var(--text-dim);min-width:20px;text-align:center;">'+(i+1)+'</span>'+
       '<input class="input pf-sec-name" value="'+esc(c.label)+'" placeholder="Section name (e.g. Appetizer, Aperitivo)">'+
+      '<select class="input pf-sec-mode" title="How this course is ordered and fired">'+opts(['choose','auto','entremets','later'], c.mode||'choose')+'</select>'+
       '<button type="button" class="btn btn-danger btn-sm" onclick="pfDelSection(this)" style="padding:4px 8px;font-size:11px;">✕</button>'+
     '</div>';
   }).join('');
@@ -4066,6 +4044,9 @@ function openPrixFixeEditor(id){
       '</div>'+
       '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;">Description</label>'+
       '<textarea class="input pf-o-desc" placeholder="Describe ingredients, preparation, and flavor profile for guests...">'+esc(d.desc||'')+'</textarea>'+
+      '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-top:6px;">Allergens (comma separated)</label>'+
+      '<input class="input pf-o-allergens" placeholder="Fish, Gluten, Dairy, Tree Nut, Shellfish, Egg" value="'+esc((d.allergens||[]).join(', '))+'">'+
+      '<input class="input pf-o-note" placeholder="Kitchen note (e.g. Allow 12 minutes)" value="'+esc(d.cookNote||'')+'" style="margin-top:6px;">'+
       '<div style="margin-top:8px;">'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'+
           '<label style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.4px;">Wine Pairing (Glass)</label>'+
@@ -4114,11 +4095,22 @@ function openPrixFixeEditor(id){
     pf.active=$('pf-active').value==='Active';
 
     /* Collect sections */
+    var prevDishes=pf.dishes||[];
     var secRows=document.querySelectorAll('.pf-sec-row');
     pf.courses=[];
     secRows.forEach(function(row,i){
       var label=row.querySelector('.pf-sec-name').value.trim();
-      if(label) pf.courses.push({id:row.getAttribute('data-sec-id')||uid('pfc'), label:label, order:i});
+      if(!label) return;
+      var modeEl=row.querySelector('.pf-sec-mode');
+      var mode=modeEl?modeEl.value:'choose';
+      pf.courses.push({
+        id:row.getAttribute('data-sec-id')||uid('pfc'),
+        label:label,
+        order:i,
+        mode:mode,
+        fireEach:mode==='auto',
+        fireAfter:mode==='later'||mode==='entremets'?'main':''
+      });
     });
 
     /* Collect dishes */
@@ -4127,15 +4119,25 @@ function openPrixFixeEditor(id){
     dishEls.forEach(function(el,i){
       var name=el.querySelector('.pf-o-name').value.trim();
       if(!name) return;
+      var id=el.getAttribute('data-dish-id')||uid('pfd');
+      var prev=prevDishes.filter(function(x){return x.id===id;})[0]||{};
+      var allergenRaw=el.querySelector('.pf-o-allergens')?el.querySelector('.pf-o-allergens').value:'';
       pf.dishes.push({
-        id:el.getAttribute('data-dish-id')||uid('pfd'),
+        id:id,
         name:name,
         course:el.querySelector('.pf-o-category').value,
-        station:el.querySelector('.pf-o-station')?el.querySelector('.pf-o-station').value:'Garde Manger',
+        station:el.querySelector('.pf-o-station')?el.querySelector('.pf-o-station').value:'Cold / Garde Manger',
         desc:el.querySelector('.pf-o-desc')?el.querySelector('.pf-o-desc').value.trim():'',
         upcharge:parseFloat(el.querySelector('.pf-o-up').value)||0,
         pairing:el.querySelector('.pf-o-pairing')?el.querySelector('.pf-o-pairing').value:'',
         photoUrl:el.querySelector('.pf-o-photo')?el.querySelector('.pf-o-photo').value.trim():'',
+        allergens:allergenRaw.split(',').map(function(s){return s.trim();}).filter(Boolean),
+        cookNote:el.querySelector('.pf-o-note')?el.querySelector('.pf-o-note').value.trim():'',
+        chooseCount:prev.chooseCount||0,
+        scoops:prev.scoops||null,
+        dietary:prev.dietary||[],
+        cookTime:prev.cookTime||0,
+        i18n:prev.i18n||{},
         order:i
       });
     });
@@ -4143,9 +4145,18 @@ function openPrixFixeEditor(id){
     /* Also rebuild legacy courses format for POS/iPad/Kitchen compatibility */
     pf.courses.forEach(function(c){
       c.options=pf.dishes.filter(function(d){return d.course===c.label;}).sort(function(a,b){return a.order-b.order;}).map(function(d){
-        return {id:d.id, name:d.name, desc:d.desc, station:d.station, upcharge:d.upcharge, pairing:d.pairing, photoUrl:d.photoUrl};
+        return {
+          id:d.id, name:d.name, desc:d.desc, station:d.station, upcharge:d.upcharge, pairing:d.pairing, photoUrl:d.photoUrl,
+          allergens:d.allergens||[], cookNote:d.cookNote||'', chooseCount:d.chooseCount||0, scoops:d.scoops||null,
+          dietary:d.dietary||[], cookTime:d.cookTime||0, i18n:d.i18n||{}
+        };
       });
     });
+    pf.courseGroups=pf.courses.map(function(c){
+      return {label:c.label, choose:c.mode==='choose'||c.mode==='later'?1:0, mode:c.mode, fireEach:!!c.fireEach, fireAfter:c.fireAfter||'', options:c.options};
+    });
+    pf.welcomeFireEach=pf.courses.some(function(c){return c.mode==='auto';});
+    pf.dessertAfter='main';
 
     if(isNew) STATE.prixFixeMenus.push(pf);
     var cloudSave=savePrixFixeMenus();
@@ -4173,6 +4184,7 @@ function openPrixFixeEditor(id){
       '</div>'+
       '<span style="font-size:12px;color:var(--text-dim);min-width:20px;text-align:center;">'+(idx+1)+'</span>'+
       '<input class="input pf-sec-name" value="" placeholder="Section name (e.g. Appetizer, Aperitivo)">'+
+      '<select class="input pf-sec-mode" title="How this course is ordered and fired">'+opts(['choose','auto','entremets','later'],'choose')+'</select>'+
       '<button type="button" class="btn btn-danger btn-sm" onclick="pfDelSection(this)" style="padding:4px 8px;font-size:11px;">✕</button>';
       container.appendChild(row);
       pfRefreshCategoryDropdowns();
@@ -4217,6 +4229,9 @@ function pfAddDish(){
     '</div>'+
     '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;">Description</label>'+
     '<textarea class="input pf-o-desc" placeholder="Describe ingredients, preparation, and flavor profile for guests..."></textarea>'+
+    '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-top:6px;">Allergens (comma separated)</label>'+
+    '<input class="input pf-o-allergens" placeholder="Fish, Gluten, Dairy, Tree Nut, Shellfish, Egg" value="">'+
+    '<input class="input pf-o-note" placeholder="Kitchen note (e.g. Allow 12 minutes)" value="" style="margin-top:6px;">'+
     '<div style="margin-top:8px;">'+
       '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'+
         '<label style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.4px;">Wine Pairing (Glass)</label>'+
@@ -4309,7 +4324,10 @@ function pfUpdatePreview(){
   if(price) html+='<div style="font-size:13px;color:var(--gold);margin-bottom:12px;">$'+parseFloat(price).toFixed(2)+' per person</div>';
   sections.forEach(function(sec){
     html+='<div class="pf-prev-section">';
-    html+='<h4>'+esc(sec.label)+' — choose 1</h4>';
+    var modeEl=document.querySelectorAll('#pf-sections .pf-sec-row')[sec.order];
+    var mode=modeEl&&modeEl.querySelector('.pf-sec-mode')?modeEl.querySelector('.pf-sec-mode').value:'choose';
+    var modeLabel=mode==='auto'?'served automatically, fire one by one':mode==='entremets'?'entremets before dessert':mode==='later'?'ordered after main':'choose 1';
+    html+='<h4>'+esc(sec.label)+' — '+modeLabel+'</h4>';
     if(!sec.dishes.length) html+='<div style="color:var(--text-faint);font-size:12px;font-style:italic;">No dishes assigned</div>';
     sec.dishes.forEach(function(d){
       html+='<div class="pf-prev-item"><span class="name">'+esc(d.name)+'</span>';
