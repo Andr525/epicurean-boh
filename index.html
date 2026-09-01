@@ -1540,7 +1540,16 @@ function can(permKey){
 
 /* ---------------- Routing ---------------- */
 var ROUTE = 'overview';
-function go(r){ ROUTE=r; closeSidebar(); render(); }
+function go(r){
+  if(r==='tasting'){
+    r='menu';
+    MM.tab='full';
+    MM.open.mb_pf=true;
+    MM.open.mb_tm=true;
+    MM.sel={type:'book',id:'mb_pf'};
+  }
+  ROUTE=r; closeSidebar(); render();
+}
 
 /* ---------------- LOGIN ---------------- */
 function viewLogin(){
@@ -1591,7 +1600,6 @@ var NAV = [
   ]},
   {group:'Product', items:[
     {r:'menu',   ico:'🍽', label:'Menu manager', perm:'menu'},
-    {r:'tasting',ico:'✦', label:'Tasting & Prix Fixe', perm:'menu'},
     {r:'bar',    ico:'🍸', label:'Bar',        perm:'menu'},
     {r:'wine',   ico:'🍷', label:'Wine',       perm:'menu'},
     {r:'retail', ico:'🛍', label:'Retail Store',perm:'menu'},
@@ -1655,7 +1663,7 @@ function pageFor(r){
     case 'guests':    return PAGE_guests();
     case 'timecards': return PAGE_timecards();
     case 'menu':      return PAGE_menu();
-    case 'tasting':   return PAGE_tasting();
+    case 'tasting':   ROUTE='menu'; MM.tab='full'; MM.open.mb_pf=true; MM.open.mb_tm=true; if(!MM.sel||MM.sel.id==='mb_dinner') MM.sel={type:'book',id:'mb_pf'}; return PAGE_menu();
     case 'bar':       return PAGE_bar();
     case 'wine':      return PAGE_wine();
     case 'retail':    return PAGE_retail();

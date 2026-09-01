@@ -7,6 +7,11 @@ function ensureMenuManager() {
   var dirty = false;
   if (!Array.isArray(STATE.taxRates) || !STATE.taxRates.length) { STATE.taxRates = seedTaxRates(); dirty = true; }
   if (!Array.isArray(STATE.menuBooks) || !STATE.menuBooks.length) { STATE.menuBooks = seedMenuBooks(); dirty = true; }
+  var haveBooks = {};
+  (STATE.menuBooks || []).forEach(function (b) { if (b && b.id) haveBooks[b.id] = 1; });
+  seedMenuBooks().forEach(function (b) {
+    if (!haveBooks[b.id]) { STATE.menuBooks.push(b); dirty = true; }
+  });
   var byId = {};
   (STATE.modGroups || []).forEach(function (g) { if (g && g.id) byId[g.id] = g; });
   seedModifierGroups().forEach(function (g) {
@@ -40,6 +45,10 @@ function ensureMenuManager() {
     }
   });
   if (MM.open.mb_dinner === undefined) MM.open.mb_dinner = true;
+  (STATE.prixFixeMenus || []).forEach(mmRebuildPf);
+  (STATE.tastingMenus || []).forEach(mmNormTm);
+  lsSet('eh_prix_fixe_menus', STATE.prixFixeMenus || []);
+  lsSet('eh_tasting_menus', STATE.tastingMenus || []);
   if (dirty) {
     lsSet('eh_menu_cats', STATE.menuCats);
     lsSet('eh_menu_items', STATE.menuItems);
@@ -55,6 +64,16 @@ function mmSelect(type, id) {
   mmFlush();
   MM.sel = { type: type, id: id };
   if (type === 'book') MM.open[id] = true;
+  if (type === 'pfmenu' || type === 'pfcourse' || type === 'pfdish') {
+    MM.open.mb_pf = true;
+    if (type !== 'pfmenu') MM.open['pf:' + mmJoinParent(id)] = true;
+    else MM.open['pf:' + id] = true;
+  }
+  if (type === 'tmmenu' || type === 'tmcourse' || type === 'tmpair' || type === 'tmgroup' || type === 'tmpairgroup') {
+    MM.open.mb_tm = true;
+    if (type !== 'tmmenu') MM.open['tm:' + mmJoinParent(id)] = true;
+    else MM.open['tm:' + id] = true;
+  }
   mmPaint();
 }
 function mmTab(tab) { mmFlush(); MM.tab = tab; mmPaint(); }
@@ -91,6 +110,13 @@ function mmFlush() {
   if (type === 'wine') mmSaveWineFromForm(id, false);
   if (type === 'bar') mmSaveBarFromForm(id, false);
   if (type === 'retail') mmSaveRetailFromForm(id, false);
+  if (type === 'pfmenu') mmSavePfMenu(id, false);
+  if (type === 'pfcourse') mmSavePfCourse(id, false);
+  if (type === 'pfdish') mmSavePfDish(id, false);
+  if (type === 'tmmenu') mmSaveTmMenu(id, false);
+  if (type === 'tmgroup') mmSaveTmGroup(id, false);
+  if (type === 'tmcourse') mmSaveTmCourse(id, false);
+  if (type === 'tmpair') mmSaveTmPair(id, false);
 }
 
 function PAGE_menu() {
@@ -103,9 +129,12 @@ function mmBody() {
     return '<button class="mm-tab' + (MM.tab === t ? ' on' : '') + '" onclick="mmTab(\'' + t + '\')">' + label + '</button>';
   }).join('');
   var crumb = 'Home / Menu manager';
-  if (MM.sel && MM.sel.type === 'item') {
-    var it = mmFindItem(MM.sel.id);
-    crumb = 'Home / Menu manager / ' + (it ? it.name : 'Item');
+  if (MM.sel && (MM.sel.type === 'item' || MM.sel.type === 'pfdish' || MM.sel.type === 'tmcourse')) {
+    var crumbName = '';
+    if (MM.sel.type === 'item') { var it = mmFindItem(MM.sel.id); crumbName = it ? it.name : 'Item'; }
+    if (MM.sel.type === 'pfdish') { var d = mmFindPfDish(MM.sel.id); crumbName = d ? d.name : 'Item'; }
+    if (MM.sel.type === 'tmcourse') { var c = mmFindTmCourse(MM.sel.id); crumbName = c ? c.name : 'Item'; }
+    crumb = 'Home / Menu manager / ' + crumbName;
   }
   return '<div class="mm-app">' +
     '<div class="mm-top">' +
@@ -116,7 +145,7 @@ function mmBody() {
       '<div class="mm-actions">' +
         '<input class="mm-search" id="mm-q" placeholder="Find a menu, group, or item" value="' + esc(MM.q || '') + '" oninput="MM.q=this.value; mmFlush(); mmPaint()">' +
         '<button class="btn btn-ghost btn-sm" onclick="openAiSettings()">AI</button>' +
-        '<button class="btn btn-ghost btn-sm" onclick="mmFlush(); saveMenu(); toast(\'Saved\',\'success\')">Save</button>' +
+        '<button class="btn btn-ghost btn-sm" onclick="mmSaveWorkspace()">Save</button>' +
         '<button class="btn btn-gold btn-sm" onclick="mmFlush(); publishMenusToFrontOfHouse()">Publish all changes</button>' +
       '</div>' +
     '</div>' +
@@ -129,6 +158,117 @@ function mmMatch(s) { var q = mmQ(); if (!q) return true; return (s || '').toLow
 function mmFindItem(id) { return (STATE.menuItems || []).filter(function (x) { return x.id === id; })[0]; }
 function mmFindGroup(id) { return (STATE.menuCats || []).filter(function (x) { return x.id === id; })[0]; }
 function mmFindMod(id) { return (STATE.modGroups || []).filter(function (x) { return x.id === id; })[0]; }
+function mmJoin(a, b) { return a + '|' + b; }
+function mmJoinParent(id) { var i = String(id || '').indexOf('|'); return i < 0 ? id : id.slice(0, i); }
+function mmJoinChild(id) { var i = String(id || '').indexOf('|'); return i < 0 ? '' : id.slice(i + 1); }
+function mmDefaultTaxes() { return (STATE.taxRates || []).filter(function (t) { return t.isDefault; }).map(function (t) { return t.id; }); }
+function mmFindPf(id) { return (STATE.prixFixeMenus || []).filter(function (x) { return x.id === id; })[0]; }
+function mmFindTm(id) { return (STATE.tastingMenus || []).filter(function (x) { return x.id === id; })[0]; }
+function mmFindPfDish(joinId) {
+  var pf = mmFindPf(mmJoinParent(joinId)); if (!pf) return null;
+  var id = mmJoinChild(joinId);
+  return (pf.dishes || []).filter(function (d) { return d.id === id; })[0] || null;
+}
+function mmFindTmCourse(joinId) {
+  var tm = mmFindTm(mmJoinParent(joinId)); if (!tm) return null;
+  var id = mmJoinChild(joinId);
+  return (tm.courses || []).filter(function (c) { return c.id === id; })[0] || null;
+}
+function mmAttachTemps(it) {
+  if (!it) return;
+  it.modGroupIds = it.modGroupIds || [];
+  var n = (it.name || '').toLowerCase();
+  var raw = /tartare|crudo|carpaccio|ceviche/.test(n);
+  if (!raw && /\b(steak|ribeye|filet|sirloin|burger|hamburger|wagyu|porterhouse|strip steak|filet mignon)\b/.test(n)) {
+    if (it.modGroupIds.indexOf('mg_meat_temp') < 0) it.modGroupIds.push('mg_meat_temp');
+  }
+  if (!raw && /\b(salmon|tuna|ahi|halibut|cod|branzino|sea bass)\b/.test(n)) {
+    if (it.modGroupIds.indexOf('mg_fish_temp') < 0) it.modGroupIds.push('mg_fish_temp');
+  }
+}
+function mmTmInferGroup(tm, c) {
+  if (c.mode === 'entremets') return 'Entremets';
+  if (c.mode === 'later') return 'Dolce';
+  var did = String(c.dishId || '');
+  if (did.indexOf('_w_') >= 0 || did.indexOf('sf_w_') >= 0) return 'Welcome';
+  if (tm && tm.welcomeFireEach && (c.num || 99) <= 3) return 'Welcome';
+  return 'Courses';
+}
+function mmTmGroupName(tm, c) { return (c && c.group) || mmTmInferGroup(tm, c); }
+function mmTmGroups(tm) {
+  var names = [];
+  (tm.courses || []).forEach(function (c) {
+    var g = mmTmGroupName(tm, c);
+    if (names.indexOf(g) < 0) names.push(g);
+  });
+  if (!names.length) names.push('Courses');
+  return names;
+}
+function mmRebuildPf(pf) {
+  if (!pf) return;
+  pf.dishes = pf.dishes || [];
+  pf.courses = pf.courses || [];
+  if (!pf.dishes.length && pf.courses.some(function (c) { return c.options && c.options.length; })) {
+    pf.courses.forEach(function (c, ci) {
+      (c.options || []).forEach(function (o, oi) {
+        pf.dishes.push({
+          id: o.id || uid('pfd'), name: o.name, desc: o.desc || '', upcharge: o.upcharge || 0,
+          photoUrl: o.photoUrl || '', course: c.label, station: o.station || KITCHEN_STATIONS[0],
+          pairing: o.pairing || '', allergens: o.allergens || [], cookNote: o.cookNote || '',
+          chooseCount: o.chooseCount || 0, scoops: o.scoops || null, dietary: o.dietary || [],
+          cookTime: o.cookTime || 0, cookMin: o.cookTime || 0, i18n: o.i18n || {},
+          modGroupIds: o.modGroupIds || [], taxIds: o.taxIds || mmDefaultTaxes(), order: oi, active: true
+        });
+      });
+    });
+  }
+  pf.courses.forEach(function (c, i) {
+    if (!c.id) c.id = uid('pfc');
+    if (c.order === undefined) c.order = i;
+  });
+  pf.dishes.forEach(function (d, i) {
+    if (!d.id) d.id = uid('pfd');
+    if (d.order === undefined) d.order = i;
+    if (!d.taxIds) d.taxIds = mmDefaultTaxes();
+    d.modGroupIds = d.modGroupIds || [];
+    mmAttachTemps(d);
+  });
+  var haveLabel = {};
+  pf.courses.forEach(function (c) { if (c.label) haveLabel[c.label] = 1; });
+  pf.dishes.forEach(function (d) {
+    if (d.course && !haveLabel[d.course]) {
+      pf.courses.push({ id: uid('pfc'), label: d.course, order: pf.courses.length, mode: 'choose', visible: true });
+      haveLabel[d.course] = 1;
+    }
+  });
+  pf.courses.forEach(function (c) {
+    c.options = pf.dishes.filter(function (d) { return d.course === c.label; }).sort(function (a, b) { return (a.order || 0) - (b.order || 0); }).map(function (d) {
+      return {
+        id: d.id, name: d.name, desc: d.desc, station: d.station, upcharge: d.upcharge || 0,
+        pairing: d.pairing || '', photoUrl: d.photoUrl || '', allergens: d.allergens || [],
+        cookNote: d.cookNote || '', chooseCount: d.chooseCount || 0, scoops: d.scoops || null,
+        dietary: d.diet || d.dietary || [], cookTime: d.cookMin || d.cookTime || 0, i18n: d.i18n || {},
+        modGroupIds: d.modGroupIds || [], taxIds: d.taxIds || []
+      };
+    });
+  });
+  pf.courseGroups = pf.courses.map(function (c) {
+    return { label: c.label, choose: c.mode === 'choose' || c.mode === 'later' ? 1 : 0, mode: c.mode, fireEach: !!c.fireEach, fireAfter: c.fireAfter || '', options: c.options };
+  });
+  pf.welcomeFireEach = pf.courses.some(function (c) { return c.mode === 'auto'; });
+}
+function mmNormTm(tm) {
+  if (!tm) return;
+  tm.courses = tm.courses || [];
+  tm.pairings = tm.pairings || [];
+  tm.courses.forEach(function (c, i) {
+    if (!c.id) c.id = 'tmc_' + (c.num || (i + 1)) + '_' + (tm.id || 'tm');
+    if (!c.group) c.group = mmTmInferGroup(tm, c);
+    if (!c.taxIds) c.taxIds = mmDefaultTaxes();
+    c.modGroupIds = c.modGroupIds || [];
+    mmAttachTemps(c);
+  });
+}
 function mmItemsInGroup(gid) { return (STATE.menuItems || []).filter(function (it) { return (it.catIds || []).indexOf(gid) > -1 && it.active !== false; }); }
 function mmFoodGroups(book) {
   var ids = book.groupIds || [];
@@ -184,12 +324,59 @@ function mmTreeHtml() {
       });
     } else if (book.kind === 'prixfixe') {
       (STATE.prixFixeMenus || []).forEach(function (pf) {
-        html += '<div class="mm-row indent-1" onclick="go(\'tasting\')"><span>' + esc(pf.name) + ' · ' + money(pf.price) + '</span><span class="mm-kind">Menu</span></div>';
+        if (mmQ() && !mmMatch(pf.name) && !(pf.dishes || []).some(function (d) { return mmMatch(d.name); })) return;
+        var popen = MM.open['pf:' + pf.id];
+        html += '<div class="mm-row indent-1' + (mmSelIs('pfmenu', pf.id) ? ' on' : '') + '" onclick="mmSelect(\'pfmenu\',\'' + pf.id + '\')">' +
+          '<span class="mm-caret" onclick="MM.open[\'pf:' + pf.id + '\']=!MM.open[\'pf:' + pf.id + '\']; event.stopPropagation(); mmPaint()">' + (popen ? '▾' : '▸') + '</span>' +
+          '<span>' + esc(pf.name) + '</span><span class="mm-kind">Menu</span></div>';
+        if (!popen) return;
+        (pf.courses || []).sort(function (a, b) { return (a.order || 0) - (b.order || 0); }).forEach(function (g) {
+          var gid = mmJoin(pf.id, g.id);
+          html += '<div class="mm-row indent-2' + (mmSelIs('pfcourse', gid) ? ' on' : '') + '" onclick="mmSelect(\'pfcourse\',\'' + gid + '\')">' +
+            '<span class="mm-caret">▸</span><span>' + esc(g.label) + '</span><span class="mm-kind">Group</span></div>';
+          (pf.dishes || []).filter(function (d) { return d.course === g.label; }).forEach(function (d) {
+            if (mmQ() && !mmMatch(d.name)) return;
+            var did = mmJoin(pf.id, d.id);
+            html += '<div class="mm-row indent-3' + (mmSelIs('pfdish', did) ? ' on' : '') + '" onclick="mmSelect(\'pfdish\',\'' + did + '\')">' +
+              '<span>' + esc(d.name) + '</span><span class="mm-kind">Item</span></div>';
+          });
+          html += '<button class="mm-add" onclick="event.stopPropagation(); mmAddPfDish(\'' + pf.id + '\',\'' + encodeURIComponent(g.label) + '\')">+ Add item</button>';
+        });
+        html += '<button class="mm-add" onclick="event.stopPropagation(); mmAddPfCourse(\'' + pf.id + '\')">+ Add group to ' + esc(pf.name) + '</button>';
       });
+      html += '<button class="mm-add" onclick="event.stopPropagation(); mmAddPfMenu()">+ Add prix fixe menu</button>';
     } else if (book.kind === 'tasting') {
       (STATE.tastingMenus || []).forEach(function (tm) {
-        html += '<div class="mm-row indent-1" onclick="go(\'tasting\')"><span>' + esc(tm.name) + ' · ' + money(tm.price) + '</span><span class="mm-kind">Menu</span></div>';
+        if (mmQ() && !mmMatch(tm.name) && !(tm.courses || []).some(function (c) { return mmMatch(c.name); })) return;
+        var topen = MM.open['tm:' + tm.id];
+        html += '<div class="mm-row indent-1' + (mmSelIs('tmmenu', tm.id) ? ' on' : '') + '" onclick="mmSelect(\'tmmenu\',\'' + tm.id + '\')">' +
+          '<span class="mm-caret" onclick="MM.open[\'tm:' + tm.id + '\']=!MM.open[\'tm:' + tm.id + '\']; event.stopPropagation(); mmPaint()">' + (topen ? '▾' : '▸') + '</span>' +
+          '<span>' + esc(tm.name) + '</span><span class="mm-kind">Menu</span></div>';
+        if (!topen) return;
+        mmTmGroups(tm).forEach(function (gname) {
+          var gid = mmJoin(tm.id, encodeURIComponent(gname));
+          html += '<div class="mm-row indent-2' + (mmSelIs('tmgroup', gid) ? ' on' : '') + '" onclick="mmSelect(\'tmgroup\',\'' + gid + '\')">' +
+            '<span class="mm-caret">▸</span><span>' + esc(gname) + '</span><span class="mm-kind">Group</span></div>';
+          (tm.courses || []).filter(function (c) { return mmTmGroupName(tm, c) === gname; }).forEach(function (c) {
+            if (mmQ() && !mmMatch(c.name)) return;
+            var cid = mmJoin(tm.id, c.id);
+            html += '<div class="mm-row indent-3' + (mmSelIs('tmcourse', cid) ? ' on' : '') + '" onclick="mmSelect(\'tmcourse\',\'' + cid + '\')">' +
+              '<span>' + esc(c.name) + '</span><span class="mm-kind">Item</span></div>';
+          });
+          html += '<button class="mm-add" onclick="event.stopPropagation(); mmAddTmCourse(\'' + tm.id + '\',\'' + encodeURIComponent(gname) + '\')">+ Add item</button>';
+        });
+        var pairGid = mmJoin(tm.id, 'pairings');
+        html += '<div class="mm-row indent-2' + (mmSelIs('tmpairgroup', pairGid) ? ' on' : '') + '" onclick="mmSelect(\'tmpairgroup\',\'' + pairGid + '\')">' +
+          '<span class="mm-caret">▸</span><span>Wine pairings</span><span class="mm-kind">Group</span></div>';
+        (tm.pairings || []).forEach(function (p) {
+          if (mmQ() && !mmMatch(p.name)) return;
+          var pid = mmJoin(tm.id, p.id || p.name);
+          html += '<div class="mm-row indent-3' + (mmSelIs('tmpair', pid) ? ' on' : '') + '" onclick="mmSelect(\'tmpair\',\'' + pid + '\')"><span>' + esc(p.name) + '</span><span class="mm-kind">Item</span></div>';
+        });
+        html += '<button class="mm-add" onclick="event.stopPropagation(); mmAddTmPair(\'' + tm.id + '\')">+ Add pairing</button>';
+        html += '<button class="mm-add" onclick="event.stopPropagation(); mmAddTmGroup(\'' + tm.id + '\')">+ Add group to ' + esc(tm.name) + '</button>';
       });
+      html += '<button class="mm-add" onclick="event.stopPropagation(); mmAddTmMenu()">+ Add tasting menu</button>';
     }
   });
   return html || '<div class="mm-empty">No menus yet.</div>';
@@ -203,6 +390,16 @@ function mmBookHasQuery(book) {
   if (book.kind === 'wine') return (STATE.wines || []).some(function (w) { return mmMatch(w.name); });
   if (book.kind === 'bar') return (STATE.bar || []).some(function (b) { return mmMatch(b.name); });
   if (book.kind === 'retail') return (STATE.retail || []).some(function (p) { return mmMatch(p.name); });
+  if (book.kind === 'prixfixe') {
+    return (STATE.prixFixeMenus || []).some(function (pf) {
+      return mmMatch(pf.name) || (pf.dishes || []).some(function (d) { return mmMatch(d.name); });
+    });
+  }
+  if (book.kind === 'tasting') {
+    return (STATE.tastingMenus || []).some(function (tm) {
+      return mmMatch(tm.name) || (tm.courses || []).some(function (c) { return mmMatch(c.name); });
+    });
+  }
   return false;
 }
 function mmDetailHtml() {
@@ -214,6 +411,14 @@ function mmDetailHtml() {
   if (s.type === 'bar') return mmBarPanel(s.id);
   if (s.type === 'retail') return mmRetailPanel(s.id);
   if (s.type === 'book') return mmBookPanel(s.id);
+  if (s.type === 'pfmenu') return mmPfMenuEditor(s.id);
+  if (s.type === 'pfcourse') return mmPfCourseEditor(s.id);
+  if (s.type === 'pfdish') return mmPfDishEditor(s.id);
+  if (s.type === 'tmmenu') return mmTmMenuEditor(s.id);
+  if (s.type === 'tmgroup') return mmTmGroupEditor(s.id);
+  if (s.type === 'tmcourse') return mmTmCourseEditor(s.id);
+  if (s.type === 'tmpair') return mmTmPairEditor(s.id);
+  if (s.type === 'tmpairgroup') return mmTmPairGroupEditor(s.id);
   return '<div class="mm-empty">Select a menu, group, or item on the left.</div>';
 }
 function mmBookPanel(id) {
@@ -224,12 +429,13 @@ function mmBookPanel(id) {
   if (book.kind === 'wine') count = (STATE.wines || []).length;
   if (book.kind === 'bar') count = (STATE.bar || []).length;
   if (book.kind === 'retail') count = (STATE.retail || []).length;
-  if (book.kind === 'prixfixe') count = (STATE.prixFixeMenus || []).length;
-  if (book.kind === 'tasting') count = (STATE.tastingMenus || []).length;
+  if (book.kind === 'prixfixe') count = (STATE.prixFixeMenus || []).reduce(function (n, pf) { return n + (pf.dishes || []).length; }, 0);
+  if (book.kind === 'tasting') count = (STATE.tastingMenus || []).reduce(function (n, tm) { return n + (tm.courses || []).length; }, 0);
   return '<div class="mm-card"><h3>MENU ' + esc(book.name) + '</h3>' +
     '<p class="mm-hint">' + count + ' item' + (count === 1 ? '' : 's') + ' · click a group on the left, then an item to edit name, description, price, tax, and modifiers.</p>' +
     (book.kind === 'food' ? '<button class="btn btn-ghost btn-sm" onclick="mmAddGroup(\'' + book.id + '\')">+ Add group</button> ' : '') +
-    ((book.kind === 'prixfixe' || book.kind === 'tasting') ? '<button class="btn btn-gold btn-sm" onclick="go(\'tasting\')">Open tasting &amp; prix fixe editor</button>' : '') +
+    (book.kind === 'prixfixe' ? '<button class="btn btn-ghost btn-sm" onclick="mmAddPfMenu()">+ Add prix fixe menu</button>' : '') +
+    (book.kind === 'tasting' ? '<button class="btn btn-ghost btn-sm" onclick="mmAddTmMenu()">+ Add tasting menu</button>' : '') +
     '</div>';
 }
 function mmGroupEditor(id) {
@@ -330,20 +536,43 @@ function mmRetailPanel(id) {
       fld('Stock', '<input class="input" id="r-stock" type="number" value="' + p.stock + '">') + '</div>' +
     '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveRetailFromForm(\'' + p.id + '\',true)">Save product</button></div></form>';
 }
+function mmTaxNames(ids) {
+  return (ids || []).map(function (id) { var t = (STATE.taxRates || []).filter(function (x) { return x.id === id; })[0]; return t ? t.name : ''; }).filter(Boolean).join(', ');
+}
+function mmModNames(ids) {
+  return (ids || []).map(function (id) { var g = mmFindMod(id); return g ? g.name : ''; }).filter(Boolean).join(', ');
+}
+function mmItemRow(kind, id, name, price, groups, mods, taxes) {
+  return '<tr onclick="MM.tab=\'full\'; mmSelect(\'' + kind + '\',\'' + id + '\')">' +
+    '<td><input class="input" value="' + esc(name) + '" onclick="event.stopPropagation()" onchange="mmInlineRenameKind(\'' + kind + '\',\'' + id + '\',this.value)"></td>' +
+    '<td><input class="input" type="number" step="0.01" value="' + (price || 0) + '" onclick="event.stopPropagation()" onchange="mmInlinePriceKind(\'' + kind + '\',\'' + id + '\',this.value)" style="width:110px"></td>' +
+    '<td>' + esc(groups || '') + '</td>' +
+    '<td>' + esc(mods || '') + '</td>' +
+    '<td>' + esc(taxes || '') + '</td>' +
+  '</tr>';
+}
 function mmItemsView() {
-  var rows = (STATE.menuItems || []).filter(function (it) { return !mmQ() || mmMatch(it.name) || mmMatch(it.desc); }).map(function (it) {
-    return '<tr onclick="MM.tab=\'full\'; mmSelect(\'item\',\'' + it.id + '\')">' +
-      '<td><input class="input" value="' + esc(it.name) + '" onclick="event.stopPropagation()" onchange="mmInlineRename(\'' + it.id + '\',this.value)"></td>' +
-      '<td><input class="input" type="number" step="0.01" value="' + it.price + '" onclick="event.stopPropagation()" onchange="mmInlinePrice(\'' + it.id + '\',this.value)" style="width:110px"></td>' +
-      '<td>' + esc((it.catIds || []).map(catName).filter(Boolean).join(', ')) + '</td>' +
-      '<td>' + esc((it.modGroupIds || []).map(function (id) { var g = mmFindMod(id); return g ? g.name : ''; }).filter(Boolean).join(', ')) + '</td>' +
-      '<td>' + esc((it.taxIds || []).map(function (id) { var t = (STATE.taxRates || []).filter(function (x) { return x.id === id; })[0]; return t ? t.name : ''; }).filter(Boolean).join(', ')) + '</td>' +
-    '</tr>';
-  }).join('');
+  var rows = [];
+  (STATE.menuItems || []).forEach(function (it) {
+    if (mmQ() && !mmMatch(it.name) && !mmMatch(it.desc)) return;
+    rows.push(mmItemRow('item', it.id, it.name, it.price, (it.catIds || []).map(catName).filter(Boolean).join(', '), mmModNames(it.modGroupIds), mmTaxNames(it.taxIds)));
+  });
+  (STATE.prixFixeMenus || []).forEach(function (pf) {
+    (pf.dishes || []).forEach(function (d) {
+      if (mmQ() && !mmMatch(d.name) && !mmMatch(d.desc) && !mmMatch(pf.name)) return;
+      rows.push(mmItemRow('pfdish', mmJoin(pf.id, d.id), d.name, d.upcharge || 0, [pf.name, d.course].filter(Boolean).join(' · '), mmModNames(d.modGroupIds), mmTaxNames(d.taxIds)));
+    });
+  });
+  (STATE.tastingMenus || []).forEach(function (tm) {
+    (tm.courses || []).forEach(function (c) {
+      if (mmQ() && !mmMatch(c.name) && !mmMatch(c.desc) && !mmMatch(tm.name)) return;
+      rows.push(mmItemRow('tmcourse', mmJoin(tm.id, c.id), c.name, c.upcharge || c.price || 0, [tm.name, mmTmGroupName(tm, c)].filter(Boolean).join(' · '), mmModNames(c.modGroupIds), mmTaxNames(c.taxIds)));
+    });
+  });
   return '<div class="mm-detail" style="grid-column:1/-1">' +
-    '<div class="mm-card"><h3>All items</h3><p class="mm-hint">Click a name or price to edit inline. Click the row to open the full item (description, taxes, modifiers).</p>' +
+    '<div class="mm-card"><h3>All items</h3><p class="mm-hint">À la carte, prix fixe, and tasting dishes. Click a name or price to edit inline. Click the row to open the full item (description, taxes, modifiers).</p>' +
     '<div class="table-wrap"><table class="dt"><thead><tr><th>Name</th><th>Price</th><th>Groups</th><th>Modifiers</th><th>Taxes</th></tr></thead><tbody>' +
-    (rows || '<tr><td colspan="5" class="mm-empty">No items.</td></tr>') + '</tbody></table></div>' +
+    (rows.join('') || '<tr><td colspan="5" class="mm-empty">No items.</td></tr>') + '</tbody></table></div>' +
     '<button class="mm-add" onclick="mmAddItem(null)">+ Add item</button></div></div>';
 }
 function mmModsView() {
@@ -433,6 +662,27 @@ function mmDropTax(i) {
   STATE.taxRates.splice(i, 1);
   mmPaint();
 }
+function mmPersistPf() {
+  lsSet('eh_prix_fixe_menus', STATE.prixFixeMenus);
+  if (typeof fbReady !== 'undefined' && fbReady) {
+    return fbSetDoc('boh_shared', 'prix_fixe_menus', { list: withoutEmbeddedPhotos(STATE.prixFixeMenus), updatedAt: Date.now() });
+  }
+  return Promise.resolve(true);
+}
+function mmPersistTm() {
+  lsSet('eh_tasting_menus', STATE.tastingMenus);
+  if (typeof fbReady !== 'undefined' && fbReady) {
+    return fbSetDoc('boh_shared', 'tasting_menus', { list: withoutEmbeddedPhotos(STATE.tastingMenus), updatedAt: Date.now() });
+  }
+  return Promise.resolve(true);
+}
+function mmSaveWorkspace() {
+  mmFlush();
+  saveMenu();
+  mmPersistPf();
+  mmPersistTm();
+  toast('Saved', 'success');
+}
 function mmInlineRename(id, name) {
   var it = mmFindItem(id); if (!it) return;
   it.name = (name || '').trim() || it.name;
@@ -442,6 +692,38 @@ function mmInlinePrice(id, val) {
   var it = mmFindItem(id); if (!it) return;
   it.price = parseFloat(val) || 0;
   saveMenu();
+}
+function mmInlineRenameKind(kind, id, name) {
+  name = (name || '').trim();
+  if (kind === 'item') return mmInlineRename(id, name);
+  if (kind === 'pfdish') {
+    var d = mmFindPfDish(id); if (!d) return;
+    d.name = name || d.name;
+    mmRebuildPf(mmFindPf(mmJoinParent(id)));
+    mmPersistPf();
+    return;
+  }
+  if (kind === 'tmcourse') {
+    var c = mmFindTmCourse(id); if (!c) return;
+    c.name = name || c.name;
+    mmPersistTm();
+  }
+}
+function mmInlinePriceKind(kind, id, val) {
+  var n = parseFloat(val) || 0;
+  if (kind === 'item') return mmInlinePrice(id, val);
+  if (kind === 'pfdish') {
+    var d = mmFindPfDish(id); if (!d) return;
+    d.upcharge = n; d.price = n;
+    mmRebuildPf(mmFindPf(mmJoinParent(id)));
+    mmPersistPf();
+    return;
+  }
+  if (kind === 'tmcourse') {
+    var c = mmFindTmCourse(id); if (!c) return;
+    c.upcharge = n; c.price = n;
+    mmPersistTm();
+  }
 }
 function mmSaveItemFromForm(id, toastOk) {
   var it = mmFindItem(id); if (!it || !$('ie-name')) return;
@@ -525,5 +807,441 @@ function mmSaveRetailFromForm(id, toastOk) {
   saveRetail();
   if (toastOk) { toast('Product saved', 'success'); mmPaint(); }
 }
+
+function mmModTaxHtml(it) {
+  var modChecks = (STATE.modGroups || []).map(function (g) {
+    return '<label class="cbx"><input type="checkbox" class="ie-mod" value="' + g.id + '"' + ((it.modGroupIds || []).indexOf(g.id) > -1 ? ' checked' : '') + '> ' + esc(g.name) + (g.required ? ' <span class="mm-pill">required</span>' : '') + '</label>';
+  }).join('');
+  var taxChecks = (STATE.taxRates || []).map(function (t) {
+    return '<label class="cbx"><input type="checkbox" class="ie-tax" value="' + t.id + '"' + ((it.taxIds || []).indexOf(t.id) > -1 ? ' checked' : '') + '> ' + esc(t.name) + ' (' + t.rate + '%)</label>';
+  }).join('');
+  return { mods: modChecks, taxes: taxChecks };
+}
+function mmWinePairOpts(sel) {
+  var glassWines = (STATE.wines || []).map(function (w) { return w.name + ' (' + (w.varietal || '') + ', $' + (w.glassPrice || 12) + '/glass)'; });
+  return '<option value="">— None —</option>' + glassWines.map(function (w) {
+    return '<option value="' + esc(w) + '"' + (sel === w ? ' selected' : '') + '>' + esc(w) + '</option>';
+  }).join('');
+}
+function mmReadDishCommon(it) {
+  it.name = $('ie-name').value.trim() || it.name;
+  it.desc = $('ie-desc') ? $('ie-desc').value.trim() : (it.desc || '');
+  it.photoUrl = $('ie-photo') ? $('ie-photo').value.trim() : (it.photoUrl || '');
+  it.station = $('ie-station') ? $('ie-station').value : (it.station || '');
+  it.cookMin = $('ie-cook') ? (parseInt($('ie-cook').value, 10) || 0) : (it.cookMin || 0);
+  it.cookTime = it.cookMin;
+  it.cookNote = $('ie-note') ? $('ie-note').value.trim() : (it.cookNote || '');
+  it.pairing = $('ie-pairing') ? $('ie-pairing').value : (it.pairing || '');
+  it.ingredients = $('ie-ing') ? $('ie-ing').value.trim() : (it.ingredients || '');
+  it.modGroupIds = Array.prototype.slice.call(document.querySelectorAll('.ie-mod:checked')).map(function (x) { return x.value; });
+  it.taxIds = Array.prototype.slice.call(document.querySelectorAll('.ie-tax:checked')).map(function (x) { return x.value; });
+  var ab = $('ie-analysis');
+  if (ab) {
+    it.allergens = (ab.getAttribute('data-al') || '').split('|').filter(Boolean);
+    it.diet = (ab.getAttribute('data-diet') || '').split('|').filter(Boolean);
+    it.dietary = it.diet;
+    it.verified = $('an-verify') ? $('an-verify').checked : it.verified;
+  }
+  mmAttachTemps(it);
+}
+
+function mmSetDishEditor(it, priceLabel, extraTop, extraMid, saveClick, delClick) {
+  var mt = mmModTaxHtml(it);
+  extraTop = extraTop || '';
+  extraMid = extraMid || '';
+  return '<div class="mm-card"><h3>ITEM ' + esc(it.name) + '</h3>' +
+    fld('Name', '<input class="input" id="ie-name" value="' + esc(it.name) + '" placeholder="Dish name">') +
+    fld('Description (POS &amp; iPad)', '<textarea class="input" id="ie-desc" rows="4">' + esc(it.desc || '') + '</textarea>') +
+    extraTop +
+    '<div class="ff-row cols-3">' + fld(priceLabel, '<input class="input" id="ie-price" type="number" step="0.01" value="' + (it.upcharge != null ? it.upcharge : (it.price || 0)) + '">') +
+      fld('Cook time (min)', '<input class="input" id="ie-cook" type="number" value="' + (it.cookMin || it.cookTime || 0) + '">') +
+      fld('Kitchen station', '<select class="input" id="ie-station">' + opts(KITCHEN_STATIONS, it.station || KITCHEN_STATIONS[0]) + '</select>') + '</div>' +
+    fld('Taxes', '<div class="cbx-grid">' + mt.taxes + '</div>') +
+    fld('Photo', '<div class="mc-photo-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input class="input" id="ie-photo" value="' + esc(it.photoUrl || '') + '" placeholder="Paste URL or Upload" style="flex:1;" oninput="showPhotoPreview(this,this.value)"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(document.getElementById(\'ie-photo\'))">📷 Upload</button>' + (it.photoUrl ? '<img src="' + esc(it.photoUrl) + '" class="upload-preview" style="width:80px;height:56px;object-fit:cover;border-radius:6px;">' : '') + '</div>') +
+    extraMid +
+    '</div>' +
+    '<div class="mm-card"><h3>Modifier groups</h3><p class="mm-hint">Steaks, hamburgers, salmon, and tuna should include a temperature group.</p>' +
+    fld('Attach modifiers', '<div class="cbx-grid">' + mt.mods + '</div>') +
+    '<button type="button" class="mm-add" onclick="mmTab(\'modifiers\')">Manage modifier options</button></div>' +
+    '<div class="mm-card"><h3>Allergens &amp; kitchen</h3>' +
+    fld('Kitchen note', '<input class="input" id="ie-note" value="' + esc(it.cookNote || '') + '" placeholder="e.g. Allow 12 minutes">') +
+    fld('Ingredients', '<textarea class="input" id="ie-ing" rows="2">' + esc(it.ingredients || (it.desc || '')) + '</textarea>') +
+    '<button class="btn-analyze" type="button" onclick="runAnalysis({})">✨ Analyze Allergens &amp; Dietary</button>' +
+    '<div id="ie-analysis" class="analysis-box">' + renderAnalysis(it.allergens, it.diet || it.dietary, it.verified, '') + '</div>' +
+    '<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button type="button" class="btn btn-gold btn-sm" onclick="' + saveClick + '">Save item</button>' +
+      '<button type="button" class="btn btn-danger btn-sm" onclick="' + delClick + '">Delete item</button></div>' +
+    '</div>';
+}
+
+function mmPfMenuEditor(id) {
+  var pf = mmFindPf(id);
+  if (!pf) return '<div class="mm-empty">Prix fixe menu not found.</div>';
+  var mt = mmModTaxHtml(pf);
+  var groups = (pf.courses || []).sort(function (a, b) { return (a.order || 0) - (b.order || 0); }).map(function (g) {
+    var n = (pf.dishes || []).filter(function (d) { return d.course === g.label; }).length;
+    return '<div class="mm-item-card" onclick="mmSelect(\'pfcourse\',\'' + mmJoin(pf.id, g.id) + '\')"><div><div class="mm-item-name">GROUP ' + esc(g.label) + '</div><div class="mm-item-meta">' + n + ' item' + (n === 1 ? '' : 's') + ' · ' + esc(g.mode || 'choose') + '</div></div></div>';
+  }).join('');
+  return '<form id="mm-editor" data-type="pfmenu" data-id="' + pf.id + '">' +
+    '<div class="mm-card"><h3>MENU ' + esc(pf.name) + '</h3>' +
+    fld('Name', '<input class="input" id="pf-name" value="' + esc(pf.name) + '">') +
+    fld('Subtitle', '<input class="input" id="pf-sub" value="' + esc(pf.subtitle || '') + '">') +
+    fld('Description', '<textarea class="input" id="pf-desc" rows="3">' + esc(pf.desc || '') + '</textarea>') +
+    '<div class="ff-row cols-3">' + fld('Price ($ per person)', '<input class="input" id="pf-price" type="number" step="0.01" value="' + (pf.price || 0) + '">') +
+      fld('Service', '<select class="input" id="pf-service">' + opts(['breakfast', 'brunch', 'lunch', 'dinner', 'all day'], pf.service || 'dinner') + '</select>') +
+      fld('Status', '<select class="input" id="pf-active">' + opts(['Active', 'Inactive'], pf.active !== false ? 'Active' : 'Inactive') + '</select>') + '</div>' +
+    fld('Taxes', '<div class="cbx-grid">' + mt.taxes + '</div>') +
+    '<label class="cbx"><input type="checkbox" id="pf-vis"' + (pf.active !== false ? ' checked' : '') + '> Show on POS &amp; iPad</label>' +
+    '<div style="margin-top:12px"><button type="button" class="btn btn-gold btn-sm" onclick="mmSavePfMenu(\'' + pf.id + '\',true)">Save menu</button> ' +
+    '<button type="button" class="btn btn-danger btn-sm" onclick="mmDelPfMenu(\'' + pf.id + '\')">Delete menu</button></div></div>' +
+    '<div class="mm-card"><h3>Groups (courses)</h3>' + (groups || '<div class="mm-empty">No groups yet.</div>') +
+    '<button type="button" class="mm-add" onclick="mmAddPfCourse(\'' + pf.id + '\')">+ Add group</button></div></form>';
+}
+function mmPfCourseEditor(joinId) {
+  var pf = mmFindPf(mmJoinParent(joinId));
+  if (!pf) return '<div class="mm-empty">Menu not found.</div>';
+  var gid = mmJoinChild(joinId);
+  var g = (pf.courses || []).filter(function (c) { return c.id === gid; })[0];
+  if (!g) return '<div class="mm-empty">Group not found.</div>';
+  var items = (pf.dishes || []).filter(function (d) { return d.course === g.label; });
+  var list = items.map(function (d) {
+    return '<div class="mm-item-card" onclick="mmSelect(\'pfdish\',\'' + mmJoin(pf.id, d.id) + '\')">' +
+      (d.photoUrl ? '<img class="mm-thumb" src="' + esc(d.photoUrl) + '">' : '<div class="mm-thumb"></div>') +
+      '<div><div class="mm-item-name">ITEM ' + esc(d.name) + '</div><div class="mm-item-meta">' + ((d.modGroupIds || []).length) + ' modifier group' + ((d.modGroupIds || []).length === 1 ? '' : 's') + '</div></div>' +
+      '<div class="mm-price">' + (d.upcharge ? ('+' + money(d.upcharge)) : 'Included') + '</div></div>';
+  }).join('');
+  return '<form id="mm-editor" data-type="pfcourse" data-id="' + joinId + '">' +
+    '<div class="mm-card"><h3>MENU GROUP ' + esc(g.label) + '</h3>' +
+    fld('Group name', '<input class="input" id="mm-g-name" value="' + esc(g.label) + '">') +
+    fld('POS name (button label)', '<input class="input" id="mm-g-pos" value="' + esc(g.posName || '') + '" placeholder="Optional shorter name on POS">') +
+    fld('How this course fires', '<select class="input" id="mm-g-mode">' + opts(['choose', 'auto', 'entremets', 'later'], g.mode || 'choose') + '</select>') +
+    '<label class="cbx"><input type="checkbox" id="mm-g-vis"' + (g.visible !== false ? ' checked' : '') + '> Show on POS &amp; iPad</label>' +
+    '<div style="margin-top:12px"><button type="button" class="btn btn-gold btn-sm" onclick="mmSavePfCourse(\'' + joinId + '\',true)">Save group</button> ' +
+    '<button type="button" class="btn btn-danger btn-sm" onclick="mmDelPfCourse(\'' + joinId + '\')">Delete group</button></div></div>' +
+    '<div class="mm-card"><h3>Items in this group</h3>' + (list || '<div class="mm-empty">No items yet.</div>') +
+    '<button type="button" class="mm-add" onclick="mmAddPfDish(\'' + pf.id + '\',\'' + encodeURIComponent(g.label) + '\')">+ Add item</button></div></form>';
+}
+function mmPfDishEditor(joinId) {
+  var pf = mmFindPf(mmJoinParent(joinId));
+  var d = mmFindPfDish(joinId);
+  if (!pf || !d) return '<div class="mm-empty">Item not found.</div>';
+  var groupSel = '<select class="input" id="ie-course">' + (pf.courses || []).map(function (c) {
+    return '<option value="' + esc(c.label) + '"' + (d.course === c.label ? ' selected' : '') + '>' + esc(c.label) + '</option>';
+  }).join('') + '</select>';
+  var extra = fld('Menu group', groupSel) + fld('Wine pairing', '<select class="input" id="ie-pairing">' + mmWinePairOpts(d.pairing) + '</select>');
+  return '<form id="mm-editor" data-type="pfdish" data-id="' + joinId + '">' +
+    mmSetDishEditor(d, 'Price / upcharge ($)', extra, '<p class="mm-hint">0.00 means the dish is included in the ' + money(pf.price) + ' menu price.</p>',
+      'mmSavePfDish(\'' + joinId + '\',true)', 'mmDelPfDish(\'' + joinId + '\')') +
+    '</form>';
+}
+function mmTmMenuEditor(id) {
+  var tm = mmFindTm(id);
+  if (!tm) return '<div class="mm-empty">Tasting menu not found.</div>';
+  var mt = mmModTaxHtml(tm);
+  var groups = mmTmGroups(tm).map(function (gname) {
+    var n = (tm.courses || []).filter(function (c) { return mmTmGroupName(tm, c) === gname; }).length;
+    return '<div class="mm-item-card" onclick="mmSelect(\'tmgroup\',\'' + mmJoin(tm.id, encodeURIComponent(gname)) + '\')"><div><div class="mm-item-name">GROUP ' + esc(gname) + '</div><div class="mm-item-meta">' + n + ' item' + (n === 1 ? '' : 's') + '</div></div></div>';
+  }).join('');
+  groups += '<div class="mm-item-card" onclick="mmSelect(\'tmpairgroup\',\'' + mmJoin(tm.id, 'pairings') + '\')"><div><div class="mm-item-name">GROUP Wine pairings</div><div class="mm-item-meta">' + (tm.pairings || []).length + ' item' + ((tm.pairings || []).length === 1 ? '' : 's') + '</div></div></div>';
+  return '<form id="mm-editor" data-type="tmmenu" data-id="' + tm.id + '">' +
+    '<div class="mm-card"><h3>MENU ' + esc(tm.name) + '</h3>' +
+    fld('Name', '<input class="input" id="tm-name" value="' + esc(tm.name) + '">') +
+    fld('Subtitle', '<input class="input" id="tm-sub" value="' + esc(tm.subtitle || '') + '">') +
+    '<div class="ff-row cols-3">' + fld('Price ($ per person)', '<input class="input" id="tm-price" type="number" step="0.01" value="' + (tm.price || 0) + '">') +
+      fld('Duration', '<input class="input" id="tm-dur" value="' + esc(tm.duration || '') + '">') +
+      fld('Service', '<select class="input" id="tm-service">' + opts(['breakfast', 'brunch', 'lunch', 'dinner', 'all day'], tm.service || 'dinner') + '</select>') + '</div>' +
+    fld('Taxes', '<div class="cbx-grid">' + mt.taxes + '</div>') +
+    '<label class="cbx"><input type="checkbox" id="tm-vis"' + (tm.active !== false ? ' checked' : '') + '> Show on POS &amp; iPad</label>' +
+    '<div style="margin-top:12px"><button type="button" class="btn btn-gold btn-sm" onclick="mmSaveTmMenu(\'' + tm.id + '\',true)">Save menu</button> ' +
+    '<button type="button" class="btn btn-danger btn-sm" onclick="mmDelTmMenu(\'' + tm.id + '\')">Delete menu</button></div></div>' +
+    '<div class="mm-card"><h3>Groups</h3>' + (groups || '<div class="mm-empty">No groups yet.</div>') +
+    '<button type="button" class="mm-add" onclick="mmAddTmGroup(\'' + tm.id + '\')">+ Add group</button></div></form>';
+}
+function mmTmGroupEditor(joinId) {
+  var tm = mmFindTm(mmJoinParent(joinId));
+  if (!tm) return '<div class="mm-empty">Menu not found.</div>';
+  var gname = decodeURIComponent(mmJoinChild(joinId));
+  var items = (tm.courses || []).filter(function (c) { return mmTmGroupName(tm, c) === gname; });
+  var list = items.map(function (c) {
+    return '<div class="mm-item-card" onclick="mmSelect(\'tmcourse\',\'' + mmJoin(tm.id, c.id) + '\')">' +
+      '<div><div class="mm-item-name">ITEM ' + esc(c.name) + '</div><div class="mm-item-meta">' + ((c.modGroupIds || []).length) + ' modifier group' + ((c.modGroupIds || []).length === 1 ? '' : 's') + '</div></div>' +
+      '<div class="mm-price">' + (c.upcharge ? ('+' + money(c.upcharge)) : 'Included') + '</div></div>';
+  }).join('');
+  return '<form id="mm-editor" data-type="tmgroup" data-id="' + joinId + '">' +
+    '<div class="mm-card"><h3>MENU GROUP ' + esc(gname) + '</h3>' +
+    fld('Group name', '<input class="input" id="mm-g-name" value="' + esc(gname) + '">') +
+    fld('POS name (button label)', '<input class="input" id="mm-g-pos" value="' + esc((items[0] && items[0].posName) || '') + '" placeholder="Optional shorter name on POS">') +
+    '<label class="cbx"><input type="checkbox" id="mm-g-vis" checked> Show on POS &amp; iPad</label>' +
+    '<div style="margin-top:12px"><button type="button" class="btn btn-gold btn-sm" onclick="mmSaveTmGroup(\'' + joinId + '\',true)">Save group</button> ' +
+    '<button type="button" class="btn btn-danger btn-sm" onclick="mmDelTmGroup(\'' + joinId + '\')">Delete group</button></div></div>' +
+    '<div class="mm-card"><h3>Items in this group</h3>' + (list || '<div class="mm-empty">No items yet.</div>') +
+    '<button type="button" class="mm-add" onclick="mmAddTmCourse(\'' + tm.id + '\',\'' + encodeURIComponent(gname) + '\')">+ Add item</button></div></form>';
+}
+function mmTmCourseEditor(joinId) {
+  var tm = mmFindTm(mmJoinParent(joinId));
+  var c = mmFindTmCourse(joinId);
+  if (!tm || !c) return '<div class="mm-empty">Item not found.</div>';
+  var groupSel = '<select class="input" id="ie-course">' + mmTmGroups(tm).map(function (g) {
+    return '<option value="' + esc(g) + '"' + (mmTmGroupName(tm, c) === g ? ' selected' : '') + '>' + esc(g) + '</option>';
+  }).join('') + '</select>';
+  c.upcharge = c.upcharge || 0;
+  return '<form id="mm-editor" data-type="tmcourse" data-id="' + joinId + '">' +
+    mmSetDishEditor(c, 'Price / upcharge ($)', fld('Menu group', groupSel), '<p class="mm-hint">0.00 means included in the ' + money(tm.price) + ' tasting price. Courses fire to the kitchen in list order.</p>',
+      'mmSaveTmCourse(\'' + joinId + '\',true)', 'mmDelTmCourse(\'' + joinId + '\')') +
+    '</form>';
+}
+function mmTmPairGroupEditor(joinId) {
+  var tm = mmFindTm(mmJoinParent(joinId));
+  if (!tm) return '<div class="mm-empty">Menu not found.</div>';
+  var list = (tm.pairings || []).map(function (p) {
+    var pid = mmJoin(tm.id, p.id || p.name);
+    return '<div class="mm-item-card' + (mmSelIs('tmpair', pid) ? ' on' : '') + '" onclick="mmSelect(\'tmpair\',\'' + pid + '\')">' +
+      '<div><div class="mm-item-name">ITEM ' + esc(p.name) + '</div><div class="mm-item-meta">' + esc(p.desc || '') + '</div></div>' +
+      '<div class="mm-price">' + money(p.price || 0) + '</div></div>';
+  }).join('');
+  return '<div class="mm-card"><h3>MENU GROUP Wine pairings</h3>' +
+    '<p class="mm-hint">Optional wines sold with this tasting. Same name, description, and price fields as other items.</p>' +
+    (list || '<div class="mm-empty">No pairings yet.</div>') +
+    '<button type="button" class="mm-add" onclick="mmAddTmPair(\'' + tm.id + '\')">+ Add item</button></div>';
+}
+function mmTmPairEditor(joinId) {
+  var tm = mmFindTm(mmJoinParent(joinId));
+  if (!tm) return '<div class="mm-empty">Menu not found.</div>';
+  var pid = mmJoinChild(joinId);
+  var p = (tm.pairings || []).filter(function (x) { return (x.id || x.name) === pid; })[0];
+  if (!p) return '<div class="mm-empty">Pairing not found.</div>';
+  return '<form id="mm-editor" data-type="tmpair" data-id="' + joinId + '"><div class="mm-card"><h3>ITEM ' + esc(p.name) + '</h3>' +
+    fld('Name', '<input class="input" id="p-name" value="' + esc(p.name) + '">') +
+    fld('Description', '<input class="input" id="p-desc" value="' + esc(p.desc || '') + '">') +
+    fld('Price ($)', '<input class="input" id="p-price" type="number" step="0.01" value="' + (p.price || 0) + '">') +
+    '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveTmPair(\'' + joinId + '\',true)">Save item</button> ' +
+    '<button type="button" class="btn btn-danger btn-sm" onclick="mmDelTmPair(\'' + joinId + '\')">Delete item</button></div></form>';
+}
+
+function mmAddPfMenu() {
+  var pf = { id: uid('pf'), name: 'New prix fixe', subtitle: '', desc: '', price: 0, service: 'dinner', active: true, createdAt: Date.now(), courses: [{ id: uid('pfc'), label: 'New group', order: 0, mode: 'choose' }], dishes: [], taxIds: mmDefaultTaxes() };
+  STATE.prixFixeMenus = STATE.prixFixeMenus || [];
+  STATE.prixFixeMenus.push(pf);
+  mmRebuildPf(pf);
+  MM.open.mb_pf = true;
+  MM.open['pf:' + pf.id] = true;
+  mmPersistPf();
+  mmSelect('pfmenu', pf.id);
+}
+function mmAddTmMenu() {
+  var tm = { id: uid('tm'), name: 'New tasting', subtitle: '', price: 0, duration: '~2 hours', service: 'dinner', active: true, createdAt: Date.now(), courses: [], pairings: [], taxIds: mmDefaultTaxes() };
+  STATE.tastingMenus = STATE.tastingMenus || [];
+  STATE.tastingMenus.push(tm);
+  MM.open.mb_tm = true;
+  MM.open['tm:' + tm.id] = true;
+  mmPersistTm();
+  mmSelect('tmmenu', tm.id);
+}
+function mmAddPfCourse(pfId) {
+  var pf = mmFindPf(pfId); if (!pf) return;
+  var g = { id: uid('pfc'), label: 'New group', order: (pf.courses || []).length, mode: 'choose', visible: true };
+  pf.courses = pf.courses || [];
+  pf.courses.push(g);
+  mmRebuildPf(pf);
+  MM.open['pf:' + pfId] = true;
+  mmPersistPf();
+  mmSelect('pfcourse', mmJoin(pfId, g.id));
+}
+function mmAddPfDish(pfId, courseEnc) {
+  var pf = mmFindPf(pfId); if (!pf) return;
+  var label = decodeURIComponent(courseEnc || '');
+  var d = { id: uid('pfd'), name: 'New item', desc: '', upcharge: 0, course: label, station: KITCHEN_STATIONS[0], photoUrl: '', pairing: '', allergens: [], cookNote: '', cookMin: 10, modGroupIds: [], taxIds: mmDefaultTaxes(), order: (pf.dishes || []).length, active: true };
+  pf.dishes = pf.dishes || [];
+  pf.dishes.push(d);
+  mmRebuildPf(pf);
+  MM.open['pf:' + pfId] = true;
+  mmPersistPf();
+  mmSelect('pfdish', mmJoin(pfId, d.id));
+}
+function mmAddTmGroup(tmId) {
+  var tm = mmFindTm(tmId); if (!tm) return;
+  var name = 'New group';
+  var n = 1;
+  while (mmTmGroups(tm).indexOf(name) >= 0) { n += 1; name = 'New group ' + n; }
+  mmAddTmCourse(tmId, encodeURIComponent(name));
+}
+function mmAddTmCourse(tmId, groupEnc) {
+  var tm = mmFindTm(tmId); if (!tm) return;
+  var gname = decodeURIComponent(groupEnc || 'Courses');
+  var c = { id: uid('tmc'), num: (tm.courses || []).length + 1, name: 'New item', desc: '', station: KITCHEN_STATIONS[0], upcharge: 0, photoUrl: '', allergens: [], group: gname, mode: gname === 'Welcome' ? 'auto' : (gname === 'Entremets' ? 'entremets' : (gname === 'Dolce' ? 'later' : 'auto')), modGroupIds: [], taxIds: mmDefaultTaxes() };
+  tm.courses = tm.courses || [];
+  tm.courses.push(c);
+  MM.open['tm:' + tmId] = true;
+  mmPersistTm();
+  mmSelect('tmcourse', mmJoin(tmId, c.id));
+}
+function mmAddTmPair(tmId) {
+  var tm = mmFindTm(tmId); if (!tm) return;
+  var p = { id: uid('p'), name: 'New pairing', desc: '', price: 0 };
+  tm.pairings = tm.pairings || [];
+  tm.pairings.push(p);
+  mmPersistTm();
+  mmSelect('tmpair', mmJoin(tmId, p.id));
+}
+
+function mmSavePfMenu(id, toastOk) {
+  var pf = mmFindPf(id); if (!pf || !$('pf-name')) return;
+  pf.name = $('pf-name').value.trim() || pf.name;
+  pf.subtitle = $('pf-sub') ? $('pf-sub').value.trim() : pf.subtitle;
+  pf.desc = $('pf-desc') ? $('pf-desc').value.trim() : pf.desc;
+  pf.price = parseFloat($('pf-price').value) || 0;
+  pf.service = $('pf-service') ? $('pf-service').value : pf.service;
+  pf.active = $('pf-vis') ? $('pf-vis').checked : ($('pf-active') ? $('pf-active').value === 'Active' : pf.active);
+  pf.taxIds = Array.prototype.slice.call(document.querySelectorAll('.ie-tax:checked')).map(function (x) { return x.value; });
+  mmRebuildPf(pf);
+  mmPersistPf();
+  if (toastOk) { toast('Menu saved', 'success'); mmPaint(); }
+}
+function mmSavePfCourse(joinId, toastOk) {
+  var pf = mmFindPf(mmJoinParent(joinId)); if (!pf || !$('mm-g-name')) return;
+  var g = (pf.courses || []).filter(function (c) { return c.id === mmJoinChild(joinId); })[0];
+  if (!g) return;
+  var old = g.label;
+  g.label = $('mm-g-name').value.trim() || g.label;
+  g.posName = $('mm-g-pos') ? $('mm-g-pos').value.trim() : '';
+  g.mode = $('mm-g-mode') ? $('mm-g-mode').value : (g.mode || 'choose');
+  g.fireEach = g.mode === 'auto';
+  g.fireAfter = (g.mode === 'later' || g.mode === 'entremets') ? 'main' : '';
+  g.visible = $('mm-g-vis') ? $('mm-g-vis').checked : true;
+  if (old !== g.label) {
+    (pf.dishes || []).forEach(function (d) { if (d.course === old) d.course = g.label; });
+  }
+  mmRebuildPf(pf);
+  mmPersistPf();
+  if (toastOk) { toast('Group saved', 'success'); mmPaint(); }
+}
+function mmSavePfDish(joinId, toastOk) {
+  var pf = mmFindPf(mmJoinParent(joinId));
+  var d = mmFindPfDish(joinId);
+  if (!pf || !d || !$('ie-name')) return;
+  mmReadDishCommon(d);
+  d.upcharge = parseFloat($('ie-price').value) || 0;
+  d.price = d.upcharge;
+  if ($('ie-course')) d.course = $('ie-course').value;
+  mmRebuildPf(pf);
+  mmPersistPf();
+  if (toastOk) { toast('Item saved', 'success'); mmPaint(); }
+}
+function mmSaveTmMenu(id, toastOk) {
+  var tm = mmFindTm(id); if (!tm || !$('tm-name')) return;
+  tm.name = $('tm-name').value.trim() || tm.name;
+  tm.subtitle = $('tm-sub') ? $('tm-sub').value.trim() : tm.subtitle;
+  tm.price = parseFloat($('tm-price').value) || 0;
+  tm.duration = $('tm-dur') ? $('tm-dur').value.trim() : tm.duration;
+  tm.service = $('tm-service') ? $('tm-service').value : tm.service;
+  tm.active = $('tm-vis') ? $('tm-vis').checked : true;
+  tm.taxIds = Array.prototype.slice.call(document.querySelectorAll('.ie-tax:checked')).map(function (x) { return x.value; });
+  mmPersistTm();
+  if (toastOk) { toast('Menu saved', 'success'); mmPaint(); }
+}
+function mmSaveTmGroup(joinId, toastOk) {
+  var tm = mmFindTm(mmJoinParent(joinId)); if (!tm || !$('mm-g-name')) return;
+  var old = decodeURIComponent(mmJoinChild(joinId));
+  var next = $('mm-g-name').value.trim() || old;
+  (tm.courses || []).forEach(function (c) {
+    if (mmTmGroupName(tm, c) === old) c.group = next;
+  });
+  mmPersistTm();
+  if (toastOk) { toast('Group saved', 'success'); MM.sel = { type: 'tmgroup', id: mmJoin(tm.id, encodeURIComponent(next)) }; mmPaint(); }
+}
+function mmSaveTmCourse(joinId, toastOk) {
+  var tm = mmFindTm(mmJoinParent(joinId));
+  var c = mmFindTmCourse(joinId);
+  if (!tm || !c || !$('ie-name')) return;
+  mmReadDishCommon(c);
+  c.upcharge = parseFloat($('ie-price').value) || 0;
+  c.price = c.upcharge;
+  if ($('ie-course')) {
+    c.group = $('ie-course').value;
+    if (c.group === 'Welcome') c.mode = 'auto';
+    if (c.group === 'Entremets') c.mode = 'entremets';
+    if (c.group === 'Dolce') c.mode = 'later';
+  }
+  mmPersistTm();
+  if (toastOk) { toast('Item saved', 'success'); mmPaint(); }
+}
+function mmSaveTmPair(joinId, toastOk) {
+  var tm = mmFindTm(mmJoinParent(joinId)); if (!tm || !$('p-name')) return;
+  var pid = mmJoinChild(joinId);
+  var p = (tm.pairings || []).filter(function (x) { return (x.id || x.name) === pid; })[0];
+  if (!p) return;
+  p.name = $('p-name').value.trim() || p.name;
+  p.desc = $('p-desc') ? $('p-desc').value.trim() : '';
+  p.price = parseFloat($('p-price').value) || 0;
+  mmPersistTm();
+  if (toastOk) { toast('Item saved', 'success'); mmPaint(); }
+}
+
+function mmDelPfMenu(id) {
+  if (!confirm('Delete this prix fixe menu?')) return;
+  STATE.prixFixeMenus = (STATE.prixFixeMenus || []).filter(function (x) { return x.id !== id; });
+  mmPersistPf();
+  MM.sel = { type: 'book', id: 'mb_pf' };
+  mmPaint();
+  toast('Menu deleted', 'success');
+}
+function mmDelPfCourse(joinId) {
+  if (!confirm('Delete this group? Items in it are removed.')) return;
+  var pf = mmFindPf(mmJoinParent(joinId)); if (!pf) return;
+  var g = (pf.courses || []).filter(function (c) { return c.id === mmJoinChild(joinId); })[0];
+  if (!g) return;
+  pf.dishes = (pf.dishes || []).filter(function (d) { return d.course !== g.label; });
+  pf.courses = (pf.courses || []).filter(function (c) { return c.id !== g.id; });
+  mmRebuildPf(pf);
+  mmPersistPf();
+  mmSelect('pfmenu', pf.id);
+  toast('Group deleted', 'success');
+}
+function mmDelPfDish(joinId) {
+  if (!confirm('Delete this item?')) return;
+  var pf = mmFindPf(mmJoinParent(joinId)); if (!pf) return;
+  var id = mmJoinChild(joinId);
+  pf.dishes = (pf.dishes || []).filter(function (d) { return d.id !== id; });
+  mmRebuildPf(pf);
+  mmPersistPf();
+  mmSelect('pfmenu', pf.id);
+  toast('Item deleted', 'success');
+}
+function mmDelTmMenu(id) {
+  if (!confirm('Delete this tasting menu?')) return;
+  STATE.tastingMenus = (STATE.tastingMenus || []).filter(function (x) { return x.id !== id; });
+  mmPersistTm();
+  MM.sel = { type: 'book', id: 'mb_tm' };
+  mmPaint();
+  toast('Menu deleted', 'success');
+}
+function mmDelTmGroup(joinId) {
+  if (!confirm('Delete this group? Items in it are removed.')) return;
+  var tm = mmFindTm(mmJoinParent(joinId)); if (!tm) return;
+  var gname = decodeURIComponent(mmJoinChild(joinId));
+  tm.courses = (tm.courses || []).filter(function (c) { return mmTmGroupName(tm, c) !== gname; });
+  mmPersistTm();
+  mmSelect('tmmenu', tm.id);
+  toast('Group deleted', 'success');
+}
+function mmDelTmCourse(joinId) {
+  if (!confirm('Delete this item?')) return;
+  var tm = mmFindTm(mmJoinParent(joinId)); if (!tm) return;
+  var id = mmJoinChild(joinId);
+  tm.courses = (tm.courses || []).filter(function (c) { return c.id !== id; });
+  mmPersistTm();
+  mmSelect('tmmenu', tm.id);
+  toast('Item deleted', 'success');
+}
+function mmDelTmPair(joinId) {
+  if (!confirm('Delete this item?')) return;
+  var tm = mmFindTm(mmJoinParent(joinId)); if (!tm) return;
+  var pid = mmJoinChild(joinId);
+  tm.pairings = (tm.pairings || []).filter(function (x) { return (x.id || x.name) !== pid; });
+  mmPersistTm();
+  mmSelect('tmmenu', tm.id);
+  toast('Item deleted', 'success');
+}
+
 function menuBody() { return mmBody(); }
 function setMenuCat(id) { MENU_CAT_FILTER = id; mmPaint(); }
