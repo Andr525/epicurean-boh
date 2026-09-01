@@ -320,6 +320,77 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .menu-toggle{display:none;width:42px;height:42px;border-radius:11px;border:1px solid var(--border);
   background:var(--panel);color:var(--gold);align-items:center;justify-content:center;font-size:20px;cursor:pointer;}
 
+/* ---------- Menu manager (Toast-style, white workspace) ---------- */
+.shell.mm-on{height:100vh;overflow:hidden;}
+.shell.mm-on .main.mm-work{display:flex;flex-direction:column;height:100vh;min-height:0;background:#fff;}
+.shell.mm-on .content.mm-fill{flex:1;min-height:0;padding:0;overflow:hidden;background:#fff;color:#000;}
+.mm-app{display:flex;flex-direction:column;height:100%;background:#fff;color:#000;}
+.mm-app .menu-toggle{background:#fff;border:1px solid #d0d5dd;color:#000;}
+.mm-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;
+  border-bottom:1px solid #e4e7ec;background:#fff;flex-shrink:0;}
+.mm-crumb{font-size:12px;color:#344054;font-weight:500;}
+.mm-title{font-size:20px;font-weight:700;color:#000;letter-spacing:-0.02em;margin-top:2px;}
+.mm-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.mm-search{min-width:220px;background:#fff;border:1px solid #d0d5dd;border-radius:8px;padding:9px 12px;
+  color:#000;font-size:14px;font-family:Inter,sans-serif;}
+.mm-search:focus{outline:2px solid #98a2b3;border-color:#98a2b3;}
+.mm-tabs{display:flex;gap:4px;padding:0 18px;border-bottom:1px solid #e4e7ec;background:#fff;flex-shrink:0;}
+.mm-tab{padding:12px 14px;font-size:13px;font-weight:650;color:#344054;cursor:pointer;border-bottom:2px solid transparent;background:none;border-top:none;border-left:none;border-right:none;font-family:Inter,sans-serif;}
+.mm-tab:hover{color:#000;}
+.mm-tab.on{color:#000;border-bottom-color:#1570ef;}
+.mm-body{flex:1;min-height:0;display:grid;grid-template-columns:minmax(280px,34%) 1fr;background:#fff;}
+.mm-app>.mm-detail,.mm-app>.mm-body{flex:1;min-height:0;}
+.mm-tree{background:#fff;border-right:1px solid #e4e7ec;overflow-y:auto;padding:8px 0 24px;}
+.mm-detail{overflow-y:auto;padding:18px 22px 40px;background:#fff;min-width:0;color:#000;}
+.mm-book{font-size:11px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#344054;padding:12px 16px 6px;}
+.mm-row{display:flex;align-items:center;gap:8px;padding:8px 16px;cursor:pointer;font-size:14px;color:#000;font-weight:500;}
+.mm-row:hover{background:#f2f4f7;}
+.mm-row.on{background:#eff8ff;color:#000;}
+.mm-row .mm-caret{width:16px;color:#667085;font-size:11px;}
+.mm-row .mm-kind{font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#667085;margin-left:auto;}
+.mm-row.indent-1{padding-left:32px;}
+.mm-row.indent-2{padding-left:48px;}
+.mm-row.indent-3{padding-left:64px;}
+.mm-add{display:inline-block;margin:6px 16px 10px;color:#1570ef;font-size:13px;font-weight:650;cursor:pointer;background:none;border:none;font-family:Inter,sans-serif;}
+.mm-add:hover{text-decoration:underline;}
+.mm-card{background:#fff;border:1px solid #e4e7ec;border-radius:12px;padding:16px 18px;margin-bottom:14px;color:#000;}
+.mm-card h3{font-size:14px;font-weight:700;color:#000;margin:0 0 12px;}
+.mm-fill .input{background:#fff;color:#000;border:1px solid #d0d5dd;border-radius:8px;padding:10px 12px;}
+.mm-fill .input:focus{outline:2px solid #b2ddff;border-color:#1570ef;}
+.mm-fill .ff label{color:#000;text-transform:none;letter-spacing:0;font-weight:600;font-size:13px;}
+.mm-fill .cbx{color:#000;}
+.mm-fill .cbx-grid{background:#fff;border:1px solid #e4e7ec;}
+.mm-fill .btn-ghost{color:#000;border-color:#d0d5dd;background:#fff;}
+.mm-fill .btn-ghost:hover{border-color:#98a2b3;color:#000;}
+.mm-fill .btn-gold{width:auto;}
+.mm-fill .btn-danger{width:auto;color:#b42318;background:#fff;border:1px solid #fecdca;}
+.mm-fill table{color:#000;}
+.mm-fill th{color:#000;border-bottom:1px solid #e4e7ec;background:#f9fafb;}
+.mm-fill td{color:#000;border-bottom:1px solid #eef0f3;}
+.mm-fill tbody tr:hover{background:#f9fafb;}
+.mm-item-card{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #e4e7ec;border-radius:10px;margin-bottom:8px;cursor:pointer;background:#fff;color:#000;}
+.mm-item-card:hover{border-color:#98a2b3;}
+.mm-item-card.on{border-color:#1570ef;background:#eff8ff;}
+.mm-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;background:#f2f4f7;flex-shrink:0;}
+.mm-item-name{font-weight:650;color:#000;}
+.mm-item-meta{font-size:12px;color:#344054;margin-top:2px;}
+.mm-price{margin-left:auto;font-weight:700;color:#000;white-space:nowrap;}
+.mm-pill{display:inline-block;font-size:11px;font-weight:650;padding:2px 8px;border-radius:999px;background:#f2f4f7;color:#000;margin-left:6px;}
+.mm-fill .analysis-box{background:#fff;border:1px solid #e4e7ec;color:#000;}
+.mm-fill .an-label{color:#000;}
+.mm-fill .an-none,.mm-fill .an-note{color:#344054;}
+.mm-fill .btn-analyze{background:#eff8ff;border:1px solid #b2ddff;color:#175cd3;}
+.mm-fill .chip-al{background:#fef3f2;color:#b42318;border-color:#fecdca;}
+.mm-fill .chip-diet{background:#ecfdf3;color:#067647;border-color:#abefc6;}
+.mm-hint{font-size:12.5px;color:#344054;line-height:1.55;margin-top:8px;}
+.mm-empty{color:#000;padding:18px 8px;font-size:14px;}
+.mm-mod-opt{display:flex;gap:8px;align-items:center;margin-bottom:6px;}
+.mm-mod-opt .input{flex:1;}
+@media(max-width:980px){
+  .mm-body{grid-template-columns:1fr;}
+  .mm-tree{max-height:34vh;border-right:none;border-bottom:1px solid #e4e7ec;}
+}
+
 /* ---------- Employee module ---------- */
 .form-grid.cols-3{grid-template-columns:1fr 1fr 1fr;}
 .form-grid.cols-4{grid-template-columns:1fr 1fr 1fr 1fr;}
@@ -970,24 +1041,49 @@ var DIET_FLAGS = ['Gluten-Free','Dairy-Free','Vegan','Vegetarian','Nut-Free','Sh
 /* Inventory units */
 var INV_UNITS = ['each','oz','lb','bottle','case','glass'];
 
-/* Default modifier groups for POS. Temperature is R/MR/M only per spec. */
+/* Default modifier groups for POS. Steaks/burgers and salmon/tuna get temperature. */
 function seedModifierGroups(){
   return [
+    {id:'mg_meat_temp', name:'Meat Temperature', required:true, multi:false, options:[
+      {id:'mo_r',name:'Rare',up:0},{id:'mo_mr',name:'Medium Rare',up:0},{id:'mo_m',name:'Medium',up:0},
+      {id:'mo_mw',name:'Medium Well',up:0},{id:'mo_wd',name:'Well Done',up:0}
+    ]},
+    {id:'mg_fish_temp', name:'Fish Temperature', required:true, multi:false, options:[
+      {id:'mo_fr',name:'Rare',up:0},{id:'mo_fmr',name:'Medium Rare',up:0},{id:'mo_fm',name:'Medium',up:0},
+      {id:'mo_fwd',name:'Well Done',up:0}
+    ]},
     {id:'mg_temp', name:'Temperature', required:false, multi:false, options:[
-      {id:'mo_r',name:'R (Rare)',up:0},{id:'mo_mr',name:'MR (Med-Rare)',up:0},{id:'mo_m',name:'M (Medium)',up:0}
+      {id:'mo_tr',name:'Rare',up:0},{id:'mo_tmr',name:'Medium Rare',up:0},{id:'mo_tm',name:'Medium',up:0}
+    ]},
+    {id:'mg_side', name:'Side Options', required:false, multi:false, options:[
+      {id:'mo_fry',name:'Fries',up:0},{id:'mo_sal',name:'Side Salad',up:0},{id:'mo_veg',name:'Seasonal Veg',up:0}
     ]},
     {id:'mg_add', name:'Add-ons', required:false, multi:true, options:[
       {id:'mo_chz',name:'Extra Cheese',up:1.5},{id:'mo_bac',name:'Bacon',up:2},{id:'mo_avo',name:'Avocado',up:2.5}
-    ]},
-    {id:'mg_side', name:'Side Choice', required:false, multi:false, options:[
-      {id:'mo_fry',name:'Fries',up:0},{id:'mo_sal',name:'Side Salad',up:0},{id:'mo_veg',name:'Seasonal Veg',up:0}
     ]},
     {id:'mg_drs', name:'Dressing', required:false, multi:false, options:[
       {id:'mo_ran',name:'Ranch',up:0},{id:'mo_cae',name:'Caesar',up:0},{id:'mo_vin',name:'Vinaigrette',up:0}
     ]},
     {id:'mg_prep', name:'Prep Notes', required:false, multi:true, options:[
-      {id:'mo_nos',name:'No Salt',up:0},{id:'mo_sos',name:'Sauce on Side',up:0},{id:'mo_wel',name:'Well Cooked',up:0}
+      {id:'mo_nos',name:'No Salt',up:0},{id:'mo_sos',name:'Sauce on Side',up:0}
     ]}
+  ];
+}
+function seedTaxRates(){
+  return [
+    {id:'tx_ny', name:'NY Sales Tax', rate:8.875, isDefault:true},
+    {id:'tx_liquor', name:'Liquor Tax', rate:0, isDefault:false}
+  ];
+}
+function seedMenuBooks(){
+  return [
+    {id:'mb_dinner', name:'Dinner', kind:'food', groupIds:['c_small','c_cev','c_soup','c_ent','c_side','c_des','c_kid']},
+    {id:'mb_brunch', name:'Brunch', kind:'food', groupIds:['c_brunch']},
+    {id:'mb_bar', name:'Bar', kind:'bar', groupIds:[]},
+    {id:'mb_wine', name:'Wine', kind:'wine', groupIds:['c_wine_glass','c_wine_bottle']},
+    {id:'mb_retail', name:'Retail', kind:'retail', groupIds:[]},
+    {id:'mb_pf', name:'Prix Fixe', kind:'prixfixe', groupIds:[]},
+    {id:'mb_tm', name:'Tasting', kind:'tasting', groupIds:[]}
   ];
 }
 
@@ -1001,7 +1097,9 @@ function seedMenuCats(){
     {id:'c_side',  name:'Sides',           visible:true},
     {id:'c_des',   name:'Desserts',        visible:true},
     {id:'c_kid',   name:'Kids',            visible:true},
-    {id:'c_brunch',name:'Brunch',          visible:true}
+    {id:'c_brunch',name:'Brunch',          visible:true},
+    {id:'c_wine_glass', name:'Wine by the glass', visible:true, kind:'wine'},
+    {id:'c_wine_bottle', name:'Wine by the bottle', visible:true, kind:'wine'}
   ];
 }
 
@@ -1015,7 +1113,23 @@ function seedMenuItems(){
     {id:'m2', code:'301', name:'Chocolate Studio Torte', desc:'70% dark chocolate flourless torte, cocoa nib crumble.',
      price:12, cost:3, catIds:['c_des'], cookMin:4, station:'Pastry',
      ingredients:'dark chocolate, eggs, butter, sugar, cocoa nibs',
-     allergens:['Egg','Dairy','Soy'], diet:['Gluten-Free','Vegetarian'], verified:false, modGroupIds:[], active:true}
+     allergens:['Egg','Dairy','Soy'], diet:['Gluten-Free','Vegetarian'], verified:false, modGroupIds:[], taxIds:['tx_ny'], active:true},
+    {id:'m3', code:'401', name:'Wagyu Ribeye', desc:'12oz prime wagyu, chimichurri, roasted garlic, seasonal vegetables.',
+     price:58, cost:22, catIds:['c_ent'], cookMin:18, station:'Grill',
+     ingredients:'wagyu ribeye, chimichurri, garlic, vegetables',
+     allergens:[], diet:['Gluten-Free'], verified:false, modGroupIds:['mg_meat_temp','mg_side'], taxIds:['tx_ny'], active:true},
+    {id:'m4', code:'402', name:'House Hamburger', desc:'Dry-aged beef patty, brioche, cheddar, pickles, house sauce.',
+     price:24, cost:8, catIds:['c_ent'], cookMin:12, station:'Grill',
+     ingredients:'beef, brioche, cheddar, pickle, sauce',
+     allergens:['Gluten','Dairy'], diet:[], verified:false, modGroupIds:['mg_meat_temp','mg_side','mg_add'], taxIds:['tx_ny'], active:true},
+    {id:'m5', code:'403', name:'Faroe Island Salmon', desc:'Pan-seared salmon, lemon beurre blanc, asparagus.',
+     price:34, cost:12, catIds:['c_ent'], cookMin:14, station:'Sauté',
+     ingredients:'salmon, butter, lemon, asparagus',
+     allergens:['Fish','Dairy'], diet:[], verified:false, modGroupIds:['mg_fish_temp'], taxIds:['tx_ny'], active:true},
+    {id:'m6', code:'404', name:'Seared Tuna', desc:'Sesame-crusted tuna, ponzu, avocado, chili oil.',
+     price:36, cost:13, catIds:['c_ent'], cookMin:10, station:'Sauté',
+     ingredients:'tuna, sesame, ponzu, avocado',
+     allergens:['Fish','Sesame','Soy'], diet:['Gluten-Free'], verified:false, modGroupIds:['mg_fish_temp'], taxIds:['tx_ny'], active:true}
   ];
 }
 
@@ -1153,6 +1267,8 @@ var STATE = {
   menuCats:   lsGet('eh_menu_cats',   seedMenuCats()),
   menuItems:  lsGet('eh_menu_items',  seedMenuItems()),
   modGroups:  lsGet('eh_mod_groups',  seedModifierGroups()),
+  taxRates:   lsGet('eh_tax_rates',   seedTaxRates()),
+  menuBooks:  lsGet('eh_menu_books',  seedMenuBooks()),
   bar:        lsGet('eh_bar',         seedBar()),
   wines:      lsGet('eh_wines',       seedWines()),
   retail:     lsGet('eh_retail',      seedRetail()),
@@ -1357,10 +1473,13 @@ function withoutEmbeddedPhotos(value){
 }
 function saveMenu(){
   lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups);
+  lsSet('eh_tax_rates',STATE.taxRates||[]); lsSet('eh_menu_books',STATE.menuBooks||[]);
   return fbSetDoc('boh_shared','menu',{
     cats:STATE.menuCats,
     items:withoutEmbeddedPhotos(STATE.menuItems),
     modGroups:STATE.modGroups,
+    taxRates:STATE.taxRates||[],
+    books:STATE.menuBooks||[],
     updatedAt:Date.now()
   });
 }
@@ -1390,7 +1509,7 @@ function syncFromCloud(){
     fbGetDoc('boh_shared','punches').then(function(d){ if(d&&d.list){ STATE.punches=d.list; lsSet('eh_punches',STATE.punches); } }),
     fbGetDoc('boh_shared','tables').then(function(d){ if(d){ if(d.rooms&&d.rooms.length){STATE.rooms=d.rooms;lsSet('eh_rooms',STATE.rooms);} if(d.roomObjs){STATE.roomObjs=normalizeRoomObjs(d.roomObjs);} if(d.stations){STATE.stations=d.stations;lsSet('eh_stations',STATE.stations);} hydrateStationOverlays(); lsSet('eh_rooms_objs',STATE.roomObjs); lsSet('eh_stations',STATE.stations); if(STATE.rooms.length && !STATE.rooms.filter(function(r){return r.id===FLOOR.room;})[0]) FLOOR.room=STATE.rooms[0].id; } }),
     fbGetDoc('boh_shared','guests').then(function(d){ if(d&&d.list){ STATE.guests=d.list; lsSet('eh_guests',STATE.guests); } }),
-    fbGetDoc('boh_shared','menu').then(function(d){ if(d){ if(d.cats)STATE.menuCats=d.cats; if(d.items)STATE.menuItems=d.items; if(d.modGroups)STATE.modGroups=d.modGroups; lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups); } }),
+    fbGetDoc('boh_shared','menu').then(function(d){ if(d){ if(d.cats)STATE.menuCats=d.cats; if(d.items)STATE.menuItems=d.items; if(d.modGroups)STATE.modGroups=d.modGroups; if(d.taxRates)STATE.taxRates=d.taxRates; if(d.books)STATE.menuBooks=d.books; lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups); lsSet('eh_tax_rates',STATE.taxRates||[]); lsSet('eh_menu_books',STATE.menuBooks||[]); if(typeof ensureMenuManager==='function')ensureMenuManager(); } }),
     fbGetDoc('boh_shared','bar').then(function(d){ if(d&&d.list){ STATE.bar=d.list; lsSet('eh_bar',STATE.bar); } }),
     fbGetDoc('boh_shared','wines').then(function(d){ if(d&&d.list){ STATE.wines=d.list; lsSet('eh_wines',STATE.wines); } }),
     fbGetDoc('boh_shared','retail').then(function(d){ if(d&&d.list){ STATE.retail=d.list; lsSet('eh_retail',STATE.retail); } }),
@@ -1471,7 +1590,7 @@ var NAV = [
     {r:'timecards',ico:'▤', label:'Time Cards', perm:'timecards'}
   ]},
   {group:'Product', items:[
-    {r:'menu',   ico:'🍽', label:'Food Menu',  perm:'menu'},
+    {r:'menu',   ico:'🍽', label:'Menu manager', perm:'menu'},
     {r:'tasting',ico:'✦', label:'Tasting & Prix Fixe', perm:'menu'},
     {r:'bar',    ico:'🍸', label:'Bar',        perm:'menu'},
     {r:'wine',   ico:'🍷', label:'Wine',       perm:'menu'},
@@ -1520,7 +1639,8 @@ function startClock(){
 function render(){
   if(!SESSION.user){ $('root').innerHTML=viewLogin(); bindLogin(); return; }
   var page=pageFor(ROUTE);
-  $('root').innerHTML='<div class="shell">'+sidebar()+'<div class="main">'+topbar(page.title,page.sub)+'<div class="content" id="content">'+page.body+'</div></div></div>';
+  var mm=ROUTE==='menu';
+  $('root').innerHTML='<div class="shell'+(mm?' mm-on':'')+'">'+sidebar()+'<div class="main'+(mm?' mm-work':'')+'">'+(mm?'':topbar(page.title,page.sub))+'<div class="content'+(mm?' mm-fill':'')+'" id="content">'+page.body+'</div></div></div>';
   startClock();
   document.querySelectorAll('.nav-item[data-r]').forEach(function(n){ n.addEventListener('click',function(){ go(n.getAttribute('data-r')); }); });
   if(page.bind)page.bind();
@@ -3158,11 +3278,11 @@ function closeModal(){ $('modal-root').innerHTML=''; MODAL_OK=null; }
    ============================================================ */
 function boot(){
   hydrateStationOverlays();
+  if(typeof ensureMenuManager==='function')ensureMenuManager();
   var saved=sessionStorage.getItem('eh_boh_user'); if(saved){ try{ SESSION.user=JSON.parse(saved); }catch(e){} }
   render();
   syncFromCloud().then(function(){ if(SESSION.user)render(); });
 }
-if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot); else boot();
 /* ============================================================
    PRODUCT MODULE — Menu / Bar / Wine / Retail / Inventory / Reports
    Appended to app.js. Depends on helpers: $, el, esc, toast, openModal,
@@ -3345,7 +3465,15 @@ function renderAnalysis(allergens,diet,verified,note){
     (note?'<div class="an-note">'+esc(note)+'</div>':'')+
     '<label class="cbx an-verify-row"><input type="checkbox" id="an-verify"'+(verified?' checked':'')+'> <b>Chef verified</b> — I confirm these allergen/dietary calls against actual prep and cross-contact.</label>';
 }
-function deleteMenuItem(id){ if(!confirm('Delete this item?'))return; STATE.menuItems=STATE.menuItems.filter(function(x){return x.id!==id;}); saveMenu(); closeModal(); render(); toast('Item deleted','success'); }
+function deleteMenuItem(id){
+  if(!confirm('Delete this item?'))return;
+  STATE.menuItems=STATE.menuItems.filter(function(x){return x.id!==id;});
+  saveMenu(); closeModal();
+  if(ROUTE==='menu' && typeof mmPaint==='function'){
+    MM.sel={type:'book',id:'mb_dinner'}; MM.open.mb_dinner=true; mmPaint();
+  } else render();
+  toast('Item deleted','success');
+}
 
 /* ---- category manager ---- */
 function openCatManager(){
@@ -3364,7 +3492,16 @@ function openCatManager(){
     $('cat-add').addEventListener('click',function(){ STATE.menuCats.push({id:uid('c'),name:'New Category',visible:true}); openCatManager(); });
   });
 }
-function deleteCat(id){ if(!confirm('Delete this category? Items stay but lose this tag.'))return; STATE.menuCats=STATE.menuCats.filter(function(x){return x.id!==id;}); STATE.menuItems.forEach(function(it){ it.catIds=(it.catIds||[]).filter(function(c){return c!==id;}); }); saveMenu(); openCatManager(); }
+function deleteCat(id){
+  if(!confirm('Delete this category? Items stay but lose this tag.'))return;
+  STATE.menuCats=STATE.menuCats.filter(function(x){return x.id!==id;});
+  STATE.menuItems.forEach(function(it){ it.catIds=(it.catIds||[]).filter(function(c){return c!==id;}); });
+  (STATE.menuBooks||[]).forEach(function(b){ if(b.groupIds) b.groupIds=b.groupIds.filter(function(x){return x!==id;}); });
+  saveMenu();
+  if(ROUTE==='menu' && typeof mmPaint==='function'){
+    closeModal(); MM.sel={type:'book',id:'mb_dinner'}; MM.open.mb_dinner=true; mmPaint();
+  } else openCatManager();
+}
 
 /* ---- modifier manager ---- */
 function openModifierManager(){
@@ -3393,7 +3530,15 @@ function openModGroupEditor(id){
     $('mg-addopt').addEventListener('click',function(){ g.options.push({id:uid('mo'),name:'',up:0}); openModGroupEditor(g.id||(STATE.modGroups.push(g),g.id)); });
   }, id?'<button class="btn btn-danger" onclick="deleteModGroup(\''+id+'\')">Delete</button>':'');
 }
-function deleteModGroup(id){ if(!confirm('Delete this modifier group?'))return; STATE.modGroups=STATE.modGroups.filter(function(x){return x.id!==id;}); saveMenu(); openModifierManager(); }
+function deleteModGroup(id){
+  if(!confirm('Delete this modifier group?'))return;
+  STATE.modGroups=STATE.modGroups.filter(function(x){return x.id!==id;});
+  (STATE.menuItems||[]).forEach(function(it){ it.modGroupIds=(it.modGroupIds||[]).filter(function(x){return x!==id;}); });
+  saveMenu();
+  if(ROUTE==='menu' && typeof mmPaint==='function'){
+    closeModal(); MM.tab='modifiers'; MM.sel={type:'book',id:'mb_dinner'}; mmPaint();
+  } else openModifierManager();
+}
 
 /* ---- AI settings ---- */
 function openAiSettings(){
@@ -4405,6 +4550,10 @@ function aiSuggestWinePairing(btn){
   }
   toast('✨ AI Suggested: '+bestWine.name,'success');
 }
+</script>
+<script src="menu-manager.js"></script>
+<script>
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot); else boot();
 </script>
 </body>
 </html>
