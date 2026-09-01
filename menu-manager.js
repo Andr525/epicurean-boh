@@ -54,6 +54,7 @@ function mmSelIs(type, id) { return MM.sel && MM.sel.type === type && MM.sel.id 
 function mmSelect(type, id) {
   mmFlush();
   MM.sel = { type: type, id: id };
+  if (type === 'book') MM.open[id] = true;
   mmPaint();
 }
 function mmTab(tab) { mmFlush(); MM.tab = tab; mmPaint(); }
@@ -73,6 +74,9 @@ function mmPaint() {
   if (keepQ && $('mm-q')) {
     $('mm-q').focus();
     try { $('mm-q').setSelectionRange(start, end); } catch (e) {}
+  } else {
+    var on = document.querySelector('.mm-row.on');
+    if (on) on.scrollIntoView({ block: 'nearest' });
   }
 }
 function mmFlush() {
