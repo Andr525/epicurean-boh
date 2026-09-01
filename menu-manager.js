@@ -40,7 +40,14 @@ function ensureMenuManager() {
     }
   });
   if (MM.open.mb_dinner === undefined) MM.open.mb_dinner = true;
-  if (dirty) saveMenu();
+  if (dirty) {
+    lsSet('eh_menu_cats', STATE.menuCats);
+    lsSet('eh_menu_items', STATE.menuItems);
+    lsSet('eh_mod_groups', STATE.modGroups);
+    lsSet('eh_tax_rates', STATE.taxRates || []);
+    lsSet('eh_menu_books', STATE.menuBooks || []);
+    if (typeof fbReady !== 'undefined' && fbReady) saveMenu();
+  }
 }
 
 function mmSelIs(type, id) { return MM.sel && MM.sel.type === type && MM.sel.id === id; }
