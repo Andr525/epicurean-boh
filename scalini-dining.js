@@ -457,6 +457,20 @@
     createdAt: Date.now(),
     welcomeFireEach: true,
     dessertAfter: 'main',
+    i18n: {
+      es: {
+        subtitle: 'Cena prix fixe. Las bienvenidas se envían una a una; postre después del principal.',
+        desc: 'Tres bocados de bienvenida se sirven solos, uno a uno. Elija un primo y un principal. El postre se toma después del principal. El sorbete de coco y lima se sirve como entremets antes del postre.'
+      },
+      fr: {
+        subtitle: 'Dîner prix fixe. Les mises en bouche partent une par une ; dessert après le plat.',
+        desc: 'Trois mises en bouche partent automatiquement, une à la fois. Choisissez un primo et un plat. Le dessert se prend après le plat. Le sorbet coco-citron vert est servi en entremets avant le dessert.'
+      },
+      ja: {
+        subtitle: 'プリフィクスディナー。ウェルカムは一品ずつ。デザートはメインの後。',
+        desc: 'ウェルカム3品は自動で一品ずつ。プリモとメインをお選びください。デザートはメインの後。ココナッツライムソルベはデザート前のアントルメです。'
+      }
+    },
     courses: courses,
     dishes: dishes,
     courseGroups: courses.map(function (c) {
@@ -478,6 +492,11 @@
     welcomeFireEach: true,
     dessertAfter: 'meat',
     dessertMenuId: 'pf_scalini_89',
+    i18n: {
+      es: { subtitle: 'Bienvenida, luego Piamonte, Emilia-Romaña, Umbría, Toscana' },
+      fr: { subtitle: 'Mise en bouche, puis Piémont, Émilie-Romagne, Ombrie, Toscane' },
+      ja: { subtitle: 'ウェルカムのあと、ピエモンテ、エミリア＝ロマーニャ、ウンブリア、トスカーナ' }
+    },
     courses: tastingCourses,
     pairings: []
   };
@@ -500,7 +519,19 @@
       experience: 'Experience',
       allergies: 'Allergies',
       welcome: 'Welcome',
-      dolce: 'Dolce'
+      dolce: 'Dolce',
+      callServer: 'Call Server',
+      viewMenu: 'View Menu',
+      selectTable: 'Select table',
+      table: 'Table',
+      orderPadTitle: 'Write your order',
+      orderPadHint: 'Type in your language. We send an English copy to your Food Master.',
+      orderPadPlaceholder: 'Example: I would like the smoked salmon, no onions, and I am allergic to nuts',
+      orderPadSend: 'Send to Food Master',
+      orderPadSending: 'Translating and sending…',
+      orderPadSent: 'Sent to your Food Master in English',
+      orderPadEmpty: 'Please write your order first',
+      orderPadFail: 'Could not send. Please call your server.'
     },
     es: {
       prixFixe: 'Menú degustación a precio fijo',
@@ -519,7 +550,19 @@
       experience: 'Experiencia',
       allergies: 'Alergias',
       welcome: 'Bienvenida',
-      dolce: 'Dolce'
+      dolce: 'Dolce',
+      callServer: 'Llamar al camarero',
+      viewMenu: 'Ver menú',
+      selectTable: 'Elegir mesa',
+      table: 'Mesa',
+      orderPadTitle: 'Escriba su pedido',
+      orderPadHint: 'Escríbalo en su idioma. Enviamos una copia en inglés a su Food Master.',
+      orderPadPlaceholder: 'Ejemplo: quiero el salmón ahumado, sin cebolla, y soy alérgico a los frutos secos',
+      orderPadSend: 'Enviar al Food Master',
+      orderPadSending: 'Traduciendo y enviando…',
+      orderPadSent: 'Enviado a su Food Master en inglés',
+      orderPadEmpty: 'Escriba su pedido primero',
+      orderPadFail: 'No se pudo enviar. Llame a su camarero.'
     },
     fr: {
       prixFixe: 'Menu prix fixe',
@@ -538,7 +581,19 @@
       experience: 'Expérience',
       allergies: 'Allergies',
       welcome: 'Mise en bouche',
-      dolce: 'Dolce'
+      dolce: 'Dolce',
+      callServer: 'Appeler le serveur',
+      viewMenu: 'Voir le menu',
+      selectTable: 'Choisir une table',
+      table: 'Table',
+      orderPadTitle: 'Écrivez votre commande',
+      orderPadHint: 'Écrivez dans votre langue. Nous envoyons une copie en anglais à votre Food Master.',
+      orderPadPlaceholder: 'Exemple : je voudrais le saumon fumé, sans oignon, et je suis allergique aux noix',
+      orderPadSend: 'Envoyer au Food Master',
+      orderPadSending: 'Traduction et envoi…',
+      orderPadSent: 'Envoyé à votre Food Master en anglais',
+      orderPadEmpty: 'Écrivez d’abord votre commande',
+      orderPadFail: 'Envoi impossible. Appelez votre serveur.'
     },
     ja: {
       prixFixe: 'プリフィクス',
@@ -557,7 +612,19 @@
       experience: 'コース',
       allergies: 'アレルギー',
       welcome: 'ウェルカム',
-      dolce: 'ドルチェ'
+      dolce: 'ドルチェ',
+      callServer: 'スタッフを呼ぶ',
+      viewMenu: 'メニューを見る',
+      selectTable: 'テーブルを選ぶ',
+      table: 'テーブル',
+      orderPadTitle: 'ご注文を書いてください',
+      orderPadHint: 'ご自身の言語でどうぞ。英語に訳してフードマスターへ送ります。',
+      orderPadPlaceholder: '例：スモークサーモンを、玉ねぎなしで。ナッツアレルギーです',
+      orderPadSend: 'フードマスターへ送る',
+      orderPadSending: '翻訳して送信中…',
+      orderPadSent: '英語でフードマスターに送りました',
+      orderPadEmpty: '先にご注文を書いてください',
+      orderPadFail: '送信できませんでした。スタッフをお呼びください。'
     }
   };
 
