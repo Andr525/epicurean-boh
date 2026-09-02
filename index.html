@@ -946,27 +946,31 @@ function handlePhotoUpload(fileInput){
       canvas.width=w; canvas.height=h;
       var ctx=canvas.getContext('2d');
       ctx.drawImage(img,0,0,w,h);
+      var localUrl=canvas.toDataURL('image/jpeg',0.72);
       function applyUrl(url, msg){
         if(_uploadTarget){
           _uploadTarget.value=photoInputDisplayValue(url);
           showPhotoPreview(_uploadTarget, url);
         }
         if(typeof applyPhotoUrlToCurrent==='function') applyPhotoUrlToCurrent(url);
-        toast(msg||'Photo ready','success');
+        if(msg) toast(msg,'success');
         fileInput.value='';
       }
+      applyUrl(localUrl, '');
+      toast('Photo ready','success');
       if(canvas.toBlob){
         canvas.toBlob(function(blob){
-          if(!blob){ applyUrl(canvas.toDataURL('image/jpeg',0.82),'Photo ready locally'); return; }
+          if(!blob) return;
           uploadMenuPhotoBlob(blob).then(function(url){
-            applyUrl(url,'Photo uploaded — save the item to send it to POS and iPad');
+            var probe=new Image();
+            probe.onload=function(){ applyUrl(url,'Photo uploaded — save the item to send it to POS and iPad'); };
+            probe.onerror=function(){ console.warn('Cloud photo URL did not load; keeping local preview'); };
+            probe.src=url;
           }).catch(function(err){
             console.warn('Storage upload failed',err);
-            applyUrl(canvas.toDataURL('image/jpeg',0.72),'Photo saved locally — cloud upload failed. Menu text will still sync.');
+            toast('Photo saved locally — cloud upload failed. Menu text will still sync.','success');
           });
         },'image/jpeg',0.82);
-      } else {
-        applyUrl(canvas.toDataURL('image/jpeg',0.82),'Photo ready locally');
       }
     };
     img.onerror=function(){toast('Could not read image','error');fileInput.value='';};
@@ -1568,10 +1572,13 @@ function applyMenuPhotos(){
   (STATE.bar||[]).forEach(function(b){ fill(b, b.id); });
   (STATE.retail||[]).forEach(function(p){ fill(p, p.id); });
   (STATE.prixFixeMenus||[]).forEach(function(pf){
-    (pf.dishes||[]).forEach(function(d){ fill(d, 'pfdish:'+pf.id+'|'+d.id); });
+    (pf.dishes||[]).forEach(function(d){ fill(d, 'pfdish:'+pf.id+'|'+d.id); fill(d, d.id); });
+    (pf.courses||[]).forEach(function(c){
+      (c.options||[]).forEach(function(o){ fill(o, 'pfdish:'+pf.id+'|'+o.id); fill(o, o.id); });
+    });
   });
   (STATE.tastingMenus||[]).forEach(function(tm){
-    (tm.courses||[]).forEach(function(c){ fill(c, 'tmcourse:'+tm.id+'|'+c.id); });
+    (tm.courses||[]).forEach(function(c){ fill(c, 'tmcourse:'+tm.id+'|'+c.id); fill(c, c.id); });
   });
 }
 function saveMenuPhotos(){
@@ -4049,12 +4056,13 @@ function ensureScaliniDiningMenus(){
   var tmSeed=cloneScalini(bundle.tasting);
   var pfIdx=-1;
   STATE.prixFixeMenus.forEach(function(p,i){ if(p.id===pfSeed.id) pfIdx=i; });
+  if(typeof applyMenuPhotos==='function') applyMenuPhotos();
   if(pfIdx<0){ STATE.prixFixeMenus.unshift(pfSeed); changed=true; }
-  else if(!hasDishPhotos(STATE.prixFixeMenus[pfIdx])){ STATE.prixFixeMenus[pfIdx]=pfSeed; changed=true; }
+  else if(!hasDishPhotos(STATE.prixFixeMenus[pfIdx])){ STATE.prixFixeMenus[pfIdx]=pfSeed; applyMenuPhotos(); changed=true; }
   var tmIdx=-1;
   STATE.tastingMenus.forEach(function(t,i){ if(t.id===tmSeed.id) tmIdx=i; });
   if(tmIdx<0){ STATE.tastingMenus.unshift(tmSeed); changed=true; }
-  else if(!hasDishPhotos(STATE.tastingMenus[tmIdx])){ STATE.tastingMenus[tmIdx]=tmSeed; changed=true; }
+  else if(!hasDishPhotos(STATE.tastingMenus[tmIdx])){ STATE.tastingMenus[tmIdx]=tmSeed; if(typeof applyMenuPhotos==='function') applyMenuPhotos(); changed=true; }
   if(changed){
     lsSet('eh_prix_fixe_menus', STATE.prixFixeMenus);
     lsSet('eh_tasting_menus', STATE.tastingMenus);
@@ -4098,8 +4106,8 @@ syncFromCloud = function(){
   return _origSync().then(function(){
     if(!fbReady) return;
     return Promise.all([
-      fbGetDoc('boh_shared','tasting_menus').then(function(d){ if(d&&d.list){ STATE.tastingMenus=normalizeTastingList(d.list); lsSet('eh_tasting_menus',STATE.tastingMenus); } }),
-      fbGetDoc('boh_shared','prix_fixe_menus').then(function(d){ if(d&&d.list){ STATE.prixFixeMenus=normalizePrixFixeList(d.list); lsSet('eh_prix_fixe_menus',STATE.prixFixeMenus); } })
+      fbGetDoc('boh_shared','tasting_menus').then(function(d){ if(d&&d.list){ STATE.tastingMenus=normalizeTastingList(d.list); lsSet('eh_tasting_menus',STATE.tastingMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); } }),
+      fbGetDoc('boh_shared','prix_fixe_menus').then(function(d){ if(d&&d.list){ STATE.prixFixeMenus=normalizePrixFixeList(d.list); lsSet('eh_prix_fixe_menus',STATE.prixFixeMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); if(typeof mmRebuildPf==='function') (STATE.prixFixeMenus||[]).forEach(mmRebuildPf); } })
     ]).then(function(){
       if(ensureScaliniDiningMenus()){
         saveTastingMenus();
@@ -4787,7 +4795,7 @@ function aiSuggestWinePairing(btn){
   toast('✨ AI Suggested: '+bestWine.name,'success');
 }
 </script>
-<script src="menu-manager.js?v=photo-visible"></script>
+<script src="menu-manager.js?v=photo-visible-2"></script>
 <script>
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot); else boot();
 </script>

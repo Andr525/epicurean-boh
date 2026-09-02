@@ -123,7 +123,7 @@ function mmFlush() {
 
 function PAGE_menu() {
   ensureMenuManager();
-  return { title: 'Menu manager', sub: 'Menus · groups · items · modifiers', body: mmBody(), bind: null };
+  return { title: 'Menu manager', sub: 'Menus · groups · items · modifiers', body: mmBody(), bind: function () { mmHydratePhotos(); } };
 }
 function mmBookForGroup(gid) {
   var books = STATE.menuBooks || [];
@@ -241,9 +241,16 @@ function mmThumbHtml(obj, key) {
   return '<img class="mm-thumb" data-photo-id="' + esc(k) + '" alt="">';
 }
 function mmHydratePhotos() {
+  if (typeof applyMenuPhotos === 'function') applyMenuPhotos();
   document.querySelectorAll('.mm-thumb[data-photo-id]').forEach(function (el) {
     var url = mmLookupPhotoUrl(el.getAttribute('data-photo-id'));
-    if (url) el.src = url;
+    if (url) {
+      el.src = url;
+      el.onerror = function () {
+        var fallback = (STATE.menuPhotos || {})[el.getAttribute('data-photo-id')] || (STATE.menuPhotos || {})['pfdish:' + el.getAttribute('data-photo-id')] || '';
+        if (fallback && fallback.indexOf('data:image/') === 0 && el.src !== fallback) el.src = fallback;
+      };
+    }
   });
   var hero = document.querySelector('.mc-photo-row .upload-preview');
   if (!hero) return;
