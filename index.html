@@ -377,7 +377,10 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .mm-item-card{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid #e4e7ec;border-radius:10px;margin-bottom:8px;cursor:pointer;background:#fff;color:#000;}
 .mm-item-card:hover{border-color:#98a2b3;}
 .mm-item-card.on{border-color:#1570ef;background:#eff8ff;}
-.mm-thumb{width:44px;height:44px;border-radius:8px;object-fit:cover;background:#f2f4f7;flex-shrink:0;}
+.mm-thumb{width:72px;height:72px;border-radius:8px;object-fit:cover;background:#eef0f3;flex-shrink:0;display:block;}
+.mc-photo-row{display:flex;flex-direction:column;align-items:stretch;gap:10px;}
+.mc-photo-controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
+.mc-photo-row .upload-preview,.mm-photo-hero{width:100%;max-width:480px;height:220px;object-fit:cover;border-radius:10px;border:1px solid #e4e7ec;background:#eef0f3;display:none;}
 .mm-item-name{font-weight:650;color:#000;}
 .mm-item-meta{font-size:12px;color:#344054;margin-top:2px;}
 .mm-price{margin-left:auto;font-weight:700;color:#000;white-space:nowrap;}
@@ -945,7 +948,7 @@ function handlePhotoUpload(fileInput){
       ctx.drawImage(img,0,0,w,h);
       function applyUrl(url, msg){
         if(_uploadTarget){
-          _uploadTarget.value=url;
+          _uploadTarget.value=photoInputDisplayValue(url);
           showPhotoPreview(_uploadTarget, url);
         }
         if(typeof applyPhotoUrlToCurrent==='function') applyPhotoUrlToCurrent(url);
@@ -977,24 +980,49 @@ function handleMenuItemPhotoPick(fileInput){
   _uploadTarget=(row && row.querySelector('#ie-photo, input.input')) || document.getElementById('ie-photo');
   handlePhotoUpload(fileInput);
 }
+function isDisplayablePhotoUrl(url){
+  if(!url || typeof url!=='string') return false;
+  if(url.indexOf('https://')===0 || url.indexOf('http://')===0) return url.length>12;
+  if(url.indexOf('data:image/')===0) return url.length>40;
+  return false;
+}
+function photoInputDisplayValue(url){
+  if(url && (url.indexOf('https://')===0 || url.indexOf('http://')===0)) return url;
+  return '';
+}
+function betterPhotoUrl(a, b){
+  var va=isDisplayablePhotoUrl(a), vb=isDisplayablePhotoUrl(b);
+  if(va && a.indexOf('http')===0) return a;
+  if(vb && b.indexOf('http')===0) return b;
+  if(va && vb) return a.length>=b.length ? a : b;
+  if(va) return a;
+  if(vb) return b;
+  return a||b||'';
+}
+function readPhotoUrlFromForm(existing, key){
+  var raw=$('ie-photo') ? $('ie-photo').value.trim() : '';
+  var stored=(key && STATE.menuPhotos && STATE.menuPhotos[key]) || '';
+  if(isDisplayablePhotoUrl(raw)) return raw;
+  return betterPhotoUrl(existing, stored);
+}
 /* Show/update photo preview next to any photo URL input */
 function showPhotoPreview(input, url){
+  if(!input) return;
   var container=input.closest('.pf-opt-photo-row') || input.closest('.mc-photo-row') || input.parentElement;
+  if(!container) return;
   var preview=container.querySelector('.upload-preview');
-  if(!url || (!url.startsWith('http') && !url.startsWith('data:'))){
-    if(preview) preview.style.display='none';
+  if(!isDisplayablePhotoUrl(url)){
+    if(preview){ preview.removeAttribute('src'); preview.style.display='none'; }
     return;
   }
-  if(preview){
-    preview.src=url;
-    preview.style.display='block';
-  } else {
-    var img=document.createElement('img');
-    img.className='upload-preview';
-    img.src=url;
-    img.style.cssText='width:80px;height:56px;margin-top:0;border-radius:6px;object-fit:cover;display:block;border:2px solid var(--gold-soft);flex-shrink:0;';
-    container.appendChild(img);
+  if(!preview){
+    preview=document.createElement('img');
+    preview.className='upload-preview'+(container.classList.contains('mc-photo-row')?' mm-photo-hero':'');
+    preview.alt='Dish photo';
+    container.appendChild(preview);
   }
+  preview.src=url;
+  preview.style.display='block';
 }
 </script>
 <script src="scalini-dining.js"></script>
@@ -1522,7 +1550,7 @@ function withoutEmbeddedPhotos(value){
   return out;
 }
 function rememberMenuPhoto(key, url){
-  if(!key || !url) return;
+  if(!key || !isDisplayablePhotoUrl(url)) return;
   STATE.menuPhotos = STATE.menuPhotos || {};
   STATE.menuPhotos[key] = url;
   lsSet('eh_menu_photos', STATE.menuPhotos);
@@ -1532,7 +1560,8 @@ function applyMenuPhotos(){
   function fill(obj, key){
     if(!obj) return;
     var url=map[key];
-    if(url && !obj.photoUrl) obj.photoUrl=url;
+    if(!url) return;
+    obj.photoUrl=betterPhotoUrl(obj.photoUrl, url);
   }
   (STATE.menuItems||[]).forEach(function(it){ fill(it, it.id); });
   (STATE.wines||[]).forEach(function(w){ fill(w, w.id); });
@@ -3593,7 +3622,7 @@ function openItemEditor(id){
       fld('Cost ($)','<input class="input" id="ie-cost" type="number" step="0.01" value="'+it.cost+'">')+'</div>'+
     fld('Name','<input class="input" id="ie-name" value="'+esc(it.name)+'" placeholder="Dish name">')+
     fld('Description (shown to customers on iPad menu & servers on POS)','<textarea class="input" id="ie-desc" rows="3" placeholder="Full description of the dish — ingredients, preparation, presentation">'+esc(it.desc)+'</textarea>')+
-    fld('Photo','<div class="mc-photo-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input class="input" id="ie-photo" value="'+esc(it.photoUrl||'')+'" placeholder="Paste URL or Upload" style="flex:1;" oninput="showPhotoPreview(this,this.value); if(typeof applyPhotoUrlToCurrent===\'function\') applyPhotoUrlToCurrent(this.value)"><label class="btn btn-gold btn-sm mm-photo-pick">📷 Upload<input type="file" accept="image/*" onchange="handleMenuItemPhotoPick(this)"></label>'+(it.photoUrl?'<img src="'+esc(it.photoUrl)+'" class="upload-preview" style="width:80px;height:56px;object-fit:cover;border-radius:6px;border:2px solid var(--gold-soft);">':'')+'</div>')+
+    fld('Photo','<div class="mc-photo-row"><div class="mc-photo-controls"><input class="input" id="ie-photo" value="'+esc(photoInputDisplayValue(it.photoUrl||''))+'" placeholder="'+(isDisplayablePhotoUrl(it.photoUrl)&&!photoInputDisplayValue(it.photoUrl)?'Photo attached — upload to replace':'Paste URL or Upload')+'" style="flex:1;" oninput="showPhotoPreview(this,this.value); if(typeof applyPhotoUrlToCurrent===\'function\') applyPhotoUrlToCurrent(this.value)"><label class="btn btn-gold btn-sm mm-photo-pick">📷 Upload<input type="file" accept="image/*" onchange="handleMenuItemPhotoPick(this)"></label></div><img class="upload-preview mm-photo-hero" alt="Dish photo"></div>')+
     '<div class="ff-row cols-2">'+fld('Cook time (minutes)','<input class="input" id="ie-cook" type="number" value="'+(it.cookMin||0)+'">')+
       fld('Kitchen station','<select class="input" id="ie-station">'+opts(KITCHEN_STATIONS,it.station)+'</select>')+'</div>'+
     fld('Categories (an item can be in several)','<div class="cbx-grid">'+catChecks+'</div>')+
@@ -3606,7 +3635,8 @@ function openItemEditor(id){
     var code=$('ie-code').value.trim(), name=$('ie-name').value.trim();
     if(!name){ toast('Enter a name','error'); return false; }
     it.code=code; it.name=name; it.desc=$('ie-desc').value.trim();
-    it.photoUrl=$('ie-photo').value.trim();
+    it.photoUrl=readPhotoUrlFromForm(it.photoUrl, it.id);
+    if(it.photoUrl) rememberMenuPhoto(it.id, it.photoUrl);
     it.price=parseFloat($('ie-price').value)||0; it.cost=parseFloat($('ie-cost').value)||0;
     it.cookMin=parseInt($('ie-cook').value)||0; it.station=$('ie-station').value;
     it.ingredients=$('ie-ing').value.trim();

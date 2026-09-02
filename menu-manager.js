@@ -91,6 +91,7 @@ function mmPaint() {
   var start = keepQ ? qEl.selectionStart : null;
   var end = keepQ ? qEl.selectionEnd : null;
   c.innerHTML = mmBody();
+  mmHydratePhotos();
   if (keepQ && $('mm-q')) {
     $('mm-q').focus();
     try { $('mm-q').setSelectionRange(start, end); } catch (e) {}
@@ -206,15 +207,69 @@ function applyPhotoUrlToCurrent(url) {
   if (s.type === 'retail') { var p = (STATE.retail || []).filter(function (x) { return x.id === s.id; })[0]; if (p) p.photoUrl = url; }
   if (typeof rememberMenuPhoto === 'function') rememberMenuPhoto(mmPhotoKey(), url);
   if (typeof saveMenuPhotos === 'function') saveMenuPhotos();
+  var inp = $('ie-photo');
+  if (inp && typeof showPhotoPreview === 'function') showPhotoPreview(inp, url);
+}
+function mmPhotoLooksValid(url) {
+  return typeof isDisplayablePhotoUrl === 'function' ? isDisplayablePhotoUrl(url) : !!(url && (url.indexOf('http') === 0 || url.indexOf('data:image/') === 0));
+}
+function mmResolveItemPhoto(obj, key) {
+  if (!obj) return '';
+  if (mmPhotoLooksValid(obj.photoUrl)) return obj.photoUrl;
+  var map = STATE.menuPhotos || {};
+  var k = key || obj.id;
+  if (k && mmPhotoLooksValid(map[k])) return map[k];
+  return '';
+}
+function mmLookupPhotoUrl(id) {
+  if (!id) return '';
+  var it = mmFindItem(id);
+  if (it) return mmResolveItemPhoto(it);
+  var d = mmFindPfDish(id);
+  if (d) return mmResolveItemPhoto(d, 'pfdish:' + id);
+  var c = mmFindTmCourse(id);
+  if (c) return mmResolveItemPhoto(c, 'tmcourse:' + id);
+  var map = STATE.menuPhotos || {};
+  var keys = [id, 'pfdish:' + id, 'tmcourse:' + id];
+  for (var i = 0; i < keys.length; i++) {
+    if (mmPhotoLooksValid(map[keys[i]])) return map[keys[i]];
+  }
+  return '';
+}
+function mmThumbHtml(obj, key) {
+  var k = key || (obj && obj.id) || '';
+  return '<img class="mm-thumb" data-photo-id="' + esc(k) + '" alt="">';
+}
+function mmHydratePhotos() {
+  document.querySelectorAll('.mm-thumb[data-photo-id]').forEach(function (el) {
+    var url = mmLookupPhotoUrl(el.getAttribute('data-photo-id'));
+    if (url) el.src = url;
+  });
+  var hero = document.querySelector('.mc-photo-row .upload-preview');
+  if (!hero) return;
+  var url = '';
+  var s = MM.sel || {};
+  if (s.type === 'item') url = mmResolveItemPhoto(mmFindItem(s.id));
+  else if (s.type === 'pfdish') url = mmResolveItemPhoto(mmFindPfDish(s.id), 'pfdish:' + s.id);
+  else if (s.type === 'tmcourse') url = mmResolveItemPhoto(mmFindTmCourse(s.id), 'tmcourse:' + s.id);
+  if (!url) url = mmLookupPhotoUrl(mmPhotoKey()) || ((STATE.menuPhotos || {})[mmPhotoKey()] || '');
+  if (mmPhotoLooksValid(url)) {
+    hero.src = url;
+    hero.style.display = 'block';
+  }
 }
 function mmPhotoField(url) {
+  var inputVal = typeof photoInputDisplayValue === 'function' ? photoInputDisplayValue(url) : ((url && url.indexOf('http') === 0) ? url : '');
+  var attached = mmPhotoLooksValid(url) && !inputVal;
   return fld('Photo',
-    '<div class="mc-photo-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
-      '<input class="input" id="ie-photo" value="' + esc(url || '') + '" placeholder="Paste URL or Upload" style="flex:1;" oninput="showPhotoPreview(this,this.value); if(typeof applyPhotoUrlToCurrent===\'function\') applyPhotoUrlToCurrent(this.value)">' +
-      '<label class="btn btn-gold btn-sm mm-photo-pick">📷 Upload' +
-        '<input type="file" accept="image/*" onchange="handleMenuItemPhotoPick(this)">' +
-      '</label>' +
-      (url ? '<img src="' + esc(url) + '" class="upload-preview" alt="" style="width:80px;height:56px;object-fit:cover;border-radius:6px;">' : '') +
+    '<div class="mc-photo-row">' +
+      '<div class="mc-photo-controls">' +
+        '<input class="input" id="ie-photo" value="' + esc(inputVal) + '" placeholder="' + (attached ? 'Photo attached — upload to replace' : 'Paste URL or Upload') + '" style="flex:1;" oninput="showPhotoPreview(this,this.value); if(typeof applyPhotoUrlToCurrent===\'function\') applyPhotoUrlToCurrent(this.value)">' +
+        '<label class="btn btn-gold btn-sm mm-photo-pick">📷 Upload' +
+          '<input type="file" accept="image/*" onchange="handleMenuItemPhotoPick(this)">' +
+        '</label>' +
+      '</div>' +
+      '<img class="upload-preview mm-photo-hero" alt="Dish photo">' +
     '</div>');
 }
 function mmBody() {
@@ -582,7 +637,7 @@ function mmGroupEditor(id) {
   var items = mmItemsInGroup(g.id);
   var list = items.map(function (it) {
     return '<div class="mm-item-card' + (mmSelIs('item', it.id) ? ' on' : '') + '" onclick="mmSelect(\'item\',\'' + it.id + '\')">' +
-      (it.photoUrl ? '<img class="mm-thumb" src="' + esc(it.photoUrl) + '">' : '<div class="mm-thumb"></div>') +
+      mmThumbHtml(it) +
       '<div><div class="mm-item-name">ITEM ' + esc(it.name) + '</div><div class="mm-item-meta">' + (it.modGroupIds || []).length + ' modifier group' + ((it.modGroupIds || []).length === 1 ? '' : 's') + '</div></div>' +
       '<div class="mm-price">' + money(it.price) + '</div></div>';
   }).join('');
@@ -612,6 +667,7 @@ function mmItemEditor(id) {
   return '<form id="mm-editor" data-type="item" data-id="' + it.id + '">' +
     '<div class="mm-card"><h3>ITEM ' + esc(it.name) + '</h3>' +
     fld('Name', '<input class="input" id="ie-name" value="' + esc(it.name) + '" placeholder="Dish name">') +
+    mmPhotoField(mmResolveItemPhoto(it, mmPhotoKey())) +
     fld('Description (POS &amp; iPad)', '<textarea class="input" id="ie-desc" rows="4">' + esc(it.desc || '') + '</textarea>') +
     '<div class="ff-row cols-3">' + fld('Price ($)', '<input class="input" id="ie-price" type="number" step="0.01" value="' + it.price + '">') +
       fld('Cost ($)', '<input class="input" id="ie-cost" type="number" step="0.01" value="' + (it.cost || 0) + '">') +
@@ -619,7 +675,6 @@ function mmItemEditor(id) {
     fld('Taxes', '<div class="cbx-grid">' + taxChecks + '</div>') +
     '<div class="ff-row cols-2">' + fld('Cook time (min)', '<input class="input" id="ie-cook" type="number" value="' + (it.cookMin || 0) + '">') +
       fld('Kitchen station', '<select class="input" id="ie-station">' + opts(KITCHEN_STATIONS, it.station) + '</select>') + '</div>' +
-    mmPhotoField(it.photoUrl) +
     '</div>' +
     '<div class="mm-card"><h3>Groups</h3>' + fld('Menu groups', '<div class="cbx-grid">' + catChecks + '</div>') + '</div>' +
     '<div class="mm-card"><h3>Modifier groups</h3><p class="mm-hint">Steaks, hamburgers, salmon, and tuna should include a temperature group.</p>' +
@@ -864,7 +919,7 @@ function mmSaveItemFromForm(id, toastOk) {
   var name = $('ie-name').value.trim();
   if (!name) { if (toastOk) toast('Enter a name', 'error'); return false; }
   it.name = name; it.desc = $('ie-desc').value.trim();
-  it.photoUrl = $('ie-photo') ? $('ie-photo').value.trim() : (it.photoUrl || '');
+  it.photoUrl = typeof readPhotoUrlFromForm === 'function' ? readPhotoUrlFromForm(it.photoUrl, it.id) : (it.photoUrl || '');
   if (it.photoUrl && typeof rememberMenuPhoto === 'function') rememberMenuPhoto(it.id, it.photoUrl);
   it.price = parseFloat($('ie-price').value) || 0; it.cost = parseFloat($('ie-cost').value) || 0;
   it.code = $('ie-code').value.trim();
@@ -974,7 +1029,7 @@ function mmWinePairOpts(sel) {
 function mmReadDishCommon(it) {
   it.name = $('ie-name').value.trim() || it.name;
   it.desc = $('ie-desc') ? $('ie-desc').value.trim() : (it.desc || '');
-  it.photoUrl = $('ie-photo') ? $('ie-photo').value.trim() : (it.photoUrl || '');
+  it.photoUrl = typeof readPhotoUrlFromForm === 'function' ? readPhotoUrlFromForm(it.photoUrl, mmPhotoKey()) : (it.photoUrl || '');
   it.station = $('ie-station') ? $('ie-station').value : (it.station || '');
   it.cookMin = $('ie-cook') ? (parseInt($('ie-cook').value, 10) || 0) : (it.cookMin || 0);
   it.cookTime = it.cookMin;
@@ -999,13 +1054,13 @@ function mmSetDishEditor(it, priceLabel, extraTop, extraMid, saveClick, delClick
   extraMid = extraMid || '';
   return '<div class="mm-card"><h3>ITEM ' + esc(it.name) + '</h3>' +
     fld('Name', '<input class="input" id="ie-name" value="' + esc(it.name) + '" placeholder="Dish name">') +
+    mmPhotoField(mmResolveItemPhoto(it, mmPhotoKey())) +
     fld('Description (POS &amp; iPad)', '<textarea class="input" id="ie-desc" rows="4">' + esc(it.desc || '') + '</textarea>') +
     extraTop +
     '<div class="ff-row cols-3">' + fld(priceLabel, '<input class="input" id="ie-price" type="number" step="0.01" value="' + (it.upcharge != null ? it.upcharge : (it.price || 0)) + '">') +
       fld('Cook time (min)', '<input class="input" id="ie-cook" type="number" value="' + (it.cookMin || it.cookTime || 0) + '">') +
       fld('Kitchen station', '<select class="input" id="ie-station">' + opts(KITCHEN_STATIONS, it.station || KITCHEN_STATIONS[0]) + '</select>') + '</div>' +
     fld('Taxes', '<div class="cbx-grid">' + mt.taxes + '</div>') +
-    mmPhotoField(it.photoUrl) +
     extraMid +
     '</div>' +
     '<div class="mm-card"><h3>Modifier groups</h3><p class="mm-hint">Steaks, hamburgers, salmon, and tuna should include a temperature group.</p>' +
@@ -1056,7 +1111,7 @@ function mmPfCourseEditor(joinId) {
   var items = (pf.dishes || []).filter(function (d) { return d.course === g.label; });
   var list = items.map(function (d) {
     return '<div class="mm-item-card" onclick="mmSelect(\'pfdish\',\'' + mmJoin(pf.id, d.id) + '\')">' +
-      (d.photoUrl ? '<img class="mm-thumb" src="' + esc(d.photoUrl) + '">' : '<div class="mm-thumb"></div>') +
+      mmThumbHtml(d, mmJoin(pf.id, d.id)) +
       '<div><div class="mm-item-name">ITEM ' + esc(d.name) + '</div><div class="mm-item-meta">' + ((d.modGroupIds || []).length) + ' modifier group' + ((d.modGroupIds || []).length === 1 ? '' : 's') + '</div></div>' +
       '<div class="mm-price">' + (d.upcharge ? ('+' + money(d.upcharge)) : 'Included') + '</div></div>';
   }).join('');
@@ -1116,6 +1171,7 @@ function mmTmGroupEditor(joinId) {
   var items = (tm.courses || []).filter(function (c) { return mmTmGroupName(tm, c) === gname; });
   var list = items.map(function (c) {
     return '<div class="mm-item-card" onclick="mmSelect(\'tmcourse\',\'' + mmJoin(tm.id, c.id) + '\')">' +
+      mmThumbHtml(c, mmJoin(tm.id, c.id)) +
       '<div><div class="mm-item-name">ITEM ' + esc(c.name) + '</div><div class="mm-item-meta">' + ((c.modGroupIds || []).length) + ' modifier group' + ((c.modGroupIds || []).length === 1 ? '' : 's') + '</div></div>' +
       '<div class="mm-price">' + (c.upcharge ? ('+' + money(c.upcharge)) : 'Included') + '</div></div>';
   }).join('');
