@@ -329,6 +329,12 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .mm-top{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 18px;
   border-bottom:1px solid #e4e7ec;background:#fff;flex-shrink:0;}
 .mm-crumb{font-size:12px;color:#344054;font-weight:500;}
+.mm-crumb .mm-clink{background:none;border:none;padding:0;color:#1570ef;cursor:pointer;font:inherit;}
+.mm-crumb .mm-clink:hover{text-decoration:underline;}
+.mm-back{border:1px solid #d0d5dd;background:#fff;color:#000;border-radius:8px;padding:8px 12px;font-weight:650;cursor:pointer;font-size:13px;font-family:Inter,sans-serif;}
+.mm-back:hover{border-color:#98a2b3;}
+.mm-photo-pick{position:relative;display:inline-flex;align-items:center;margin:0;cursor:pointer;}
+.mm-photo-pick input[type=file]{position:absolute;inset:0;opacity:0;cursor:pointer;font-size:0;}
 .mm-title{font-size:20px;font-weight:700;color:#000;letter-spacing:-0.02em;margin-top:2px;}
 .mm-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .mm-search{min-width:220px;background:#fff;border:1px solid #d0d5dd;border-radius:8px;padding:9px 12px;
@@ -870,20 +876,54 @@ function createNamedFirestoreAdapter(){
 if (typeof fbReady !== 'undefined' && fbReady) fbDb = createNamedFirestoreAdapter();
 /* --- Firebase Storage Upload Helper --- */
 var _uploadTarget=null;
+function ensurePhotoFileInput(){
+  var inp=document.getElementById('photo-file-input');
+  if(inp) return inp;
+  inp=document.createElement('input');
+  inp.type='file';
+  inp.id='photo-file-input';
+  inp.accept='image/*';
+  inp.setAttribute('style','position:fixed;left:-80px;top:0;width:1px;height:1px;opacity:0;');
+  inp.addEventListener('change',function(){ handlePhotoUpload(inp); });
+  document.body.appendChild(inp);
+  return inp;
+}
 function uploadPhoto(inputEl){
   _uploadTarget=inputEl;
-  document.getElementById('photo-file-input').click();
+  var inp=ensurePhotoFileInput();
+  inp.value='';
+  try { inp.click(); } catch (e) { toast('Could not open the photo picker','error'); }
+}
+function uploadMenuPhotoViaRest(blob, token){
+  var bucket=firebaseConfig.storageBucket;
+  var name='menu-photos/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.jpg';
+  var url='https://firebasestorage.googleapis.com/v0/b/'+encodeURIComponent(bucket)+'/o?uploadType=media&name='+encodeURIComponent(name);
+  return fetch(url,{
+    method:'POST',
+    headers:{'Content-Type':'image/jpeg','Authorization':'Bearer '+token},
+    body:blob
+  }).then(function(r){
+    return r.json().then(function(j){
+      if(!r.ok) throw new Error((j.error&&(j.error.message||j.error.status))||('upload '+r.status));
+      var tok=j.downloadTokens;
+      if(!tok) throw new Error('No download token');
+      return 'https://firebasestorage.googleapis.com/v0/b/'+encodeURIComponent(bucket)+'/o/'+encodeURIComponent(name)+'?alt=media&token='+encodeURIComponent(tok);
+    });
+  });
 }
 function uploadMenuPhotoBlob(blob){
-  if(!fbReady || !fbStorage) return Promise.reject(new Error('Storage unavailable'));
-  function put(){
+  function sdkPut(){
+    if(!fbReady || !fbStorage) return Promise.reject(new Error('Storage unavailable'));
     var path='menu-photos/'+Date.now()+'_'+Math.random().toString(36).slice(2,8)+'.jpg';
     return fbStorage.ref(path).put(blob,{contentType:'image/jpeg'}).then(function(snap){ return snap.ref.getDownloadURL(); });
   }
-  if(fbAuth && !fbAuth.currentUser){
-    return fbAuth.signInAnonymously().then(put);
+  function withUser(user){
+    var rest=user && user.getIdToken ? user.getIdToken().then(function(token){ return uploadMenuPhotoViaRest(blob, token); }) : Promise.reject(new Error('No auth token'));
+    return sdkPut().catch(function(){ return rest; });
   }
-  return put();
+  if(fbAuth && fbAuth.currentUser) return withUser(fbAuth.currentUser);
+  if(fbAuth) return fbAuth.signInAnonymously().then(function(cred){ return withUser(cred && cred.user); });
+  return sdkPut();
 }
 function handlePhotoUpload(fileInput){
   var file=fileInput.files[0];
@@ -908,6 +948,7 @@ function handlePhotoUpload(fileInput){
           _uploadTarget.value=url;
           showPhotoPreview(_uploadTarget, url);
         }
+        if(typeof applyPhotoUrlToCurrent==='function') applyPhotoUrlToCurrent(url);
         toast(msg||'Photo ready','success');
         fileInput.value='';
       }
@@ -931,6 +972,11 @@ function handlePhotoUpload(fileInput){
   reader.onerror=function(){toast('File read failed','error');fileInput.value='';};
   reader.readAsDataURL(file);
 }
+function handleMenuItemPhotoPick(fileInput){
+  var row=fileInput.closest('.mc-photo-row') || fileInput.closest('.pf-opt-photo-row');
+  _uploadTarget=(row && row.querySelector('#ie-photo, input.input')) || document.getElementById('ie-photo');
+  handlePhotoUpload(fileInput);
+}
 /* Show/update photo preview next to any photo URL input */
 function showPhotoPreview(input, url){
   var container=input.closest('.pf-opt-photo-row') || input.closest('.mc-photo-row') || input.parentElement;
@@ -952,7 +998,7 @@ function showPhotoPreview(input, url){
 }
 </script>
 <script src="scalini-dining.js"></script>
-<input type="file" id="photo-file-input" accept="image/*" style="display:none" onchange="handlePhotoUpload(this)">
+<input type="file" id="photo-file-input" accept="image/*" style="position:fixed;left:-80px;top:0;width:1px;height:1px;opacity:0;" onchange="handlePhotoUpload(this)">
 <script>
 /* ============================================================
    EPICUREAN HOUSE @ THE CHOCOLATE STUDIO — BACK OF HOUSE
@@ -1269,6 +1315,7 @@ var STATE = {
   modGroups:  lsGet('eh_mod_groups',  seedModifierGroups()),
   taxRates:   lsGet('eh_tax_rates',   seedTaxRates()),
   menuBooks:  lsGet('eh_menu_books',  seedMenuBooks()),
+  menuPhotos: lsGet('eh_menu_photos', {}),
   bar:        lsGet('eh_bar',         seedBar()),
   wines:      lsGet('eh_wines',       seedWines()),
   retail:     lsGet('eh_retail',      seedRetail()),
@@ -1471,9 +1518,46 @@ function withoutEmbeddedPhotos(value){
   });
   return out;
 }
+function rememberMenuPhoto(key, url){
+  if(!key || !url) return;
+  STATE.menuPhotos = STATE.menuPhotos || {};
+  STATE.menuPhotos[key] = url;
+  lsSet('eh_menu_photos', STATE.menuPhotos);
+}
+function applyMenuPhotos(){
+  var map=STATE.menuPhotos||{};
+  function fill(obj, key){
+    if(!obj) return;
+    var url=map[key];
+    if(url && !obj.photoUrl) obj.photoUrl=url;
+  }
+  (STATE.menuItems||[]).forEach(function(it){ fill(it, it.id); });
+  (STATE.wines||[]).forEach(function(w){ fill(w, w.id); });
+  (STATE.bar||[]).forEach(function(b){ fill(b, b.id); });
+  (STATE.retail||[]).forEach(function(p){ fill(p, p.id); });
+  (STATE.prixFixeMenus||[]).forEach(function(pf){
+    (pf.dishes||[]).forEach(function(d){ fill(d, 'pfdish:'+pf.id+'|'+d.id); });
+  });
+  (STATE.tastingMenus||[]).forEach(function(tm){
+    (tm.courses||[]).forEach(function(c){ fill(c, 'tmcourse:'+tm.id+'|'+c.id); });
+  });
+}
+function saveMenuPhotos(){
+  lsSet('eh_menu_photos', STATE.menuPhotos||{});
+  if(typeof fbReady==='undefined' || !fbReady) return Promise.resolve(true);
+  var urls={};
+  Object.keys(STATE.menuPhotos||{}).forEach(function(k){
+    var u=STATE.menuPhotos[k];
+    if(!u) return;
+    if(u.indexOf('http')===0 || u.length<90000) urls[k]=u;
+  });
+  return fbSetDoc('boh_shared','menu_photos',{urls:urls, updatedAt:Date.now()});
+}
 function saveMenu(){
   lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups);
   lsSet('eh_tax_rates',STATE.taxRates||[]); lsSet('eh_menu_books',STATE.menuBooks||[]);
+  applyMenuPhotos();
+  saveMenuPhotos();
   return fbSetDoc('boh_shared','menu',{
     cats:STATE.menuCats,
     items:withoutEmbeddedPhotos(STATE.menuItems),
@@ -1487,6 +1571,7 @@ function publishMenusToFrontOfHouse(){
   toast('Sending menus to POS and iPad...','');
   return Promise.all([
     saveMenu(),
+    saveMenuPhotos(),
     saveTastingMenus(),
     savePrixFixeMenus()
   ]).then(function(results){
@@ -1509,7 +1594,8 @@ function syncFromCloud(){
     fbGetDoc('boh_shared','punches').then(function(d){ if(d&&d.list){ STATE.punches=d.list; lsSet('eh_punches',STATE.punches); } }),
     fbGetDoc('boh_shared','tables').then(function(d){ if(d){ if(d.rooms&&d.rooms.length){STATE.rooms=d.rooms;lsSet('eh_rooms',STATE.rooms);} if(d.roomObjs){STATE.roomObjs=normalizeRoomObjs(d.roomObjs);} if(d.stations){STATE.stations=d.stations;lsSet('eh_stations',STATE.stations);} hydrateStationOverlays(); lsSet('eh_rooms_objs',STATE.roomObjs); lsSet('eh_stations',STATE.stations); if(STATE.rooms.length && !STATE.rooms.filter(function(r){return r.id===FLOOR.room;})[0]) FLOOR.room=STATE.rooms[0].id; } }),
     fbGetDoc('boh_shared','guests').then(function(d){ if(d&&d.list){ STATE.guests=d.list; lsSet('eh_guests',STATE.guests); } }),
-    fbGetDoc('boh_shared','menu').then(function(d){ if(d){ if(d.cats)STATE.menuCats=d.cats; if(d.items)STATE.menuItems=d.items; if(d.modGroups)STATE.modGroups=d.modGroups; if(d.taxRates)STATE.taxRates=d.taxRates; if(d.books)STATE.menuBooks=d.books; lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups); lsSet('eh_tax_rates',STATE.taxRates||[]); lsSet('eh_menu_books',STATE.menuBooks||[]); if(typeof ensureMenuManager==='function')ensureMenuManager(); } }),
+    fbGetDoc('boh_shared','menu').then(function(d){ if(d){ if(d.cats)STATE.menuCats=d.cats; if(d.items)STATE.menuItems=d.items; if(d.modGroups)STATE.modGroups=d.modGroups; if(d.taxRates)STATE.taxRates=d.taxRates; if(d.books)STATE.menuBooks=d.books; lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups); lsSet('eh_tax_rates',STATE.taxRates||[]); lsSet('eh_menu_books',STATE.menuBooks||[]); applyMenuPhotos(); if(typeof ensureMenuManager==='function')ensureMenuManager(); } }),
+    fbGetDoc('boh_shared','menu_photos').then(function(d){ if(d&&d.urls){ STATE.menuPhotos=Object.assign({}, d.urls, STATE.menuPhotos||{}); lsSet('eh_menu_photos', STATE.menuPhotos); applyMenuPhotos(); } }),
     fbGetDoc('boh_shared','bar').then(function(d){ if(d&&d.list){ STATE.bar=d.list; lsSet('eh_bar',STATE.bar); } }),
     fbGetDoc('boh_shared','wines').then(function(d){ if(d&&d.list){ STATE.wines=d.list; lsSet('eh_wines',STATE.wines); } }),
     fbGetDoc('boh_shared','retail').then(function(d){ if(d&&d.list){ STATE.retail=d.list; lsSet('eh_retail',STATE.retail); } }),
@@ -3783,6 +3869,7 @@ function decrementStock(type,rid,qty){
 STATE.tastingMenus = lsGet('eh_tasting_menus', seedTastingMenus());
 STATE.prixFixeMenus = lsGet('eh_prix_fixe_menus', seedPrixFixeMenus());
 ensureScaliniDiningMenus();
+applyMenuPhotos();
 
 function scaliniBundle(){
   return (typeof EPICUREAN_SCALINI !== 'undefined' && EPICUREAN_SCALINI) ? EPICUREAN_SCALINI : null;

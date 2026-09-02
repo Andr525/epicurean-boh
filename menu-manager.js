@@ -47,6 +47,7 @@ function ensureMenuManager() {
   if (MM.open.mb_dinner === undefined) MM.open.mb_dinner = true;
   (STATE.prixFixeMenus || []).forEach(mmRebuildPf);
   (STATE.tastingMenus || []).forEach(mmNormTm);
+  if (typeof applyMenuPhotos === 'function') applyMenuPhotos();
   lsSet('eh_prix_fixe_menus', STATE.prixFixeMenus || []);
   lsSet('eh_tasting_menus', STATE.tastingMenus || []);
   if (dirty) {
@@ -123,24 +124,119 @@ function PAGE_menu() {
   ensureMenuManager();
   return { title: 'Menu manager', sub: 'Menus · groups · items · modifiers', body: mmBody(), bind: null };
 }
+function mmBookForGroup(gid) {
+  var books = STATE.menuBooks || [];
+  var hit = books.filter(function (b) { return (b.groupIds || []).indexOf(gid) > -1; })[0];
+  if (hit) return hit;
+  if (gid === 'c_wine_glass' || gid === 'c_wine_bottle') return books.filter(function (b) { return b.kind === 'wine'; })[0];
+  return books.filter(function (b) { return b.kind === 'food'; })[0] || books[0];
+}
+function mmParentSel(sel) {
+  sel = sel || MM.sel || {};
+  if (sel.type === 'item') {
+    var it = mmFindItem(sel.id);
+    var gid = it && (it.catIds || [])[0];
+    if (gid) return { type: 'group', id: gid };
+    return { type: 'book', id: 'mb_dinner' };
+  }
+  if (sel.type === 'pfdish') {
+    var pf = mmFindPf(mmJoinParent(sel.id));
+    var d = mmFindPfDish(sel.id);
+    var g = pf && d && (pf.courses || []).filter(function (c) { return c.label === d.course; })[0];
+    if (g) return { type: 'pfcourse', id: mmJoin(pf.id, g.id) };
+    return pf ? { type: 'pfmenu', id: pf.id } : { type: 'book', id: 'mb_pf' };
+  }
+  if (sel.type === 'tmcourse') {
+    var tm = mmFindTm(mmJoinParent(sel.id));
+    var c = mmFindTmCourse(sel.id);
+    if (tm && c) return { type: 'tmgroup', id: mmJoin(tm.id, encodeURIComponent(mmTmGroupName(tm, c))) };
+    return tm ? { type: 'tmmenu', id: tm.id } : { type: 'book', id: 'mb_tm' };
+  }
+  if (sel.type === 'tmpair') return { type: 'tmpairgroup', id: mmJoin(mmJoinParent(sel.id), 'pairings') };
+  if (sel.type === 'pfcourse') return { type: 'pfmenu', id: mmJoinParent(sel.id) };
+  if (sel.type === 'tmgroup' || sel.type === 'tmpairgroup') return { type: 'tmmenu', id: mmJoinParent(sel.id) };
+  if (sel.type === 'pfmenu') return { type: 'book', id: 'mb_pf' };
+  if (sel.type === 'tmmenu') return { type: 'book', id: 'mb_tm' };
+  if (sel.type === 'group') {
+    var book = mmBookForGroup(sel.id);
+    return { type: 'book', id: book ? book.id : 'mb_dinner' };
+  }
+  if (sel.type === 'wine') return { type: 'book', id: 'mb_wine' };
+  if (sel.type === 'bar') return { type: 'book', id: 'mb_bar' };
+  if (sel.type === 'retail') return { type: 'book', id: 'mb_retail' };
+  if (sel.type === 'mod') return null;
+  return null;
+}
+function mmCanBack() {
+  if (MM.tab !== 'full') return true;
+  return !!mmParentSel(MM.sel);
+}
+function mmBack() {
+  mmFlush();
+  if (MM.tab !== 'full') { MM.tab = 'full'; mmPaint(); return; }
+  var p = mmParentSel(MM.sel);
+  if (p) MM.sel = p;
+  mmPaint();
+}
+function mmAfterSave() {
+  MM.tab = 'full';
+  var p = mmParentSel(MM.sel);
+  if (p) MM.sel = p;
+  mmPaint();
+}
+function mmPhotoKey() {
+  var s = MM.sel || {};
+  if (s.type === 'item' || s.type === 'wine' || s.type === 'bar' || s.type === 'retail') return s.id;
+  if (s.type === 'pfdish' || s.type === 'tmcourse' || s.type === 'tmpair') return s.type + ':' + s.id;
+  return s.id || '';
+}
+function applyPhotoUrlToCurrent(url) {
+  if (!url) return;
+  var s = MM.sel || {};
+  if (s.type === 'item') { var it = mmFindItem(s.id); if (it) it.photoUrl = url; }
+  if (s.type === 'pfdish') {
+    var d = mmFindPfDish(s.id); if (d) d.photoUrl = url;
+    var pf = mmFindPf(mmJoinParent(s.id)); if (pf) mmRebuildPf(pf);
+  }
+  if (s.type === 'tmcourse') { var c = mmFindTmCourse(s.id); if (c) c.photoUrl = url; }
+  if (s.type === 'wine') { var w = (STATE.wines || []).filter(function (x) { return x.id === s.id; })[0]; if (w) w.photoUrl = url; }
+  if (s.type === 'bar') { var b = (STATE.bar || []).filter(function (x) { return x.id === s.id; })[0]; if (b) b.photoUrl = url; }
+  if (s.type === 'retail') { var p = (STATE.retail || []).filter(function (x) { return x.id === s.id; })[0]; if (p) p.photoUrl = url; }
+  if (typeof rememberMenuPhoto === 'function') rememberMenuPhoto(mmPhotoKey(), url);
+  if (typeof saveMenuPhotos === 'function') saveMenuPhotos();
+}
+function mmPhotoField(url) {
+  return fld('Photo',
+    '<div class="mc-photo-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">' +
+      '<input class="input" id="ie-photo" value="' + esc(url || '') + '" placeholder="Paste URL or Upload" style="flex:1;" oninput="showPhotoPreview(this,this.value); if(typeof applyPhotoUrlToCurrent===\'function\') applyPhotoUrlToCurrent(this.value)">' +
+      '<label class="btn btn-gold btn-sm mm-photo-pick">📷 Upload' +
+        '<input type="file" accept="image/*" onchange="handleMenuItemPhotoPick(this)">' +
+      '</label>' +
+      (url ? '<img src="' + esc(url) + '" class="upload-preview" alt="" style="width:80px;height:56px;object-fit:cover;border-radius:6px;">' : '') +
+    '</div>');
+}
 function mmBody() {
   var tabs = ['full', 'items', 'modifiers', 'taxes'].map(function (t) {
     var label = { full: 'Full menu', items: 'Items', modifiers: 'Modifiers', taxes: 'Taxes' }[t];
     return '<button class="mm-tab' + (MM.tab === t ? ' on' : '') + '" onclick="mmTab(\'' + t + '\')">' + label + '</button>';
   }).join('');
-  var crumb = 'Home / Menu manager';
-  if (MM.sel && (MM.sel.type === 'item' || MM.sel.type === 'pfdish' || MM.sel.type === 'tmcourse')) {
-    var crumbName = '';
-    if (MM.sel.type === 'item') { var it = mmFindItem(MM.sel.id); crumbName = it ? it.name : 'Item'; }
-    if (MM.sel.type === 'pfdish') { var d = mmFindPfDish(MM.sel.id); crumbName = d ? d.name : 'Item'; }
-    if (MM.sel.type === 'tmcourse') { var c = mmFindTmCourse(MM.sel.id); crumbName = c ? c.name : 'Item'; }
-    crumb = 'Home / Menu manager / ' + crumbName;
-  }
+  var crumb = '<button type="button" class="mm-clink" onclick="go(\'overview\')">Home</button> / <button type="button" class="mm-clink" onclick="MM.tab=\'full\'; MM.sel={type:\'book\',id:(MM.sel&&MM.sel.type===\'book\'?MM.sel.id:\'mb_dinner\')}; mmPaint()">Menu manager</button>';
+  var here = '';
+  if (MM.sel && MM.sel.type === 'item') { var it = mmFindItem(MM.sel.id); here = it ? it.name : 'Item'; }
+  else if (MM.sel && MM.sel.type === 'pfdish') { var d = mmFindPfDish(MM.sel.id); here = d ? d.name : 'Item'; }
+  else if (MM.sel && MM.sel.type === 'tmcourse') { var c = mmFindTmCourse(MM.sel.id); here = c ? c.name : 'Item'; }
+  else if (MM.sel && MM.sel.type === 'group') { var g = mmFindGroup(MM.sel.id); here = g ? g.name : (MM.sel.id === 'c_wine_glass' ? 'Wine by the glass' : MM.sel.id === 'c_wine_bottle' ? 'Wine by the bottle' : 'Group'); }
+  else if (MM.sel && MM.sel.type === 'book') { var bk = (STATE.menuBooks || []).filter(function (b) { return b.id === MM.sel.id; })[0]; here = bk ? bk.name : ''; }
+  else if (MM.sel && MM.sel.type === 'pfmenu') { var pfm = mmFindPf(MM.sel.id); here = pfm ? pfm.name : 'Prix fixe'; }
+  else if (MM.sel && MM.sel.type === 'tmmenu') { var tmm = mmFindTm(MM.sel.id); here = tmm ? tmm.name : 'Tasting'; }
+  if (here) crumb += ' / ' + esc(here);
+  var backBtn = mmCanBack() ? '<button type="button" class="mm-back" onclick="mmBack()">← Back</button>' : '';
   return '<div class="mm-app">' +
     '<div class="mm-top">' +
       '<div style="display:flex;align-items:center;gap:12px;min-width:0">' +
         '<div class="menu-toggle" onclick="toggleSidebar()">☰</div>' +
-        '<div><div class="mm-crumb">' + esc(crumb) + '</div><div class="mm-title">Menu manager</div></div>' +
+        backBtn +
+        '<div><div class="mm-crumb">' + crumb + '</div><div class="mm-title">Menu manager</div></div>' +
       '</div>' +
       '<div class="mm-actions">' +
         '<input class="mm-search" id="mm-q" placeholder="Find a menu, group, or item" value="' + esc(MM.q || '') + '" oninput="MM.q=this.value; mmFlush(); mmPaint()">' +
@@ -462,6 +558,7 @@ function mmGroupEditor(id) {
     fld('POS name (button label)', '<input class="input" id="mm-g-pos" value="' + esc(g.posName || '') + '" placeholder="Optional shorter name on POS">') +
     '<label class="cbx"><input type="checkbox" id="mm-g-vis"' + (g.visible !== false ? ' checked' : '') + '> Show on POS &amp; iPad</label>' +
     '<div style="margin-top:12px"><button type="button" class="btn btn-gold btn-sm" onclick="mmSaveGroupFromForm(\'' + g.id + '\',true)">Save group</button> ' +
+    '<button type="button" class="mm-back" onclick="mmBack()">← Back</button> ' +
     '<button type="button" class="btn btn-danger btn-sm" onclick="deleteCat(\'' + g.id + '\')">Delete group</button></div></div>' +
     '<div class="mm-card"><h3>Items in this group</h3>' + (list || '<div class="mm-empty">No items yet.</div>') +
     '<button type="button" class="mm-add" onclick="mmAddItem(\'' + g.id + '\')">+ Add item</button></div></form>';
@@ -488,7 +585,7 @@ function mmItemEditor(id) {
     fld('Taxes', '<div class="cbx-grid">' + taxChecks + '</div>') +
     '<div class="ff-row cols-2">' + fld('Cook time (min)', '<input class="input" id="ie-cook" type="number" value="' + (it.cookMin || 0) + '">') +
       fld('Kitchen station', '<select class="input" id="ie-station">' + opts(KITCHEN_STATIONS, it.station) + '</select>') + '</div>' +
-    fld('Photo', '<div class="mc-photo-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input class="input" id="ie-photo" value="' + esc(it.photoUrl || '') + '" placeholder="Paste URL or Upload" style="flex:1;" oninput="showPhotoPreview(this,this.value)"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(document.getElementById(\'ie-photo\'))">📷 Upload</button>' + (it.photoUrl ? '<img src="' + esc(it.photoUrl) + '" class="upload-preview" style="width:80px;height:56px;object-fit:cover;border-radius:6px;">' : '') + '</div>') +
+    mmPhotoField(it.photoUrl) +
     '</div>' +
     '<div class="mm-card"><h3>Groups</h3>' + fld('Menu groups', '<div class="cbx-grid">' + catChecks + '</div>') + '</div>' +
     '<div class="mm-card"><h3>Modifier groups</h3><p class="mm-hint">Steaks, hamburgers, salmon, and tuna should include a temperature group.</p>' +
@@ -499,7 +596,8 @@ function mmItemEditor(id) {
     '<button class="btn-analyze" type="button" onclick="runAnalysis(mmFindItem(\'' + it.id + '\'))">✨ Analyze Allergens &amp; Dietary</button>' +
     '<div id="ie-analysis" class="analysis-box">' + renderAnalysis(it.allergens, it.diet, it.verified, '') + '</div>' +
     '<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">' +
-      '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveItemFromForm(\'' + it.id + '\',true)">Save item</button>' +
+      '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveItemFromForm(\'' + it.id + '\',true)">Save item</button> ' +
+      '<button type="button" class="mm-back" onclick="mmBack()">← Back</button> ' +
       '<button type="button" class="btn btn-danger btn-sm" onclick="deleteMenuItem(\'' + it.id + '\')">Delete item</button></div>' +
     '</div></form>';
 }
@@ -513,7 +611,7 @@ function mmWineEditor(id) {
     '<div class="ff-row cols-3">' + fld('Bottle price', '<input class="input" id="w-bp" type="number" step="0.01" value="' + w.bottlePrice + '">') +
       fld('Glass price', '<input class="input" id="w-gp" type="number" step="0.01" value="' + w.glassPrice + '">') +
       fld('Stock', '<input class="input" id="w-stock" type="number" value="' + w.stock + '">') + '</div>' +
-    '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveWineFromForm(\'' + w.id + '\',true)">Save wine</button></div></form>';
+    '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveWineFromForm(\'' + w.id + '\',true)">Save wine</button> <button type="button" class="mm-back" onclick="mmBack()">← Back</button></div></form>';
 }
 function mmBarPanel(id) {
   var b = (STATE.bar || []).filter(function (x) { return x.id === id; })[0];
@@ -524,7 +622,7 @@ function mmBarPanel(id) {
     '<div class="ff-row cols-3">' + fld('Price', '<input class="input" id="b-price" type="number" step="0.01" value="' + b.price + '">') +
       fld('Cost', '<input class="input" id="b-cost" type="number" step="0.01" value="' + b.cost + '">') +
       fld('Type', '<select class="input" id="b-kind">' + opts(['Cocktail', 'Beer', 'Spirit'], b.kind) + '</select>') + '</div>' +
-    '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveBarFromForm(\'' + b.id + '\',true)">Save drink</button></div></form>';
+    '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveBarFromForm(\'' + b.id + '\',true)">Save drink</button> <button type="button" class="mm-back" onclick="mmBack()">← Back</button></div></form>';
 }
 function mmRetailPanel(id) {
   var p = (STATE.retail || []).filter(function (x) { return x.id === id; })[0];
@@ -534,7 +632,7 @@ function mmRetailPanel(id) {
     '<div class="ff-row cols-3">' + fld('Price', '<input class="input" id="r-price" type="number" step="0.01" value="' + p.price + '">') +
       fld('Category', '<input class="input" id="r-cat" value="' + esc(p.category || '') + '">') +
       fld('Stock', '<input class="input" id="r-stock" type="number" value="' + p.stock + '">') + '</div>' +
-    '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveRetailFromForm(\'' + p.id + '\',true)">Save product</button></div></form>';
+    '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveRetailFromForm(\'' + p.id + '\',true)">Save product</button> <button type="button" class="mm-back" onclick="mmBack()">← Back</button></div></form>';
 }
 function mmTaxNames(ids) {
   return (ids || []).map(function (id) { var t = (STATE.taxRates || []).filter(function (x) { return x.id === id; })[0]; return t ? t.name : ''; }).filter(Boolean).join(', ');
@@ -731,6 +829,7 @@ function mmSaveItemFromForm(id, toastOk) {
   if (!name) { if (toastOk) toast('Enter a name', 'error'); return false; }
   it.name = name; it.desc = $('ie-desc').value.trim();
   it.photoUrl = $('ie-photo') ? $('ie-photo').value.trim() : (it.photoUrl || '');
+  if (it.photoUrl && typeof rememberMenuPhoto === 'function') rememberMenuPhoto(it.id, it.photoUrl);
   it.price = parseFloat($('ie-price').value) || 0; it.cost = parseFloat($('ie-cost').value) || 0;
   it.code = $('ie-code').value.trim();
   it.cookMin = parseInt($('ie-cook').value, 10) || 0; it.station = $('ie-station').value;
@@ -745,7 +844,7 @@ function mmSaveItemFromForm(id, toastOk) {
     it.verified = $('an-verify') ? $('an-verify').checked : it.verified;
   }
   saveMenu();
-  if (toastOk) { toast('Item saved', 'success'); mmPaint(); }
+  if (toastOk) { toast('Item saved', 'success'); mmAfterSave(); }
 }
 function mmSaveGroupFromForm(id, toastOk) {
   var g = mmFindGroup(id); if (!g || !$('mm-g-name')) return;
@@ -753,7 +852,7 @@ function mmSaveGroupFromForm(id, toastOk) {
   g.posName = $('mm-g-pos').value.trim();
   g.visible = $('mm-g-vis').checked;
   saveMenu();
-  if (toastOk) { toast('Group saved', 'success'); mmPaint(); }
+  if (toastOk) { toast('Group saved', 'success'); mmAfterSave(); }
 }
 function mmSaveModFromForm(id, toastOk) {
   var g = mmFindMod(id); if (!g || !$('mg-name')) return;
@@ -789,7 +888,7 @@ function mmSaveWineFromForm(id, toastOk) {
   w.producer = $('w-prod').value.trim(); w.vintage = $('w-vintage').value.trim(); w.region = $('w-region').value.trim();
   w.bottlePrice = parseFloat($('w-bp').value) || 0; w.glassPrice = parseFloat($('w-gp').value) || 0; w.stock = parseInt($('w-stock').value, 10) || 0;
   saveWines();
-  if (toastOk) { toast('Wine saved', 'success'); mmPaint(); }
+  if (toastOk) { toast('Wine saved', 'success'); mmAfterSave(); }
 }
 function mmSaveBarFromForm(id, toastOk) {
   var b = (STATE.bar || []).filter(function (x) { return x.id === id; })[0];
@@ -797,7 +896,7 @@ function mmSaveBarFromForm(id, toastOk) {
   b.name = $('b-name').value.trim() || b.name; b.desc = $('b-desc').value.trim();
   b.price = parseFloat($('b-price').value) || 0; b.cost = parseFloat($('b-cost').value) || 0; b.kind = $('b-kind').value;
   saveBar();
-  if (toastOk) { toast('Drink saved', 'success'); mmPaint(); }
+  if (toastOk) { toast('Drink saved', 'success'); mmAfterSave(); }
 }
 function mmSaveRetailFromForm(id, toastOk) {
   var p = (STATE.retail || []).filter(function (x) { return x.id === id; })[0];
@@ -805,7 +904,7 @@ function mmSaveRetailFromForm(id, toastOk) {
   p.name = $('r-name').value.trim() || p.name; p.category = $('r-cat').value.trim();
   p.price = parseFloat($('r-price').value) || 0; p.stock = parseInt($('r-stock').value, 10) || 0;
   saveRetail();
-  if (toastOk) { toast('Product saved', 'success'); mmPaint(); }
+  if (toastOk) { toast('Product saved', 'success'); mmAfterSave(); }
 }
 
 function mmModTaxHtml(it) {
@@ -857,7 +956,7 @@ function mmSetDishEditor(it, priceLabel, extraTop, extraMid, saveClick, delClick
       fld('Cook time (min)', '<input class="input" id="ie-cook" type="number" value="' + (it.cookMin || it.cookTime || 0) + '">') +
       fld('Kitchen station', '<select class="input" id="ie-station">' + opts(KITCHEN_STATIONS, it.station || KITCHEN_STATIONS[0]) + '</select>') + '</div>' +
     fld('Taxes', '<div class="cbx-grid">' + mt.taxes + '</div>') +
-    fld('Photo', '<div class="mc-photo-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input class="input" id="ie-photo" value="' + esc(it.photoUrl || '') + '" placeholder="Paste URL or Upload" style="flex:1;" oninput="showPhotoPreview(this,this.value)"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(document.getElementById(\'ie-photo\'))">📷 Upload</button>' + (it.photoUrl ? '<img src="' + esc(it.photoUrl) + '" class="upload-preview" style="width:80px;height:56px;object-fit:cover;border-radius:6px;">' : '') + '</div>') +
+    mmPhotoField(it.photoUrl) +
     extraMid +
     '</div>' +
     '<div class="mm-card"><h3>Modifier groups</h3><p class="mm-hint">Steaks, hamburgers, salmon, and tuna should include a temperature group.</p>' +
@@ -869,7 +968,8 @@ function mmSetDishEditor(it, priceLabel, extraTop, extraMid, saveClick, delClick
     '<button class="btn-analyze" type="button" onclick="runAnalysis({})">✨ Analyze Allergens &amp; Dietary</button>' +
     '<div id="ie-analysis" class="analysis-box">' + renderAnalysis(it.allergens, it.diet || it.dietary, it.verified, '') + '</div>' +
     '<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">' +
-      '<button type="button" class="btn btn-gold btn-sm" onclick="' + saveClick + '">Save item</button>' +
+      '<button type="button" class="btn btn-gold btn-sm" onclick="' + saveClick + '">Save item</button> ' +
+      '<button type="button" class="mm-back" onclick="mmBack()">← Back</button> ' +
       '<button type="button" class="btn btn-danger btn-sm" onclick="' + delClick + '">Delete item</button></div>' +
     '</div>';
 }
@@ -1095,7 +1195,7 @@ function mmSavePfMenu(id, toastOk) {
   pf.taxIds = Array.prototype.slice.call(document.querySelectorAll('.ie-tax:checked')).map(function (x) { return x.value; });
   mmRebuildPf(pf);
   mmPersistPf();
-  if (toastOk) { toast('Menu saved', 'success'); mmPaint(); }
+  if (toastOk) { toast('Menu saved', 'success'); mmAfterSave(); }
 }
 function mmSavePfCourse(joinId, toastOk) {
   var pf = mmFindPf(mmJoinParent(joinId)); if (!pf || !$('mm-g-name')) return;
@@ -1113,19 +1213,20 @@ function mmSavePfCourse(joinId, toastOk) {
   }
   mmRebuildPf(pf);
   mmPersistPf();
-  if (toastOk) { toast('Group saved', 'success'); mmPaint(); }
+  if (toastOk) { toast('Group saved', 'success'); mmAfterSave(); }
 }
 function mmSavePfDish(joinId, toastOk) {
   var pf = mmFindPf(mmJoinParent(joinId));
   var d = mmFindPfDish(joinId);
   if (!pf || !d || !$('ie-name')) return;
   mmReadDishCommon(d);
+  if (d.photoUrl && typeof rememberMenuPhoto === 'function') rememberMenuPhoto('pfdish:' + joinId, d.photoUrl);
   d.upcharge = parseFloat($('ie-price').value) || 0;
   d.price = d.upcharge;
   if ($('ie-course')) d.course = $('ie-course').value;
   mmRebuildPf(pf);
   mmPersistPf();
-  if (toastOk) { toast('Item saved', 'success'); mmPaint(); }
+  if (toastOk) { toast('Item saved', 'success'); mmAfterSave(); }
 }
 function mmSaveTmMenu(id, toastOk) {
   var tm = mmFindTm(id); if (!tm || !$('tm-name')) return;
@@ -1137,7 +1238,7 @@ function mmSaveTmMenu(id, toastOk) {
   tm.active = $('tm-vis') ? $('tm-vis').checked : true;
   tm.taxIds = Array.prototype.slice.call(document.querySelectorAll('.ie-tax:checked')).map(function (x) { return x.value; });
   mmPersistTm();
-  if (toastOk) { toast('Menu saved', 'success'); mmPaint(); }
+  if (toastOk) { toast('Menu saved', 'success'); mmAfterSave(); }
 }
 function mmSaveTmGroup(joinId, toastOk) {
   var tm = mmFindTm(mmJoinParent(joinId)); if (!tm || !$('mm-g-name')) return;
@@ -1147,13 +1248,14 @@ function mmSaveTmGroup(joinId, toastOk) {
     if (mmTmGroupName(tm, c) === old) c.group = next;
   });
   mmPersistTm();
-  if (toastOk) { toast('Group saved', 'success'); MM.sel = { type: 'tmgroup', id: mmJoin(tm.id, encodeURIComponent(next)) }; mmPaint(); }
+  if (toastOk) { toast('Group saved', 'success'); MM.sel = { type: 'tmgroup', id: mmJoin(tm.id, encodeURIComponent(next)) }; mmAfterSave(); }
 }
 function mmSaveTmCourse(joinId, toastOk) {
   var tm = mmFindTm(mmJoinParent(joinId));
   var c = mmFindTmCourse(joinId);
   if (!tm || !c || !$('ie-name')) return;
   mmReadDishCommon(c);
+  if (c.photoUrl && typeof rememberMenuPhoto === 'function') rememberMenuPhoto('tmcourse:' + joinId, c.photoUrl);
   c.upcharge = parseFloat($('ie-price').value) || 0;
   c.price = c.upcharge;
   if ($('ie-course')) {
@@ -1163,7 +1265,7 @@ function mmSaveTmCourse(joinId, toastOk) {
     if (c.group === 'Dolce') c.mode = 'later';
   }
   mmPersistTm();
-  if (toastOk) { toast('Item saved', 'success'); mmPaint(); }
+  if (toastOk) { toast('Item saved', 'success'); mmAfterSave(); }
 }
 function mmSaveTmPair(joinId, toastOk) {
   var tm = mmFindTm(mmJoinParent(joinId)); if (!tm || !$('p-name')) return;
@@ -1174,7 +1276,7 @@ function mmSaveTmPair(joinId, toastOk) {
   p.desc = $('p-desc') ? $('p-desc').value.trim() : '';
   p.price = parseFloat($('p-price').value) || 0;
   mmPersistTm();
-  if (toastOk) { toast('Item saved', 'success'); mmPaint(); }
+  if (toastOk) { toast('Item saved', 'success'); mmAfterSave(); }
 }
 
 function mmDelPfMenu(id) {
