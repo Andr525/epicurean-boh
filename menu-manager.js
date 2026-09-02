@@ -373,7 +373,7 @@ function mmRebuildPf(pf) {
       (c.options || []).forEach(function (o, oi) {
         pf.dishes.push({
           id: o.id || uid('pfd'), name: o.name, desc: o.desc || '', upcharge: o.upcharge || 0,
-          photoUrl: o.photoUrl || '', course: c.label, station: o.station || KITCHEN_STATIONS[0],
+          photoUrl: o.photoUrl || '', story: o.story || '', course: c.label, station: o.station || KITCHEN_STATIONS[0],
           pairing: o.pairing || '', allergens: o.allergens || [], cookNote: o.cookNote || '',
           chooseCount: o.chooseCount || 0, scoops: o.scoops || null, dietary: o.dietary || [],
           cookTime: o.cookTime || 0, cookMin: o.cookTime || 0, i18n: o.i18n || {},
@@ -405,7 +405,7 @@ function mmRebuildPf(pf) {
     c.options = pf.dishes.filter(function (d) { return d.course === c.label; }).sort(function (a, b) { return (a.order || 0) - (b.order || 0); }).map(function (d) {
       return {
         id: d.id, name: d.name, desc: d.desc, station: d.station, upcharge: d.upcharge || 0,
-        pairing: d.pairing || '', photoUrl: d.photoUrl || '', allergens: d.allergens || [],
+        pairing: d.pairing || '', photoUrl: d.photoUrl || '', story: d.story || '', allergens: d.allergens || [],
         cookNote: d.cookNote || '', chooseCount: d.chooseCount || 0, scoops: d.scoops || null,
         dietary: d.diet || d.dietary || [], cookTime: d.cookMin || d.cookTime || 0, i18n: d.i18n || {},
         modGroupIds: d.modGroupIds || [], taxIds: d.taxIds || []
@@ -676,6 +676,7 @@ function mmItemEditor(id) {
     fld('Name', '<input class="input" id="ie-name" value="' + esc(it.name) + '" placeholder="Dish name">') +
     mmPhotoField(mmResolveItemPhoto(it, mmPhotoKey())) +
     fld('Description (POS &amp; iPad)', '<textarea class="input" id="ie-desc" rows="4">' + esc(it.desc || '') + '</textarea>') +
+    fld('Story for iPad (origin, farm, family — guests see this when they tap the dish)', '<textarea class="input" id="ie-story" rows="4" placeholder="e.g. Filet mignon from Dutton Ranch in South Carolina. The Dutton family has raised cattle on the same land for generations…">' + esc(it.story || '') + '</textarea>') +
     '<div class="ff-row cols-3">' + fld('Price ($)', '<input class="input" id="ie-price" type="number" step="0.01" value="' + it.price + '">') +
       fld('Cost ($)', '<input class="input" id="ie-cost" type="number" step="0.01" value="' + (it.cost || 0) + '">') +
       fld('Item code', '<input class="input" id="ie-code" value="' + esc(it.code || '') + '">') + '</div>' +
@@ -926,6 +927,7 @@ function mmSaveItemFromForm(id, toastOk) {
   var name = $('ie-name').value.trim();
   if (!name) { if (toastOk) toast('Enter a name', 'error'); return false; }
   it.name = name; it.desc = $('ie-desc').value.trim();
+  it.story = $('ie-story') ? $('ie-story').value.trim() : (it.story || '');
   it.photoUrl = typeof readPhotoUrlFromForm === 'function' ? readPhotoUrlFromForm(it.photoUrl, it.id) : (it.photoUrl || '');
   if (it.photoUrl && typeof rememberMenuPhoto === 'function') rememberMenuPhoto(it.id, it.photoUrl);
   it.price = parseFloat($('ie-price').value) || 0; it.cost = parseFloat($('ie-cost').value) || 0;
@@ -1036,6 +1038,7 @@ function mmWinePairOpts(sel) {
 function mmReadDishCommon(it) {
   it.name = $('ie-name').value.trim() || it.name;
   it.desc = $('ie-desc') ? $('ie-desc').value.trim() : (it.desc || '');
+  it.story = $('ie-story') ? $('ie-story').value.trim() : (it.story || '');
   it.photoUrl = typeof readPhotoUrlFromForm === 'function' ? readPhotoUrlFromForm(it.photoUrl, mmPhotoKey()) : (it.photoUrl || '');
   it.station = $('ie-station') ? $('ie-station').value : (it.station || '');
   it.cookMin = $('ie-cook') ? (parseInt($('ie-cook').value, 10) || 0) : (it.cookMin || 0);
@@ -1063,6 +1066,7 @@ function mmSetDishEditor(it, priceLabel, extraTop, extraMid, saveClick, delClick
     fld('Name', '<input class="input" id="ie-name" value="' + esc(it.name) + '" placeholder="Dish name">') +
     mmPhotoField(mmResolveItemPhoto(it, mmPhotoKey())) +
     fld('Description (POS &amp; iPad)', '<textarea class="input" id="ie-desc" rows="4">' + esc(it.desc || '') + '</textarea>') +
+    fld('Story for iPad (origin, farm, family — guests see this when they tap the dish)', '<textarea class="input" id="ie-story" rows="4" placeholder="e.g. Filet mignon from Dutton Ranch in South Carolina. The Dutton family has raised cattle on the same land for generations…">' + esc(it.story || '') + '</textarea>') +
     extraTop +
     '<div class="ff-row cols-3">' + fld(priceLabel, '<input class="input" id="ie-price" type="number" step="0.01" value="' + (it.upcharge != null ? it.upcharge : (it.price || 0)) + '">') +
       fld('Cook time (min)', '<input class="input" id="ie-cook" type="number" value="' + (it.cookMin || it.cookTime || 0) + '">') +
@@ -1267,7 +1271,7 @@ function mmAddPfCourse(pfId) {
 function mmAddPfDish(pfId, courseEnc) {
   var pf = mmFindPf(pfId); if (!pf) return;
   var label = decodeURIComponent(courseEnc || '');
-  var d = { id: uid('pfd'), name: 'New item', desc: '', upcharge: 0, course: label, station: KITCHEN_STATIONS[0], photoUrl: '', pairing: '', allergens: [], cookNote: '', cookMin: 10, modGroupIds: [], taxIds: mmDefaultTaxes(), order: (pf.dishes || []).length, active: true };
+  var d = { id: uid('pfd'), name: 'New item', desc: '', story: '', upcharge: 0, course: label, station: KITCHEN_STATIONS[0], photoUrl: '', pairing: '', allergens: [], cookNote: '', cookMin: 10, modGroupIds: [], taxIds: mmDefaultTaxes(), order: (pf.dishes || []).length, active: true };
   pf.dishes = pf.dishes || [];
   pf.dishes.push(d);
   mmRebuildPf(pf);
@@ -1285,7 +1289,7 @@ function mmAddTmGroup(tmId) {
 function mmAddTmCourse(tmId, groupEnc) {
   var tm = mmFindTm(tmId); if (!tm) return;
   var gname = decodeURIComponent(groupEnc || 'Courses');
-  var c = { id: uid('tmc'), num: (tm.courses || []).length + 1, name: 'New item', desc: '', station: KITCHEN_STATIONS[0], upcharge: 0, photoUrl: '', allergens: [], group: gname, mode: gname === 'Welcome' ? 'auto' : (gname === 'Entremets' ? 'entremets' : (gname === 'Dolce' ? 'later' : 'auto')), modGroupIds: [], taxIds: mmDefaultTaxes() };
+  var c = { id: uid('tmc'), num: (tm.courses || []).length + 1, name: 'New item', desc: '', story: '', station: KITCHEN_STATIONS[0], upcharge: 0, photoUrl: '', allergens: [], group: gname, mode: gname === 'Welcome' ? 'auto' : (gname === 'Entremets' ? 'entremets' : (gname === 'Dolce' ? 'later' : 'auto')), modGroupIds: [], taxIds: mmDefaultTaxes() };
   tm.courses = tm.courses || [];
   tm.courses.push(c);
   MM.open['tm:' + tmId] = true;
