@@ -128,7 +128,7 @@ function mmBookForGroup(gid) {
   var books = STATE.menuBooks || [];
   var hit = books.filter(function (b) { return (b.groupIds || []).indexOf(gid) > -1; })[0];
   if (hit) return hit;
-  if (gid === 'c_wine_glass' || gid === 'c_wine_bottle') return books.filter(function (b) { return b.kind === 'wine'; })[0];
+  if (gid === 'c_wine_glass' || gid === 'c_wine_bottle' || gid === 'c_wine_flights') return books.filter(function (b) { return b.kind === 'wine'; })[0];
   return books.filter(function (b) { return b.kind === 'food'; })[0] || books[0];
 }
 function mmParentSel(sel) {
@@ -411,10 +411,19 @@ function mmTreeHtml() {
     } else if (book.kind === 'wine') {
       html += '<div class="mm-row indent-1' + (mmSelIs('group', 'c_wine_glass') ? ' on' : '') + '" onclick="mmSelect(\'group\',\'c_wine_glass\')"><span>Wine by the glass</span><span class="mm-kind">Subgroup</span></div>';
       html += '<div class="mm-row indent-1' + (mmSelIs('group', 'c_wine_bottle') ? ' on' : '') + '" onclick="mmSelect(\'group\',\'c_wine_bottle\')"><span>Wine by the bottle</span><span class="mm-kind">Subgroup</span></div>';
-      (STATE.wines || []).forEach(function (w) {
-        if (mmQ() && !mmMatch(w.name)) return;
-        html += '<div class="mm-row indent-2' + (mmSelIs('wine', w.id) ? ' on' : '') + '" onclick="mmSelect(\'wine\',\'' + w.id + '\')"><span>' + esc(w.name) + '</span><span class="mm-kind">Item</span></div>';
-      });
+      html += '<div class="mm-row indent-1' + (mmSelIs('group', 'c_wine_flights') ? ' on' : '') + '" onclick="mmSelect(\'group\',\'c_wine_flights\')"><span>Wine flights</span><span class="mm-kind">Subgroup</span></div>';
+      var q = mmQ();
+      if (!q) {
+        html += '<div class="mm-row indent-2"><span style="opacity:.7">Type in Find to list ' + (STATE.wines || []).length + ' bottles</span></div>';
+      } else {
+        var shown = 0;
+        (STATE.wines || []).forEach(function (w) {
+          if (shown >= 80) return;
+          if (!mmMatch(w.name + ' ' + (w.vin || '') + ' ' + (w.region || '') + ' ' + (w.vintage || ''))) return;
+          shown += 1;
+          html += '<div class="mm-row indent-2' + (mmSelIs('wine', w.id) ? ' on' : '') + '" onclick="mmSelect(\'wine\',\'' + w.id + '\')"><span>' + esc(w.name) + '</span><span class="mm-kind">' + (w.stock || 0) + ' btl</span></div>';
+        });
+      }
     } else if (book.kind === 'retail') {
       (STATE.retail || []).forEach(function (p) {
         if (mmQ() && !mmMatch(p.name)) return;
@@ -537,13 +546,36 @@ function mmBookPanel(id) {
     '</div>';
 }
 function mmGroupEditor(id) {
+  if (id === 'c_wine_flights') {
+    var flights = (STATE.wineFlights || []).map(function (f) {
+      return '<div class="mm-item-card"><div><div class="mm-item-name">' + esc(f.name) + '</div><div class="mm-item-meta">' + ((f.wines || []).length) + ' wines · ' + (f.pourOz || 2) + ' oz each</div></div><div class="mm-price">' + money(f.price) + '</div></div>';
+    }).join('');
+    return '<div class="mm-card"><h3>SUBGROUP Wine flights</h3>' +
+      '<p class="mm-hint">Flights will pour 2 oz tastes from the same bottle inventory (25 oz per 750ml). Add flights after the by-the-glass list is loaded.</p>' +
+      (flights || '<div class="mm-empty">No flights yet.</div>') +
+      '<button type="button" class="mm-add" onclick="mmAddWineFlight()">+ Add flight</button></div>';
+  }
   if (id === 'c_wine_glass' || id === 'c_wine_bottle') {
     var glass = id === 'c_wine_glass';
-    var rows = (STATE.wines || []).map(function (w) {
-      return '<div class="mm-item-card" onclick="mmSelect(\'wine\',\'' + w.id + '\')"><div><div class="mm-item-name">' + esc(w.name) + '</div><div class="mm-item-meta">' + esc(w.producer || '') + '</div></div><div class="mm-price">' + (glass ? money(w.glassPrice) : money(w.bottlePrice)) + '</div></div>';
+    if (glass) {
+      var btg = (STATE.wines || []).filter(function (w) { return w && (w.byTheGlass || Number(w.glassPrice) > 0); });
+      var grow = btg.map(function (w) {
+        return '<div class="mm-item-card" onclick="mmSelect(\'wine\',\'' + w.id + '\')"><div><div class="mm-item-name">' + esc(w.name) + '</div><div class="mm-item-meta">' + (w.stock || 0) + ' bottles · 6 oz / 2 oz pours</div></div><div class="mm-price">' + money(w.glassPrice) + '</div></div>';
+      }).join('');
+      return '<div class="mm-card"><h3>SUBGROUP Wine by the glass</h3>' +
+        '<p class="mm-hint">Not loaded yet. When the by-the-glass page is uploaded, glasses (6 oz) and tastes (2 oz) will decrement these bottles. Each bottle holds 25 oz.</p>' +
+        (grow || '<div class="mm-empty">No wines by the glass yet.</div>') + '</div>';
+    }
+    var q = mmQ();
+    var list = (STATE.wines || []).filter(function (w) { return !q || mmMatch(w.name + ' ' + (w.vin || '') + ' ' + (w.region || '') + ' ' + (w.vintage || '')); });
+    var extra = list.length > 80 ? list.length - 80 : 0;
+    var rows = list.slice(0, 80).map(function (w) {
+      return '<div class="mm-item-card" onclick="mmSelect(\'wine\',\'' + w.id + '\')"><div><div class="mm-item-name">' + esc(w.name) + '</div><div class="mm-item-meta">' + esc(w.vintage || '') + ' · ' + esc(w.region || '') + ' · ' + (w.stock || 0) + ' bottles</div></div><div class="mm-price">' + money(w.bottlePrice) + '</div></div>';
     }).join('');
-    return '<div class="mm-card"><h3>SUBGROUP ' + (glass ? 'Wine by the glass' : 'Wine by the bottle') + '</h3>' +
-      '<p class="mm-hint">Click a wine to edit bottle and glass prices.</p>' + (rows || '<div class="mm-empty">No wines yet.</div>') + '</div>';
+    return '<div class="mm-card"><h3>SUBGROUP Wine by the bottle</h3>' +
+      '<p class="mm-hint">' + (STATE.wines || []).length + ' labels. Search in Find to jump to a bottle. Stock is editable and drops when POS sells one.</p>' +
+      (rows || '<div class="mm-empty">Type a name, bin, or vintage in Find.</div>') +
+      (extra ? '<p class="mm-hint">+' + extra + ' more — refine the search.</p>' : '') + '</div>';
   }
   var g = mmFindGroup(id);
   if (!g) return '<div class="mm-empty">Group not found.</div>';
@@ -611,8 +643,9 @@ function mmWineEditor(id) {
     '<div class="ff-row cols-2">' + fld('Producer', '<input class="input" id="w-prod" value="' + esc(w.producer || '') + '">') + fld('Vintage', '<input class="input" id="w-vintage" value="' + esc(w.vintage || '') + '">') + '</div>' +
     fld('Region', '<input class="input" id="w-region" value="' + esc(w.region || '') + '">') +
     '<div class="ff-row cols-3">' + fld('Bottle price', '<input class="input" id="w-bp" type="number" step="0.01" value="' + w.bottlePrice + '">') +
-      fld('Glass price', '<input class="input" id="w-gp" type="number" step="0.01" value="' + w.glassPrice + '">') +
-      fld('Stock', '<input class="input" id="w-stock" type="number" value="' + w.stock + '">') + '</div>' +
+      fld('Bottles in stock', '<input class="input" id="w-stock" type="number" value="' + (w.stock || 0) + '">') +
+      fld('Oz per bottle', '<input class="input" id="w-boz" type="number" step="0.1" value="' + (w.bottleOz || 25) + '">') + '</div>' +
+    '<p class="mm-hint">' + esc(w.size || '750ml') + ' · glass pours (6 oz / 2 oz) stay off until the by-the-glass list is loaded.</p>' +
     '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveWineFromForm(\'' + w.id + '\',true)">Save wine</button> <button type="button" class="mm-back" onclick="mmBack()">← Back</button></div></form>';
 }
 function mmBarPanel(id) {
@@ -623,7 +656,8 @@ function mmBarPanel(id) {
     fld('Description', '<input class="input" id="b-desc" value="' + esc(b.desc || '') + '">') +
     '<div class="ff-row cols-3">' + fld('Price', '<input class="input" id="b-price" type="number" step="0.01" value="' + b.price + '">') +
       fld('Cost', '<input class="input" id="b-cost" type="number" step="0.01" value="' + b.cost + '">') +
-      fld('Type', '<select class="input" id="b-kind">' + opts(['Cocktail', 'Beer', 'Spirit'], b.kind) + '</select>') + '</div>' +
+      fld('Stock (bottles)', '<input class="input" id="b-stock" type="number" value="' + (b.stock || 0) + '">') + '</div>' +
+      fld('Type', '<select class="input" id="b-kind">' + opts(['Cocktail', 'Beer', 'Spirit'], b.kind) + '</select>') +
     '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveBarFromForm(\'' + b.id + '\',true)">Save drink</button> <button type="button" class="mm-back" onclick="mmBack()">← Back</button></div></form>';
 }
 function mmRetailPanel(id) {
@@ -888,15 +922,28 @@ function mmSaveWineFromForm(id, toastOk) {
   if (!w || !$('w-name')) return;
   w.name = $('w-name').value.trim() || w.name;
   w.producer = $('w-prod').value.trim(); w.vintage = $('w-vintage').value.trim(); w.region = $('w-region').value.trim();
-  w.bottlePrice = parseFloat($('w-bp').value) || 0; w.glassPrice = parseFloat($('w-gp').value) || 0; w.stock = parseInt($('w-stock').value, 10) || 0;
+  w.bottlePrice = parseFloat($('w-bp').value) || 0;
+  w.stock = parseInt($('w-stock').value, 10) || 0;
+  w.bottleOz = parseFloat($('w-boz') && $('w-boz').value) || w.bottleOz || 25;
+  w.ozOnHand = Math.round(w.stock * w.bottleOz * 10) / 10;
   saveWines();
   if (toastOk) { toast('Wine saved', 'success'); mmAfterSave(); }
+}
+function mmAddWineFlight() {
+  STATE.wineFlights = STATE.wineFlights || [];
+  var f = { id: uid('fl'), name: 'New flight', price: 0, pourOz: 2, wines: [] };
+  STATE.wineFlights.push(f);
+  lsSet('eh_wine_flights', STATE.wineFlights);
+  if (typeof fbSetDoc === 'function') fbSetDoc('boh_shared', 'wine_flights', { list: STATE.wineFlights, updatedAt: Date.now() });
+  toast('Flight added — pick wines after the by-the-glass list is loaded', 'success');
+  mmSelect('group', 'c_wine_flights');
 }
 function mmSaveBarFromForm(id, toastOk) {
   var b = (STATE.bar || []).filter(function (x) { return x.id === id; })[0];
   if (!b || !$('b-name')) return;
   b.name = $('b-name').value.trim() || b.name; b.desc = $('b-desc').value.trim();
   b.price = parseFloat($('b-price').value) || 0; b.cost = parseFloat($('b-cost').value) || 0; b.kind = $('b-kind').value;
+  if ($('b-stock')) { b.stock = parseInt($('b-stock').value, 10) || 0; b.ozOnHand = (Number(b.bottleOz) || 25) * b.stock; }
   saveBar();
   if (toastOk) { toast('Drink saved', 'success'); mmAfterSave(); }
 }

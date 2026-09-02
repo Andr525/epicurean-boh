@@ -998,6 +998,7 @@ function showPhotoPreview(input, url){
 }
 </script>
 <script src="scalini-dining.js"></script>
+<script src="cellar.js"></script>
 <input type="file" id="photo-file-input" accept="image/*" style="position:fixed;left:-80px;top:0;width:1px;height:1px;opacity:0;" onchange="handlePhotoUpload(this)">
 <script>
 /* ============================================================
@@ -1318,6 +1319,8 @@ var STATE = {
   menuPhotos: lsGet('eh_menu_photos', {}),
   bar:        lsGet('eh_bar',         seedBar()),
   wines:      lsGet('eh_wines',       seedWines()),
+  wineFlights:lsGet('eh_wine_flights', []),
+  cellarVer:  lsGet('eh_cellar_ver',  ''),
   retail:     lsGet('eh_retail',      seedRetail()),
   ingredients:lsGet('eh_ingredients', seedIngredients()),
   sales:      lsGet('eh_sales',       [])
@@ -1587,7 +1590,79 @@ function publishMenusToFrontOfHouse(){
   });
 }
 function saveBar(){ lsSet('eh_bar',STATE.bar); fbSetDoc('boh_shared','bar',{list:STATE.bar,updatedAt:Date.now()}); }
-function saveWines(){ lsSet('eh_wines',STATE.wines); fbSetDoc('boh_shared','wines',{list:STATE.wines,updatedAt:Date.now()}); }
+var WINE_CHUNK=250;
+var WINE_BOTTLE_OZ=25;
+var WINE_GLASS_OZ=6;
+var WINE_TASTE_OZ=2;
+function wineChunkCount(list){ list=list||[]; return Math.max(1, Math.ceil(list.length/WINE_CHUNK)); }
+function saveWines(){
+  lsSet('eh_wines',STATE.wines);
+  if(typeof fbReady==='undefined' || !fbReady) return Promise.resolve(true);
+  var list=STATE.wines||[];
+  var n=wineChunkCount(list);
+  var writes=[fbSetDoc('boh_shared','wines',{list:list.slice(0,WINE_CHUNK), chunkCount:n, cellarVer:(STATE.cellarVer||''), updatedAt:Date.now()})];
+  for(var i=1;i<n;i++) writes.push(fbSetDoc('boh_shared','wines_'+i,{list:list.slice(i*WINE_CHUNK,(i+1)*WINE_CHUNK), updatedAt:Date.now()}));
+  return Promise.all(writes);
+}
+function loadWineChunks(firstDoc){
+  firstDoc=firstDoc||{};
+  var first=Array.isArray(firstDoc.list)?firstDoc.list:[];
+  var n=Number(firstDoc.chunkCount)||1;
+  if(n<=1){ STATE.wines=first; return Promise.resolve(first); }
+  var jobs=[];
+  for(var i=1;i<n;i++){
+    (function(idx){ jobs.push(fbGetDoc('boh_shared','wines_'+idx).then(function(d){ return (d&&d.list)||[]; })); })(i);
+  }
+  return Promise.all(jobs).then(function(rest){
+    STATE.wines=first.concat.apply(first, rest);
+    return STATE.wines;
+  });
+}
+function consumeWineSale(w, qty, ozEach){
+  if(!w) return;
+  qty=Math.max(1, Number(qty)||1);
+  var bottleOz=Number(w.bottleOz)||WINE_BOTTLE_OZ;
+  var oz=ozEach!=null ? Number(ozEach)*qty : bottleOz*qty;
+  var on=w.ozOnHand!=null ? Number(w.ozOnHand) : (Number(w.stock)||0)*bottleOz + (Number(w.openOz)||0);
+  on=Math.max(0, on-oz);
+  w.ozOnHand=Math.round(on*10)/10;
+  w.stock=Math.ceil(on/bottleOz);
+  if(w.stock<=0){ w.stock=0; w.openOz=0; }
+}
+function consumeBarSale(b, qty){
+  if(!b) return;
+  qty=Math.max(1, Number(qty)||1);
+  b.stock=Math.max(0, (Number(b.stock)||0)-qty);
+  if(b.ozOnHand!=null) b.ozOnHand=Math.max(0, Number(b.ozOnHand)-(Number(b.bottleOz)||WINE_BOTTLE_OZ)*qty);
+}
+function cloneCellarList(list){ return JSON.parse(JSON.stringify(list||[])); }
+function ensureBinwiseCellar(){
+  var seed=typeof BINWISE_CELLAR!=='undefined' ? BINWISE_CELLAR : null;
+  if(!seed || !seed.wines) return false;
+  STATE.cellarVer=STATE.cellarVer||lsGet('eh_cellar_ver','');
+  var have=(STATE.wines||[]).length;
+  if(have>=50) return false;
+  var stockByKey={};
+  (STATE.wines||[]).forEach(function(w){
+    if(!w) return;
+    stockByKey[(w.vin||'')+'|'+(w.name||'')+'|'+(w.vintage||'')+'|'+(w.size||'')]=w;
+  });
+  STATE.wines=cloneCellarList(seed.wines).map(function(w){
+    var prev=stockByKey[(w.vin||'')+'|'+(w.name||'')+'|'+(w.vintage||'')+'|'+(w.size||'')];
+    if(prev && prev.stock!=null){ w.stock=prev.stock; w.ozOnHand=prev.ozOnHand; w.openOz=prev.openOz||0; }
+    return w;
+  });
+  var cocktails=(STATE.bar||[]).filter(function(b){ return b && b.kind==='Cocktail'; });
+  if(!cocktails.length) cocktails=seedBar().filter(function(b){ return b.kind==='Cocktail'; });
+  STATE.bar=cocktails.concat(cloneCellarList(seed.beers||[]), cloneCellarList(seed.spirits||[]));
+  STATE.wineFlights=STATE.wineFlights||cloneCellarList(seed.flights||[]);
+  STATE.cellarVer=seed.v;
+  lsSet('eh_cellar_ver', STATE.cellarVer);
+  lsSet('eh_wine_flights', STATE.wineFlights);
+  saveWines();
+  saveBar();
+  return true;
+}
 function saveRetail(){ lsSet('eh_retail',STATE.retail); fbSetDoc('boh_shared','retail',{list:STATE.retail,updatedAt:Date.now()}); }
 function saveIngredients(){ lsSet('eh_ingredients',STATE.ingredients); fbSetDoc('boh_shared','ingredients',{list:STATE.ingredients,updatedAt:Date.now()}); }
 function saveSales(){ lsSet('eh_sales',STATE.sales); fbSetDoc('boh_shared','sales',{list:STATE.sales.slice(-2000),updatedAt:Date.now()}); }
@@ -1602,7 +1677,10 @@ function syncFromCloud(){
     fbGetDoc('boh_shared','menu').then(function(d){ if(d){ if(d.cats)STATE.menuCats=d.cats; if(d.items)STATE.menuItems=d.items; if(d.modGroups)STATE.modGroups=d.modGroups; if(d.taxRates)STATE.taxRates=d.taxRates; if(d.books)STATE.menuBooks=d.books; lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups); lsSet('eh_tax_rates',STATE.taxRates||[]); lsSet('eh_menu_books',STATE.menuBooks||[]); applyMenuPhotos(); if(typeof ensureMenuManager==='function')ensureMenuManager(); } }),
     fbGetDoc('boh_shared','menu_photos').then(function(d){ if(d&&d.urls){ STATE.menuPhotos=Object.assign({}, d.urls, STATE.menuPhotos||{}); lsSet('eh_menu_photos', STATE.menuPhotos); applyMenuPhotos(); } }),
     fbGetDoc('boh_shared','bar').then(function(d){ if(d&&d.list){ STATE.bar=d.list; lsSet('eh_bar',STATE.bar); } }),
-    fbGetDoc('boh_shared','wines').then(function(d){ if(d&&d.list){ STATE.wines=d.list; lsSet('eh_wines',STATE.wines); } }),
+    fbGetDoc('boh_shared','wines').then(function(d){
+      if(!d) return;
+      return loadWineChunks(d).then(function(){ lsSet('eh_wines',STATE.wines); if(d.cellarVer){ STATE.cellarVer=d.cellarVer; lsSet('eh_cellar_ver', d.cellarVer); } });
+    }),
     fbGetDoc('boh_shared','retail').then(function(d){ if(d&&d.list){ STATE.retail=d.list; lsSet('eh_retail',STATE.retail); } }),
     fbGetDoc('boh_shared','ingredients').then(function(d){ if(d&&d.list){ STATE.ingredients=d.list; lsSet('eh_ingredients',STATE.ingredients); } }),
     fbGetDoc('boh_shared','sales').then(function(d){ if(d&&d.list){ STATE.sales=d.list; lsSet('eh_sales',STATE.sales); } })
@@ -3378,9 +3456,10 @@ function closeModal(){ $('modal-root').innerHTML=''; MODAL_OK=null; }
 function boot(){
   hydrateStationOverlays();
   if(typeof ensureMenuManager==='function')ensureMenuManager();
+  ensureBinwiseCellar();
   var saved=sessionStorage.getItem('eh_boh_user'); if(saved){ try{ SESSION.user=JSON.parse(saved); }catch(e){} }
   render();
-  syncFromCloud().then(function(){ if(SESSION.user)render(); });
+  syncFromCloud().then(function(){ ensureBinwiseCellar(); if(SESSION.user)render(); });
 }
 /* ============================================================
    PRODUCT MODULE — Menu / Bar / Wine / Retail / Inventory / Reports
@@ -3671,10 +3750,11 @@ function openBarEditor(id){
   var body='<div class="ff-row cols-2">'+fld('Code','<input class="input" id="b-code" value="'+esc(b.code)+'">')+fld('Type','<select class="input" id="b-kind">'+opts(['Cocktail','Beer','Spirit'],b.kind)+'</select>')+'</div>'+
     fld('Name','<input class="input" id="b-name" value="'+esc(b.name)+'">')+
     fld('Description','<input class="input" id="b-desc" value="'+esc(b.desc||'')+'">')+
-    '<div class="ff-row cols-4">'+fld('Price','<input class="input" id="b-price" type="number" step="0.01" value="'+b.price+'">')+fld('Cost','<input class="input" id="b-cost" type="number" step="0.01" value="'+b.cost+'">')+fld('Stock','<input class="input" id="b-stock" type="number" value="'+b.stock+'">')+fld('Unit','<select class="input" id="b-unit">'+opts(INV_UNITS,b.unit)+'</select>')+'</div>';
+    '<div class="ff-row cols-3">'+fld('Price','<input class="input" id="b-price" type="number" step="0.01" value="'+b.price+'">')+fld('Cost','<input class="input" id="b-cost" type="number" step="0.01" value="'+b.cost+'">')+fld('Stock (bottles)','<input class="input" id="b-stock" type="number" value="'+b.stock+'">')+fld('Unit','<select class="input" id="b-unit">'+opts(INV_UNITS,b.unit)+'</select>')+'</div>';
   openModal(id?'Edit Drink':'New Drink', body, 'Save', function(){
     b.code=$('b-code').value.trim(); b.kind=$('b-kind').value; b.name=$('b-name').value.trim(); b.desc=$('b-desc').value.trim();
-    b.price=parseFloat($('b-price').value)||0; b.cost=parseFloat($('b-cost').value)||0; b.stock=parseInt($('b-stock').value)||0; b.unit=$('b-unit').value;
+    b.price=parseFloat($('b-price').value)||0; b.cost=parseFloat($('b-cost').value)||0; b.stock=parseInt($('b-stock').value,10)||0; b.unit=$('b-unit').value;
+    b.ozOnHand=(Number(b.bottleOz)||WINE_BOTTLE_OZ)*b.stock;
     if(!b.name){ toast('Enter a name','error'); return false; }
     if(!id)STATE.bar.push(b); saveBar(); toast('Saved','success'); render();
   }, null, id?'<button class="btn btn-danger" onclick="deleteBar(\''+id+'\')">Delete</button>':'');
@@ -3684,28 +3764,53 @@ function deleteBar(id){ if(!confirm('Delete this drink?'))return; STATE.bar=STAT
 /* ============================================================
    WINE — by bottle & by glass, VIN
    ============================================================ */
-function PAGE_wine(){ return { title:'Wine', sub:STATE.wines.length+' labels', body:wineBody(), bind:null }; }
+var WINE_FILTER='';
+function PAGE_wine(){ return { title:'Wine', sub:(STATE.wines||[]).length+' bottles · inventory follows sales', body:wineBody(), bind:bindWineSearch }; }
+function wineMatches(w, q){
+  if(!q) return true;
+  var hay=((w.vin||'')+' '+(w.name||'')+' '+(w.vintage||'')+' '+(w.region||'')+' '+(w.size||'')+' '+(w.producer||'')).toLowerCase();
+  return hay.indexOf(q)>-1;
+}
+function bindWineSearch(){
+  var el=$('wine-q'); if(!el) return;
+  el.addEventListener('input', function(){ WINE_FILTER=el.value; $('wine-table-body').innerHTML=wineRows(); $('wine-count').textContent=wineFiltered().length+' shown'; });
+}
+function wineFiltered(){
+  var q=(WINE_FILTER||'').trim().toLowerCase();
+  var list=(STATE.wines||[]).filter(function(w){ return wineMatches(w,q); });
+  return list;
+}
+function wineRows(){
+  var list=wineFiltered();
+  if(list.length>250) list=list.slice(0,250);
+  if(!list.length) return '<tr><td colspan="8" class="empty-note">No wines match. Search bin, name, vintage, or region.</td></tr>';
+  return list.map(function(w){
+    var low=w.stock<=3?' low':'';
+    return '<tr onclick="openWineEditor(\''+w.id+'\')"><td>'+esc(w.vin||'')+'</td><td class="td-name">'+esc(w.name)+(w.size&&w.size!=='750ml'&&(w.name||'').indexOf(w.size)<0?' <span class="hint-sm">'+esc(w.size)+'</span>':'')+'</td><td>'+esc(w.vintage||'')+'</td><td>'+esc(w.region||'')+'</td><td>'+money(w.bottlePrice)+'</td><td class="stk'+low+'">'+w.stock+' btl</td><td>'+(w.ozOnHand!=null?w.ozOnHand+' oz':Math.round((w.stock||0)*(w.bottleOz||25)))+'</td><td class="td-go">Edit →</td></tr>';
+  }).join('');
+}
 function wineBody(){
   var btns='<button class="btn btn-gold btn-sm" onclick="openWineEditor(null)">+ New Wine</button>';
-  var rows=STATE.wines.map(function(w){
-    var low=w.stock<=3?' low':'';
-    return '<tr onclick="openWineEditor(\''+w.id+'\')"><td>'+esc(w.vin||'')+'</td><td class="td-name">'+esc(w.name)+'</td><td>'+esc(w.producer||'')+'</td><td>'+esc(w.vintage||'')+'</td><td>'+esc(w.region||'')+'</td><td>'+money(w.bottlePrice)+'</td><td>'+money(w.glassPrice)+'</td><td class="stk'+low+'">'+w.stock+'</td><td class="td-go">Edit →</td></tr>';
-  }).join('');
-  if(!STATE.wines.length)rows='<tr><td colspan="9" class="empty-note">No wines yet.</td></tr>';
-  return sectionHead('Wine List','By the bottle and by the glass, each with a VIN number. Prices change easily and stock decrements on sales.',btns)+
-    '<div class="table-wrap"><table class="dt"><thead><tr><th>VIN</th><th>Name</th><th>Producer</th><th>Vintage</th><th>Region</th><th>Bottle</th><th>Glass</th><th>Stock</th><th></th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  var n=(STATE.wines||[]).length;
+  return sectionHead('Wine list', n+' bottle labels from 375 Park Ave. By-the-glass is not on this list. Stock starts at 12 / 6 / 2 bottles by price and drops when POS sells a bottle. Each 750ml bottle is 25 oz for later 6 oz and 2 oz pours.', btns)+
+    '<div class="ff" style="max-width:420px;margin:0 0 12px"><label>Find a wine</label><input class="input" id="wine-q" value="'+esc(WINE_FILTER)+'" placeholder="Bin, producer, vintage, region"></div>'+
+    '<div class="mini-note" id="wine-count">'+wineFiltered().length+' shown'+(wineFiltered().length>250?' (first 250)':'')+'</div>'+
+    '<div class="table-wrap"><table class="dt"><thead><tr><th>VIN / Bin</th><th>Name</th><th>Vintage</th><th>Region</th><th>Bottle</th><th>Stock</th><th>Ounces</th><th></th></tr></thead><tbody id="wine-table-body">'+wineRows()+'</tbody></table></div>';
 }
 function openWineEditor(id){
-  var w=id?STATE.wines.filter(function(x){return x.id===id;})[0]:{id:uid('w'),vin:'',name:'',producer:'',vintage:'',region:'',varietal:'',bottlePrice:0,glassPrice:0,stock:0,active:true};
-  var body='<div class="ff-row cols-2">'+fld('VIN number','<input class="input" id="w-vin" value="'+esc(w.vin)+'">')+fld('Vintage','<input class="input" id="w-vintage" value="'+esc(w.vintage)+'">')+'</div>'+
+  var w=id?STATE.wines.filter(function(x){return x.id===id;})[0]:{id:uid('w'),vin:'',name:'',producer:'',vintage:'',region:'',varietal:'',bottlePrice:0,glassPrice:0,stock:12,bottleOz:WINE_BOTTLE_OZ,ozOnHand:12*WINE_BOTTLE_OZ,openOz:0,size:'750ml',byTheGlass:false,active:true};
+  var body='<div class="ff-row cols-2">'+fld('VIN / bin','<input class="input" id="w-vin" value="'+esc(w.vin)+'">')+fld('Vintage','<input class="input" id="w-vintage" value="'+esc(w.vintage)+'">')+'</div>'+
     fld('Name','<input class="input" id="w-name" value="'+esc(w.name)+'">')+
-    '<div class="ff-row cols-2">'+fld('Producer','<input class="input" id="w-prod" value="'+esc(w.producer||'')+'">')+fld('Varietal','<input class="input" id="w-var" value="'+esc(w.varietal||'')+'">')+'</div>'+
+    '<div class="ff-row cols-2">'+fld('Producer','<input class="input" id="w-prod" value="'+esc(w.producer||'')+'">')+fld('Size','<input class="input" id="w-size" value="'+esc(w.size||'750ml')+'">')+'</div>'+
     fld('Region','<input class="input" id="w-region" value="'+esc(w.region||'')+'">')+
-    '<div class="ff-row cols-3">'+fld('Bottle price','<input class="input" id="w-bp" type="number" step="0.01" value="'+w.bottlePrice+'">')+fld('Glass price','<input class="input" id="w-gp" type="number" step="0.01" value="'+w.glassPrice+'">')+fld('Bottles in stock','<input class="input" id="w-stock" type="number" value="'+w.stock+'">')+'</div>';
+    '<div class="ff-row cols-3">'+fld('Bottle price','<input class="input" id="w-bp" type="number" step="0.01" value="'+w.bottlePrice+'">')+fld('Bottles in stock','<input class="input" id="w-stock" type="number" value="'+w.stock+'">')+fld('Ounces per bottle','<input class="input" id="w-boz" type="number" step="0.1" value="'+(w.bottleOz||WINE_BOTTLE_OZ)+'">')+'</div>'+
+    '<div class="mini-note">Glass price stays at $0 until the by-the-glass list is loaded. Then 6 oz glasses and 2 oz tastes will draw from these bottles (25 oz each).</div>';
   openModal(id?'Edit Wine':'New Wine', body, 'Save', function(){
-    w.vin=$('w-vin').value.trim(); w.name=$('w-name').value.trim(); w.producer=$('w-prod').value.trim(); w.varietal=$('w-var').value.trim();
-    w.vintage=$('w-vintage').value.trim(); w.region=$('w-region').value.trim();
-    w.bottlePrice=parseFloat($('w-bp').value)||0; w.glassPrice=parseFloat($('w-gp').value)||0; w.stock=parseInt($('w-stock').value)||0;
+    w.vin=$('w-vin').value.trim(); w.name=$('w-name').value.trim(); w.producer=$('w-prod').value.trim();
+    w.vintage=$('w-vintage').value.trim(); w.region=$('w-region').value.trim(); w.size=$('w-size').value.trim()||'750ml';
+    w.bottlePrice=parseFloat($('w-bp').value)||0; w.stock=parseInt($('w-stock').value,10)||0;
+    w.bottleOz=parseFloat($('w-boz').value)||WINE_BOTTLE_OZ;
+    w.ozOnHand=Math.round(w.stock*w.bottleOz*10)/10; w.openOz=0; w.glassPrice=w.glassPrice||0;
     if(!w.name){ toast('Enter a name','error'); return false; }
     if(!id)STATE.wines.push(w); saveWines(); toast('Saved','success'); render();
   }, null, id?'<button class="btn btn-danger" onclick="deleteWine(\''+id+'\')">Delete</button>':'');
@@ -3860,8 +3965,8 @@ function resolveSale(type,rid){
   return null;
 }
 function decrementStock(type,rid,qty){
-  if(type==='bar'){ var b=STATE.bar.filter(function(x){return x.id===rid;})[0]; if(b){b.stock=Math.max(0,b.stock-qty);saveBar();} }
-  else if(type==='wine'){ var w=STATE.wines.filter(function(x){return x.id===rid;})[0]; if(w){w.stock=Math.max(0,w.stock-qty);saveWines();} }
+  if(type==='bar'){ var b=STATE.bar.filter(function(x){return x.id===rid;})[0]; if(b){ consumeBarSale(b, qty); saveBar(); } }
+  else if(type==='wine'){ var w=STATE.wines.filter(function(x){return x.id===rid;})[0]; if(w){ consumeWineSale(w, qty, w.bottleOz||WINE_BOTTLE_OZ); saveWines(); } }
   else if(type==='retail'){ var p=STATE.retail.filter(function(x){return x.id===rid;})[0]; if(p){p.stock=Math.max(0,p.stock-qty);saveRetail();} }
 }
 /* ============================================================
