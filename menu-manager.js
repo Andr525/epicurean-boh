@@ -164,6 +164,7 @@ function mmParentSel(sel) {
   if (sel.type === 'wine') return { type: 'book', id: 'mb_wine' };
   if (sel.type === 'bar') return { type: 'book', id: 'mb_bar' };
   if (sel.type === 'retail') return { type: 'book', id: 'mb_retail' };
+  if (sel.type === 'book') return { type: 'home' };
   if (sel.type === 'mod') return null;
   return null;
 }
@@ -175,6 +176,7 @@ function mmBack() {
   mmFlush();
   if (MM.tab !== 'full') { MM.tab = 'full'; mmPaint(); return; }
   var p = mmParentSel(MM.sel);
+  if (p && p.type === 'home') { go('overview'); return; }
   if (p) MM.sel = p;
   mmPaint();
 }
@@ -993,6 +995,7 @@ function mmPfMenuEditor(id) {
     fld('Taxes', '<div class="cbx-grid">' + mt.taxes + '</div>') +
     '<label class="cbx"><input type="checkbox" id="pf-vis"' + (pf.active !== false ? ' checked' : '') + '> Show on POS &amp; iPad</label>' +
     '<div style="margin-top:12px"><button type="button" class="btn btn-gold btn-sm" onclick="mmSavePfMenu(\'' + pf.id + '\',true)">Save menu</button> ' +
+    '<button type="button" class="mm-back" onclick="mmBack()">← Back</button> ' +
     '<button type="button" class="btn btn-danger btn-sm" onclick="mmDelPfMenu(\'' + pf.id + '\')">Delete menu</button></div></div>' +
     '<div class="mm-card"><h3>Groups (courses)</h3>' + (groups || '<div class="mm-empty">No groups yet.</div>') +
     '<button type="button" class="mm-add" onclick="mmAddPfCourse(\'' + pf.id + '\')">+ Add group</button></div></form>';
@@ -1017,6 +1020,7 @@ function mmPfCourseEditor(joinId) {
     fld('How this course fires', '<select class="input" id="mm-g-mode">' + opts(['choose', 'auto', 'entremets', 'later'], g.mode || 'choose') + '</select>') +
     '<label class="cbx"><input type="checkbox" id="mm-g-vis"' + (g.visible !== false ? ' checked' : '') + '> Show on POS &amp; iPad</label>' +
     '<div style="margin-top:12px"><button type="button" class="btn btn-gold btn-sm" onclick="mmSavePfCourse(\'' + joinId + '\',true)">Save group</button> ' +
+    '<button type="button" class="mm-back" onclick="mmBack()">← Back</button> ' +
     '<button type="button" class="btn btn-danger btn-sm" onclick="mmDelPfCourse(\'' + joinId + '\')">Delete group</button></div></div>' +
     '<div class="mm-card"><h3>Items in this group</h3>' + (list || '<div class="mm-empty">No items yet.</div>') +
     '<button type="button" class="mm-add" onclick="mmAddPfDish(\'' + pf.id + '\',\'' + encodeURIComponent(g.label) + '\')">+ Add item</button></div></form>';
@@ -1053,6 +1057,7 @@ function mmTmMenuEditor(id) {
     fld('Taxes', '<div class="cbx-grid">' + mt.taxes + '</div>') +
     '<label class="cbx"><input type="checkbox" id="tm-vis"' + (tm.active !== false ? ' checked' : '') + '> Show on POS &amp; iPad</label>' +
     '<div style="margin-top:12px"><button type="button" class="btn btn-gold btn-sm" onclick="mmSaveTmMenu(\'' + tm.id + '\',true)">Save menu</button> ' +
+    '<button type="button" class="mm-back" onclick="mmBack()">← Back</button> ' +
     '<button type="button" class="btn btn-danger btn-sm" onclick="mmDelTmMenu(\'' + tm.id + '\')">Delete menu</button></div></div>' +
     '<div class="mm-card"><h3>Groups</h3>' + (groups || '<div class="mm-empty">No groups yet.</div>') +
     '<button type="button" class="mm-add" onclick="mmAddTmGroup(\'' + tm.id + '\')">+ Add group</button></div></form>';
@@ -1073,6 +1078,7 @@ function mmTmGroupEditor(joinId) {
     fld('POS name (button label)', '<input class="input" id="mm-g-pos" value="' + esc((items[0] && items[0].posName) || '') + '" placeholder="Optional shorter name on POS">') +
     '<label class="cbx"><input type="checkbox" id="mm-g-vis" checked> Show on POS &amp; iPad</label>' +
     '<div style="margin-top:12px"><button type="button" class="btn btn-gold btn-sm" onclick="mmSaveTmGroup(\'' + joinId + '\',true)">Save group</button> ' +
+    '<button type="button" class="mm-back" onclick="mmBack()">← Back</button> ' +
     '<button type="button" class="btn btn-danger btn-sm" onclick="mmDelTmGroup(\'' + joinId + '\')">Delete group</button></div></div>' +
     '<div class="mm-card"><h3>Items in this group</h3>' + (list || '<div class="mm-empty">No items yet.</div>') +
     '<button type="button" class="mm-add" onclick="mmAddTmCourse(\'' + tm.id + '\',\'' + encodeURIComponent(gname) + '\')">+ Add item</button></div></form>';
@@ -1115,6 +1121,7 @@ function mmTmPairEditor(joinId) {
     fld('Description', '<input class="input" id="p-desc" value="' + esc(p.desc || '') + '">') +
     fld('Price ($)', '<input class="input" id="p-price" type="number" step="0.01" value="' + (p.price || 0) + '">') +
     '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveTmPair(\'' + joinId + '\',true)">Save item</button> ' +
+    '<button type="button" class="mm-back" onclick="mmBack()">← Back</button> ' +
     '<button type="button" class="btn btn-danger btn-sm" onclick="mmDelTmPair(\'' + joinId + '\')">Delete item</button></div></form>';
 }
 

@@ -1546,10 +1546,15 @@ function saveMenuPhotos(){
   lsSet('eh_menu_photos', STATE.menuPhotos||{});
   if(typeof fbReady==='undefined' || !fbReady) return Promise.resolve(true);
   var urls={};
+  var budget=850000;
   Object.keys(STATE.menuPhotos||{}).forEach(function(k){
     var u=STATE.menuPhotos[k];
     if(!u) return;
-    if(u.indexOf('http')===0 || u.length<90000) urls[k]=u;
+    if(u.indexOf('http')===0){ urls[k]=u; return; }
+    if(u.indexOf('data:image/')===0 && u.length<180000){
+      var next=JSON.stringify(urls).length+u.length+k.length+8;
+      if(next<budget) urls[k]=u;
+    }
   });
   return fbSetDoc('boh_shared','menu_photos',{urls:urls, updatedAt:Date.now()});
 }
@@ -3509,7 +3514,7 @@ function openItemEditor(id){
       fld('Cost ($)','<input class="input" id="ie-cost" type="number" step="0.01" value="'+it.cost+'">')+'</div>'+
     fld('Name','<input class="input" id="ie-name" value="'+esc(it.name)+'" placeholder="Dish name">')+
     fld('Description (shown to customers on iPad menu & servers on POS)','<textarea class="input" id="ie-desc" rows="3" placeholder="Full description of the dish — ingredients, preparation, presentation">'+esc(it.desc)+'</textarea>')+
-    fld('Photo','<div class="mc-photo-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input class="input" id="ie-photo" value="'+esc(it.photoUrl||'')+'" placeholder="Paste URL or click Upload" style="flex:1;" oninput="showPhotoPreview(this,this.value)"><button type="button" class="btn btn-gold btn-sm" onclick="uploadPhoto(document.getElementById(\'ie-photo\'))">📷 Upload</button>'+(it.photoUrl?'<img src="'+esc(it.photoUrl)+'" class="upload-preview" style="width:80px;height:56px;object-fit:cover;border-radius:6px;border:2px solid var(--gold-soft);">':'')+'</div>')+
+    fld('Photo','<div class="mc-photo-row" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;"><input class="input" id="ie-photo" value="'+esc(it.photoUrl||'')+'" placeholder="Paste URL or Upload" style="flex:1;" oninput="showPhotoPreview(this,this.value); if(typeof applyPhotoUrlToCurrent===\'function\') applyPhotoUrlToCurrent(this.value)"><label class="btn btn-gold btn-sm mm-photo-pick">📷 Upload<input type="file" accept="image/*" onchange="handleMenuItemPhotoPick(this)"></label>'+(it.photoUrl?'<img src="'+esc(it.photoUrl)+'" class="upload-preview" style="width:80px;height:56px;object-fit:cover;border-radius:6px;border:2px solid var(--gold-soft);">':'')+'</div>')+
     '<div class="ff-row cols-2">'+fld('Cook time (minutes)','<input class="input" id="ie-cook" type="number" value="'+(it.cookMin||0)+'">')+
       fld('Kitchen station','<select class="input" id="ie-station">'+opts(KITCHEN_STATIONS,it.station)+'</select>')+'</div>'+
     fld('Categories (an item can be in several)','<div class="cbx-grid">'+catChecks+'</div>')+
@@ -3534,6 +3539,7 @@ function openItemEditor(id){
     it.diet=(ab.getAttribute('data-diet')||'').split('|').filter(Boolean);
     it.verified=$('an-verify')?$('an-verify').checked:it.verified;
     if(isNew)STATE.menuItems.push(it);
+    if(it.photoUrl && typeof rememberMenuPhoto==='function') rememberMenuPhoto(it.id, it.photoUrl);
     saveMenu(); toast('Item saved','success'); render();
   }, function(){
     $('ie-analyze').addEventListener('click',function(){ runAnalysis(it); });
