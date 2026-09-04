@@ -1029,7 +1029,7 @@ function showPhotoPreview(input, url){
   preview.style.display='block';
 }
 </script>
-<script src="scalini-dining.js"></script>
+<script src="scalini-dining.js?v=print-115-btg"></script>
 <script src="cellar.js"></script>
 <input type="file" id="photo-file-input" accept="image/*" style="position:fixed;left:-80px;top:0;width:1px;height:1px;opacity:0;" onchange="handlePhotoUpload(this)">
 <script>
@@ -4054,15 +4054,32 @@ function ensureScaliniDiningMenus(){
   STATE.tastingMenus=(STATE.tastingMenus||[]).filter(function(t){ return t && !dummyTm[t.id]; });
   var pfSeed=cloneScalini(bundle.prixFixe);
   var tmSeed=cloneScalini(bundle.tasting);
+  var mergeFn = typeof bundle.mergeMenu === 'function' ? bundle.mergeMenu : function(live, seed){ return live || seed; };
   var pfIdx=-1;
   STATE.prixFixeMenus.forEach(function(p,i){ if(p.id===pfSeed.id) pfIdx=i; });
   if(typeof applyMenuPhotos==='function') applyMenuPhotos();
   if(pfIdx<0){ STATE.prixFixeMenus.unshift(pfSeed); changed=true; }
-  else if(!hasDishPhotos(STATE.prixFixeMenus[pfIdx])){ STATE.prixFixeMenus[pfIdx]=pfSeed; applyMenuPhotos(); changed=true; }
+  else {
+    var prevPf=STATE.prixFixeMenus[pfIdx];
+    var nextPf=mergeFn(prevPf, pfSeed);
+    if (nextPf !== prevPf || Number(nextPf.version||0) !== Number(prevPf.version||0)) {
+      STATE.prixFixeMenus[pfIdx]=nextPf;
+      if(typeof mmRebuildPf==='function') mmRebuildPf(nextPf);
+      changed=true;
+    }
+  }
   var tmIdx=-1;
   STATE.tastingMenus.forEach(function(t,i){ if(t.id===tmSeed.id) tmIdx=i; });
   if(tmIdx<0){ STATE.tastingMenus.unshift(tmSeed); changed=true; }
-  else if(!hasDishPhotos(STATE.tastingMenus[tmIdx])){ STATE.tastingMenus[tmIdx]=tmSeed; if(typeof applyMenuPhotos==='function') applyMenuPhotos(); changed=true; }
+  else {
+    var prevTm=STATE.tastingMenus[tmIdx];
+    var nextTm=mergeFn(prevTm, tmSeed);
+    if (nextTm !== prevTm || Number(nextTm.version||0) !== Number(prevTm.version||0)) {
+      STATE.tastingMenus[tmIdx]=nextTm;
+      if(typeof mmNormTm==='function') mmNormTm(nextTm);
+      changed=true;
+    }
+  }
   if(changed){
     lsSet('eh_prix_fixe_menus', STATE.prixFixeMenus);
     lsSet('eh_tasting_menus', STATE.tastingMenus);
@@ -4795,7 +4812,7 @@ function aiSuggestWinePairing(btn){
   toast('✨ AI Suggested: '+bestWine.name,'success');
 }
 </script>
-<script src="menu-manager.js?v=ipad-story-zh"></script>
+<script src="menu-manager.js?v=print-115-btg"></script>
 <script>
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot); else boot();
 </script>

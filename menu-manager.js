@@ -37,7 +37,7 @@ function ensureMenuManager() {
     it.catIds = it.catIds || [];
     var n = (it.name || '').toLowerCase();
     var raw = /tartare|crudo|carpaccio|ceviche/.test(n);
-    if (!raw && /\b(steak|ribeye|filet|sirloin|burger|hamburger|wagyu|porterhouse|strip steak)\b/.test(n)) {
+    if (!raw && /\b(steak|ribeye|filet|sirloin|burger|hamburger|wagyu|porterhouse|strip steak|filet mignon|pork chop|pork medallion)\b/.test(n)) {
       if (it.modGroupIds.indexOf('mg_meat_temp') < 0) { it.modGroupIds.push('mg_meat_temp'); dirty = true; }
     }
     if (!raw && /\b(salmon|tuna|ahi|halibut|cod|branzino|sea bass)\b/.test(n)) {
@@ -339,7 +339,7 @@ function mmAttachTemps(it) {
   it.modGroupIds = it.modGroupIds || [];
   var n = (it.name || '').toLowerCase();
   var raw = /tartare|crudo|carpaccio|ceviche/.test(n);
-  if (!raw && /\b(steak|ribeye|filet|sirloin|burger|hamburger|wagyu|porterhouse|strip steak|filet mignon)\b/.test(n)) {
+  if (!raw && /\b(steak|ribeye|filet|sirloin|burger|hamburger|wagyu|porterhouse|strip steak|filet mignon|pork chop|pork medallion)\b/.test(n)) {
     if (it.modGroupIds.indexOf('mg_meat_temp') < 0) it.modGroupIds.push('mg_meat_temp');
   }
   if (!raw && /\b(salmon|tuna|ahi|halibut|cod|branzino|sea bass)\b/.test(n)) {
@@ -373,8 +373,10 @@ function mmRebuildPf(pf) {
       (c.options || []).forEach(function (o, oi) {
         pf.dishes.push({
           id: o.id || uid('pfd'), name: o.name, desc: o.desc || '', upcharge: o.upcharge || 0,
-          photoUrl: o.photoUrl || '', story: o.story || '', course: c.label, station: o.station || KITCHEN_STATIONS[0],
-          pairing: o.pairing || '', allergens: o.allergens || [], cookNote: o.cookNote || '',
+          photoUrl: o.photoUrl || '', story: o.story || '', storyUrl: o.storyUrl || '', course: c.label, station: o.station || KITCHEN_STATIONS[0],
+          pairing: o.pairing || '', pairWhite: o.pairWhite || '', pairRed: o.pairRed || '', pairDessert: o.pairDessert || '',
+          ingredients: o.ingredients || '', askTemp: o.askTemp || '',
+          allergens: o.allergens || [], cookNote: o.cookNote || '',
           chooseCount: o.chooseCount || 0, scoops: o.scoops || null, dietary: o.dietary || [],
           cookTime: o.cookTime || 0, cookMin: o.cookTime || 0, i18n: o.i18n || {},
           modGroupIds: o.modGroupIds || [], taxIds: o.taxIds || mmDefaultTaxes(), order: oi, active: true
@@ -405,7 +407,10 @@ function mmRebuildPf(pf) {
     c.options = pf.dishes.filter(function (d) { return d.course === c.label; }).sort(function (a, b) { return (a.order || 0) - (b.order || 0); }).map(function (d) {
       return {
         id: d.id, name: d.name, desc: d.desc, station: d.station, upcharge: d.upcharge || 0,
-        pairing: d.pairing || '', photoUrl: d.photoUrl || '', story: d.story || '', allergens: d.allergens || [],
+        pairing: d.pairing || '', pairWhite: d.pairWhite || '', pairRed: d.pairRed || '', pairDessert: d.pairDessert || '',
+        photoUrl: d.photoUrl || '', story: d.story || '', storyUrl: d.storyUrl || '',
+        ingredients: d.ingredients || '', askTemp: d.askTemp || '',
+        allergens: d.allergens || [],
         cookNote: d.cookNote || '', chooseCount: d.chooseCount || 0, scoops: d.scoops || null,
         dietary: d.diet || d.dietary || [], cookTime: d.cookMin || d.cookTime || 0, i18n: d.i18n || {},
         modGroupIds: d.modGroupIds || [], taxIds: d.taxIds || []
@@ -677,6 +682,7 @@ function mmItemEditor(id) {
     mmPhotoField(mmResolveItemPhoto(it, mmPhotoKey())) +
     fld('Description (POS &amp; iPad)', '<textarea class="input" id="ie-desc" rows="4">' + esc(it.desc || '') + '</textarea>') +
     fld('Story for iPad (origin, farm, family — guests see this when they tap the dish)', '<textarea class="input" id="ie-story" rows="4" placeholder="e.g. Filet mignon from Dutton Ranch in South Carolina. The Dutton family has raised cattle on the same land for generations…">' + esc(it.story || '') + '</textarea>') +
+    fld('Story link (optional farm, village, or producer URL)', '<input class="input" id="ie-story-url" value="' + esc(it.storyUrl || '') + '" placeholder="https://…">') +
     '<div class="ff-row cols-3">' + fld('Price ($)', '<input class="input" id="ie-price" type="number" step="0.01" value="' + it.price + '">') +
       fld('Cost ($)', '<input class="input" id="ie-cost" type="number" step="0.01" value="' + (it.cost || 0) + '">') +
       fld('Item code', '<input class="input" id="ie-code" value="' + esc(it.code || '') + '">') + '</div>' +
@@ -928,6 +934,7 @@ function mmSaveItemFromForm(id, toastOk) {
   if (!name) { if (toastOk) toast('Enter a name', 'error'); return false; }
   it.name = name; it.desc = $('ie-desc').value.trim();
   it.story = $('ie-story') ? $('ie-story').value.trim() : (it.story || '');
+  it.storyUrl = $('ie-story-url') ? $('ie-story-url').value.trim() : (it.storyUrl || '');
   it.photoUrl = typeof readPhotoUrlFromForm === 'function' ? readPhotoUrlFromForm(it.photoUrl, it.id) : (it.photoUrl || '');
   if (it.photoUrl && typeof rememberMenuPhoto === 'function') rememberMenuPhoto(it.id, it.photoUrl);
   it.price = parseFloat($('ie-price').value) || 0; it.cost = parseFloat($('ie-cost').value) || 0;
@@ -1039,12 +1046,16 @@ function mmReadDishCommon(it) {
   it.name = $('ie-name').value.trim() || it.name;
   it.desc = $('ie-desc') ? $('ie-desc').value.trim() : (it.desc || '');
   it.story = $('ie-story') ? $('ie-story').value.trim() : (it.story || '');
+  it.storyUrl = $('ie-story-url') ? $('ie-story-url').value.trim() : (it.storyUrl || '');
   it.photoUrl = typeof readPhotoUrlFromForm === 'function' ? readPhotoUrlFromForm(it.photoUrl, mmPhotoKey()) : (it.photoUrl || '');
   it.station = $('ie-station') ? $('ie-station').value : (it.station || '');
   it.cookMin = $('ie-cook') ? (parseInt($('ie-cook').value, 10) || 0) : (it.cookMin || 0);
   it.cookTime = it.cookMin;
   it.cookNote = $('ie-note') ? $('ie-note').value.trim() : (it.cookNote || '');
   it.pairing = $('ie-pairing') ? $('ie-pairing').value : (it.pairing || '');
+  it.pairWhite = $('ie-pair-white') ? $('ie-pair-white').value.trim() : (it.pairWhite || '');
+  it.pairRed = $('ie-pair-red') ? $('ie-pair-red').value.trim() : (it.pairRed || '');
+  it.pairDessert = $('ie-pair-dessert') ? $('ie-pair-dessert').value.trim() : (it.pairDessert || '');
   it.ingredients = $('ie-ing') ? $('ie-ing').value.trim() : (it.ingredients || '');
   it.modGroupIds = Array.prototype.slice.call(document.querySelectorAll('.ie-mod:checked')).map(function (x) { return x.value; });
   it.taxIds = Array.prototype.slice.call(document.querySelectorAll('.ie-tax:checked')).map(function (x) { return x.value; });
@@ -1067,6 +1078,7 @@ function mmSetDishEditor(it, priceLabel, extraTop, extraMid, saveClick, delClick
     mmPhotoField(mmResolveItemPhoto(it, mmPhotoKey())) +
     fld('Description (POS &amp; iPad)', '<textarea class="input" id="ie-desc" rows="4">' + esc(it.desc || '') + '</textarea>') +
     fld('Story for iPad (origin, farm, family — guests see this when they tap the dish)', '<textarea class="input" id="ie-story" rows="4" placeholder="e.g. Filet mignon from Dutton Ranch in South Carolina. The Dutton family has raised cattle on the same land for generations…">' + esc(it.story || '') + '</textarea>') +
+    fld('Story link (optional farm, village, or producer URL)', '<input class="input" id="ie-story-url" value="' + esc(it.storyUrl || '') + '" placeholder="https://…">') +
     extraTop +
     '<div class="ff-row cols-3">' + fld(priceLabel, '<input class="input" id="ie-price" type="number" step="0.01" value="' + (it.upcharge != null ? it.upcharge : (it.price || 0)) + '">') +
       fld('Cook time (min)', '<input class="input" id="ie-cook" type="number" value="' + (it.cookMin || it.cookTime || 0) + '">') +
@@ -1145,7 +1157,11 @@ function mmPfDishEditor(joinId) {
   var groupSel = '<select class="input" id="ie-course">' + (pf.courses || []).map(function (c) {
     return '<option value="' + esc(c.label) + '"' + (d.course === c.label ? ' selected' : '') + '>' + esc(c.label) + '</option>';
   }).join('') + '</select>';
-  var extra = fld('Menu group', groupSel) + fld('Wine pairing', '<select class="input" id="ie-pairing">' + mmWinePairOpts(d.pairing) + '</select>');
+  var extra = fld('Menu group', groupSel) +
+    fld('Wine pairing (legacy)', '<select class="input" id="ie-pairing">' + mmWinePairOpts(d.pairing) + '</select>') +
+    fld('Suggested white (by the glass)', '<input class="input" id="ie-pair-white" value="' + esc(d.pairWhite || '') + '" placeholder="Pinot Bianco Haberle · $18">') +
+    fld('Suggested red (by the glass)', '<input class="input" id="ie-pair-red" value="' + esc(d.pairRed || '') + '" placeholder="Valpolicella Classico · $18">') +
+    fld('Dessert wine', '<input class="input" id="ie-pair-dessert" value="' + esc(d.pairDessert || '') + '" placeholder="Moscato d’Asti · $14">');
   return '<form id="mm-editor" data-type="pfdish" data-id="' + joinId + '">' +
     mmSetDishEditor(d, 'Price / upcharge ($)', extra, '<p class="mm-hint">0.00 means the dish is included in the ' + money(pf.price) + ' menu price.</p>',
       'mmSavePfDish(\'' + joinId + '\',true)', 'mmDelPfDish(\'' + joinId + '\')') +
