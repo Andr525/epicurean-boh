@@ -176,25 +176,25 @@
       i18n: ix('Filete de lenguado “Francese”', 'Ligera costra de huevo y harina, salsa de vino blanco, limón y alcaparras', 'Filet de sole « Francese »', 'Légère croûte œuf-farine, sauce vin blanc citron-câpres', '龙利鱼柳「法兰西」', '薄蛋粉衣，白葡萄酒柠檬刺山柑酱')
     }),
     d('sf_m_scallops', 'Dayboat sea scallops “Maitre d’hotel”', 'Celery root and pea puree, roasted mushrooms, porcini and black truffle jus', 'Pasti Principali', SA, {
-      order: 32, allergens: ['Shellfish'],
+      order: 31, allergens: ['Shellfish'],
       ingredients: 'scallop, celery root, pea, mushroom, porcini, black truffle',
       pairWhite: PW_CHARD,
       i18n: ix('Vieiras “Maitre d’hotel”', 'Puré de apionabo y guisante, setas asadas, jugo de porcini y trufa negra', 'Saint-Jacques « Maître d’hôtel »', 'Purée de céleri-rave et pois, champignons rôtis, jus de cèpes et truffe noire', '扇贝「主厨」', '芹菜根与豌豆泥、烤蘑菇、牛肝菌与黑松露汁')
     }),
     d('sf_m_forestiere', 'Farm-raised salmon “Piemontese”', 'Wild mushroom and black truffle crust, baby spinach, roasted beets', 'Pasti Principali', SA, {
-      order: 33, allergens: ['Fish', 'Dairy'], askTemp: 'salmon',
+      order: 32, allergens: ['Fish', 'Dairy'], askTemp: 'salmon',
       ingredients: 'salmon, wild mushroom, black truffle, spinach, beet',
       pairWhite: PW_CHARD, pairRed: PR_BARBERA,
       i18n: ix('Salmón de criadero “Piemontese”', 'Costra de setas silvestres y trufa negra, espinacas baby, remolacha asada', 'Saumon d’élevage « Piemontese »', 'Croûte champignons sauvages et truffe noire, épinards, betteraves rôties', '养殖三文鱼「皮埃蒙特」', '野生蘑菇与黑松露脆皮、嫩菠菜、烤甜菜')
     }),
     d('sf_m_zafferano', 'Ecuadorian shrimp “Zafferano”', 'Butternut squash and apple puree, orange-scented saffron', 'Pasti Principali', SA, {
-      order: 34, allergens: ['Shellfish'],
+      order: 33, allergens: ['Shellfish'],
       ingredients: 'shrimp, butternut squash, apple, orange, saffron',
       pairWhite: PW_SAUV,
       i18n: ix('Gambas ecuatorianas “Zafferano”', 'Puré de calabaza y manzana, azafrán al aroma de naranja', 'Crevettes d’Équateur « Zafferano »', 'Purée de potimarron et pomme, safran parfumé à l’orange', '厄瓜多尔大虾「藏红花」', '南瓜与苹果泥、橙香藏红花')
     }),
     d('sf_m_genovese', 'Pignoli-crusted sole “Genovese”', 'Tomato-basil broth over white asparagus', 'Pasti Principali', SA, {
-      order: 31, allergens: ['Fish', 'Tree Nut'],
+      order: 34, allergens: ['Fish', 'Tree Nut'],
       ingredients: 'sole, pignoli, tomato, basil, white asparagus',
       pairWhite: PW_GRIGIO,
       i18n: ix('Lenguado “Genovese” con costra de piñones', 'Caldo de tomate y albahaca sobre espárragos blancos', 'Sole « Genovese » en croûte de pignons', 'Bouillon tomate-basilic sur asperges blanches', '松子脆皮龙利鱼「热那亚」', '番茄罗勒高汤，配白芦笋')
@@ -678,6 +678,7 @@
       aboutDish: 'About this dish',
       fromTheKitchen: 'From the kitchen',
       tapForStory: 'Tap to learn about this dish',
+      tapForWine: 'Tap to add this glass to your order',
       aiExplain: 'What this dish is',
       addToOrder: 'Add to my order',
       addedToOrder: 'Added to your order',
@@ -728,6 +729,7 @@
       aboutDish: 'Sobre este plato',
       fromTheKitchen: 'Desde la cocina',
       tapForStory: 'Toque para conocer este plato',
+      tapForWine: 'Toque para añadir esta copa a su pedido',
       aiExplain: 'Qué es este plato',
       addToOrder: 'Añadir a mi pedido',
       addedToOrder: 'Añadido a su pedido',
@@ -778,6 +780,7 @@
       aboutDish: 'À propos de ce plat',
       fromTheKitchen: 'De la cuisine',
       tapForStory: 'Touchez pour découvrir ce plat',
+      tapForWine: 'Touchez pour ajouter ce verre à votre commande',
       aiExplain: 'Ce que c’est',
       addToOrder: 'Ajouter à ma commande',
       addedToOrder: 'Ajouté à votre commande',
@@ -828,6 +831,7 @@
       aboutDish: '关于这道菜',
       fromTheKitchen: '厨房故事',
       tapForStory: '点击了解这道菜',
+      tapForWine: '点击将这杯酒加入订单',
       aiExplain: '这道菜是什么',
       addToOrder: '加入我的订单',
       addedToOrder: '已加入订单',
