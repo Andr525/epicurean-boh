@@ -1,7 +1,7 @@
 /* Scalini Fedeli prix fixe $89 + Regional Tasting $115.
    Shared by BOH, POS, kitchen, and the iPad menu. Printed BTG 2026-09-08. */
 (function (root) {
-  var VERSION = 20260909;
+  var VERSION = 20260910;
   var GM = 'Cold / Garde Manger';
   var SA = 'Sauté';
   var GR = 'Grill';
@@ -516,7 +516,7 @@
   var winesByGlass = [
     wg('btg_spark_beck', 'Sparkling', 'Graham Beck Brut', 'Graham Beck', 'NV', 'Western Cape', 'South Africa', 'Chardonnay / Pinot Noir', 25, 0),
     wg('btg_spark_zardetto', 'Sparkling', 'Zardetto Prosecco Brut', 'Zardetto', 'NV', 'Veneto', 'Italy', 'Glera', 17, 0),
-    wg('btg_spark_lp', 'Sparkling', 'Laurent-Perrier “La Cuvée” Brut Champagne', 'Laurent-Perrier', 'NV', 'Champagne', 'France', 'Chardonnay / Pinot Noir / Pinot Meunier', 30, 0),
+    wg('btg_spark_concerto', 'Sparkling', 'Lambrusco “Concerto” Medici Ermete 2025', 'Medici Ermete', '2025', 'Emilia-Romagna', 'Italy', 'Lambrusco', 27, 0),
     wg('btg_white_haberle', 'White Wine', 'Pinot Bianco “Haberle” Elena Walch 2022', 'Elena Walch', '2022', 'Alto Adige / Südtirol', 'Italy', 'Pinot Bianco', 20, 0),
     wg('btg_white_vette', 'White Wine', 'Sauvignon Blanc “Vette” Tenuta San Leonardo 2022', 'Tenuta San Leonardo', '2022', 'Trentino', 'Italy', 'Sauvignon Blanc', 18, 0),
     wg('btg_white_gavi', 'White Wine', 'Gavi di Gavi “Lugarara” La Giustiniana 2022', 'La Giustiniana', '2022', 'Gavi, Piemonte', 'Italy', 'Cortese', 18, 0),
@@ -541,7 +541,7 @@
   var wineNotes = {
     btg_spark_beck: 'Méthode traditionnelle from the Western Cape: Chardonnay and Pinot Noir, citrus and green apple, a dry, fine mousse. Vintage NV. Sits well with oysters, simply seasoned fish, and as an aperitif.',
     btg_spark_zardetto: 'Prosecco Brut from the Veneto, Glera, tank-method, pear and white flowers, dry enough for the table. Vintage NV. Sits well with fried vegetables, shrimp, and a first course.',
-    btg_spark_lp: 'Champagne. La Cuvée is Chardonnay-led, with Pinot Noir and Meunier: citrus, white flowers, and a chalky finish. Vintage NV. Sits well with shellfish, caviar, and roast chicken.',
+    btg_spark_concerto: 'Lambrusco from Medici Ermete, Concerto, 2025, Emilia-Romagna. Dry enough for the table, violet and red cherry, a light froth. Sits well with salumi, fried vegetables, and pizza.',
     btg_white_haberle: 'Pinot Bianco from the Haberle vineyard, Alto Adige, 2022. Pear, alpine herbs, and a stony finish. Sits well with sole, salads, and dishes with lemon or herbs.',
     btg_white_vette: 'Sauvignon Blanc from Tenuta San Leonardo, Trentino, 2022. Grapefruit, boxwood, and a mountain snap. Sits well with shrimp, goat cheese, and herb-driven primi.',
     btg_white_gavi: 'Cortese from Gavi di Gavi, 2022. White peach, almond, and a saline edge. Sits well with seafood pasta, pesto, and light veal.',
