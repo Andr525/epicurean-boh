@@ -634,7 +634,7 @@ function mmGroupEditor(id) {
         return '<div class="mm-item-card"><div><div class="mm-item-name">' + esc(w.name) + '</div><div class="mm-item-meta">' + esc(meta) + '</div></div><div class="mm-price">' + money(w.glassPrice) + '</div></div>';
       }).join('');
       return '<div class="mm-card"><h3>SUBGROUP Wine by the glass</h3>' +
-        '<p class="mm-hint">Scalini Fedeli printed by-the-glass list (glass / bottle). Same wines on POS, kitchen tickets, and the iPad menu. Südtirol is spelled with the umlaut.</p>' +
+        '<p class="mm-hint">Printed wines by the glass only. Glass prices match the page. The bottle cellar is unchanged.</p>' +
         (grow || '<div class="mm-empty">No wines by the glass yet.</div>') + '</div>';
     }
     var q = mmQ();
