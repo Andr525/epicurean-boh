@@ -242,6 +242,7 @@
       order: 42, allergens: [],
       ingredients: 'duck, sausage, mushroom, cherry pepper, potato, wine',
       pairRed: PR_VALPO,
+      story: 'Murphy is the house name for this braise: duck legs with Italian sausage, mushrooms, pickled cherry peppers, and potatoes in a spicy wine reduction. It is Neapolitan-American cooking — not French confit.',
       i18n: ix('Muslos de pato “Murphy”', 'Salchicha, champiñones, pimientos cherry, patatas, salsa de vino picante', 'Cuisses de canard « Murphy »', 'Saucisse, champignons, piments cerise, pommes de terre, sauce au vin pimentée', '鸭腿「墨菲」', '香肠、蘑菇、樱桃椒、土豆、辣味葡萄酒酱')
     }),
 
