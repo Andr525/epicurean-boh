@@ -1,28 +1,29 @@
 /* Scalini Fedeli prix fixe $89 + Regional Tasting $115.
-   Shared by BOH, POS, and the iPad menu. Printed menu 2026-09. */
+   Shared by BOH, POS, and the iPad menu. Printed menu 2026-09-08. */
 (function (root) {
-  var VERSION = 20260904;
+  var VERSION = 20260908;
   var GM = 'Cold / Garde Manger';
   var SA = 'Sauté';
   var GR = 'Grill';
   var FR = 'Fry';
   var PA = 'Pastry';
+  var MAIN = 'Piatti Principale';
 
-  var PW_BIANCO = 'Pinot Bianco “Haberle” Elena Walch 2019 · $18';
-  var PW_GRIGIO = 'Pinot Grigio delle Venezie “Terre di Baccio” 2021 · $15';
-  var PW_SAUV = 'Sauvignon Blanc “Vette” Tenuta San Leonardo 2021 · $17';
-  var PW_CHARD = 'Chardonnay Russian River Valley Hartford Court 2020 · $24';
-  var PS_PROSECCO = 'Prosecco Zardetto Brut · $17';
-  var PS_BECK = 'Graham Beck Brut · $15';
-  var PR_MONTE = 'Montepulciano d’Abruzzo “Cora” Velenosi 2019 · $16';
-  var PR_VALPO = 'Valpolicella Classico Superiore Marchesi Fumanelli 2020 · $18';
-  var PR_MERLOT = 'Merlot “Pianetto” 2018 · $15';
-  var PR_BARBERA = 'Barbera del Monferrato Superiore “Vulpis” Cascina Valpane 2010 · $21';
-  var PR_CHIANTI = 'Chianti Classico Riserva “Vigneti” Rocca delle Macie 2009 · $30';
-  var PR_BRUNELLO = 'Brunello di Montalcino Riserva Galtelli 2015 · $38';
-  var PD_MOSCATO = 'Moscato d’Asti “Bricco Quaglia” La Spinetta 2022 · $14';
-  var PD_VIDAL = 'Inniskillin Ice Wine Vidal Pearl 2021 · $18';
-  var PD_PORT = 'Fonseca Tawny 10 Years · $16';
+  var PW_BIANCO = 'Pinot Grigio “Selvamica” Elena Walch 2022 · $16';
+  var PW_GRIGIO = 'Pinot Grigio “Selvamica” Elena Walch 2022 · $16';
+  var PW_SAUV = 'Roero Arneis “Sibilla” Vietti 2021 · $20';
+  var PW_CHARD = 'Chardonnay “Four Hearts” Russian River Valley, Hartford Court 2021 · $40';
+  var PS_PROSECCO = 'Graham Beck Brut · $16';
+  var PS_BECK = 'Graham Beck Brut · $16';
+  var PR_MONTE = 'Montepulciano d’Abruzzo “Umani Ronchi” 2020 · $18';
+  var PR_VALPO = 'Valpolicella Classico Superiore, Masi “Brolo Campofiorin Oro” 2019 · $19';
+  var PR_MERLOT = 'Merlot, Plumpjack 2019 · $36';
+  var PR_BARBERA = 'Nebbiolo del Monferrato Superiore “Vignot” Cascina Valpane 2016 · $32';
+  var PR_CHIANTI = 'Chianti Classico Riserva, Toscolo “Tenuta” Rocca delle Macie 2018 · $19';
+  var PR_BRUNELLO = 'Merlot, Plumpjack 2019 · $36';
+  var PD_MOSCATO = 'Moscato d’Asti “Bera” La Spinetta 2021 · $12';
+  var PD_VIDAL = 'Inniskillin Ice Wine “Vidal Pearl” 2021 · $35';
+  var PD_PORT = 'Fonseca Tawny 10 Years · $20';
 
   function ix(esN, esD, frN, frD, zhN, zhD) {
     return {
@@ -71,11 +72,11 @@
   ];
 
   var dishes = [
-    d('sf_w_salmon', 'Smoked salmon', 'Lemon-chive crema, brioche', 'Primi Piccolo', GM, {
+    d('sf_w_salmon', 'Smoked Salmon', 'Served over brioche toast with lemon-chive crema', 'Primi Piccolo', GM, {
       order: 1, allergens: ['Fish', 'Gluten', 'Dairy'],
       ingredients: 'smoked salmon, lemon, chive, crema, brioche',
       pairWhite: PS_PROSECCO,
-      i18n: ix('Salmón ahumado', 'Crema de limón y cebollino, brioche', 'Saumon fumé', 'Crème citron-ciboulette, brioche', '烟熏三文鱼', '柠檬香葱奶油酱，配奶油吐司')
+      i18n: ix('Salmón ahumado', 'Sobre brioche tostado con crema de limón y cebollino', 'Saumon fumé', 'Sur brioche toastée, crème citron-ciboulette', '烟熏三文鱼', '奶油吐司配柠檬香葱奶油酱')
     }),
     d('sf_w_zucchini', 'Zucchini Milanese', 'Tomato-basil, chili oil', 'Primi Piccolo', FR, {
       order: 2, allergens: ['Gluten', 'Egg'],
@@ -169,79 +170,79 @@
       i18n: ix('Rigatoni “Amatriciana”', 'Guanciale, cebolla Tropea, tomate, chile calabrés', 'Rigatoni « Amatriciana »', 'Guanciale, oignon Tropea, tomate, piment calabrais', '通心粉「阿玛特里恰纳」', '猪颊肉、特罗佩亚洋葱、番茄、卡拉布里亚辣椒')
     }),
 
-    d('sf_m_sole', 'Filet of sole “Francese”', 'Light egg-flour crust, white wine lemon caper sauce', 'Pasti Principali', SA, {
+    d('sf_m_sole', 'Filet of sole “Francese”', 'Sole filet sautéed with a light egg-flour crust in a white wine lemon and caper sauce', MAIN, SA, {
       order: 30, allergens: ['Fish', 'Egg', 'Gluten'],
       ingredients: 'sole, egg, flour, white wine, lemon, caper',
       pairWhite: PW_BIANCO,
-      i18n: ix('Filete de lenguado “Francese”', 'Ligera costra de huevo y harina, salsa de vino blanco, limón y alcaparras', 'Filet de sole « Francese »', 'Légère croûte œuf-farine, sauce vin blanc citron-câpres', '龙利鱼柳「法兰西」', '薄蛋粉衣，白葡萄酒柠檬刺山柑酱')
+      i18n: ix('Filete de lenguado “Francese”', 'Filete salteado con ligera costra de huevo y harina, salsa de vino blanco, limón y alcaparras', 'Filet de sole « Francese »', 'Filet sauté, légère croûte œuf-farine, sauce vin blanc citron-câpres', '龙利鱼柳「法兰西」', '薄蛋粉衣煎龙利鱼，白葡萄酒柠檬刺山柑酱')
     }),
-    d('sf_m_scallops', 'Dayboat sea scallops “Maitre d’hotel”', 'Celery root and pea puree, roasted mushrooms, porcini and black truffle jus', 'Pasti Principali', SA, {
+    d('sf_m_scallops', 'Dayboat sea scallops “Bianco - Nero”', 'Celery root puree, roasted sunchokes, prosecco and black truffle jus', MAIN, SA, {
       order: 31, allergens: ['Shellfish'],
-      ingredients: 'scallop, celery root, pea, mushroom, porcini, black truffle',
+      ingredients: 'scallop, celery root, sunchoke, prosecco, black truffle',
       pairWhite: PW_CHARD,
-      i18n: ix('Vieiras “Maitre d’hotel”', 'Puré de apionabo y guisante, setas asadas, jugo de porcini y trufa negra', 'Saint-Jacques « Maître d’hôtel »', 'Purée de céleri-rave et pois, champignons rôtis, jus de cèpes et truffe noire', '扇贝「主厨」', '芹菜根与豌豆泥、烤蘑菇、牛肝菌与黑松露汁')
+      i18n: ix('Vieiras “Bianco - Nero”', 'Puré de apionabo, topinambur asados, jugo de prosecco y trufa negra', 'Saint-Jacques « Bianco - Nero »', 'Purée de céleri-rave, topinambours rôtis, jus de prosecco et truffe noire', '扇贝「白与黑」', '芹菜根泥、烤菊芋、普罗塞克与黑松露汁')
     }),
-    d('sf_m_forestiere', 'Farm-raised salmon “Piemontese”', 'Wild mushroom and black truffle crust, baby spinach, roasted beets', 'Pasti Principali', SA, {
+    d('sf_m_forestiere', 'Filet of Faroe Island salmon “Forrestiere”', 'Wild mushroom and black truffle crust over spinach and roasted beets', MAIN, SA, {
       order: 32, allergens: ['Fish', 'Dairy'], askTemp: 'salmon',
       ingredients: 'salmon, wild mushroom, black truffle, spinach, beet',
       pairWhite: PW_CHARD, pairRed: PR_BARBERA,
-      i18n: ix('Salmón de criadero “Piemontese”', 'Costra de setas silvestres y trufa negra, espinacas baby, remolacha asada', 'Saumon d’élevage « Piemontese »', 'Croûte champignons sauvages et truffe noire, épinards, betteraves rôties', '养殖三文鱼「皮埃蒙特」', '野生蘑菇与黑松露脆皮、嫩菠菜、烤甜菜')
+      i18n: ix('Salmón de las islas Feroe “Forrestiere”', 'Costra de setas silvestres y trufa negra sobre espinacas y remolacha asada', 'Saumon des îles Féroé « Forrestiere »', 'Croûte champignons sauvages et truffe noire, épinards et betteraves rôties', '法罗群岛三文鱼「林间」', '野生蘑菇与黑松露脆皮，配菠菜与烤甜菜')
     }),
-    d('sf_m_zafferano', 'Ecuadorian shrimp “Zafferano”', 'Butternut squash and apple puree, orange-scented saffron', 'Pasti Principali', SA, {
+    d('sf_m_zafferano', 'Butter and thyme braised Ecuadorian shrimp “Zafferano”', 'Butternut squash and apple puree, light orange-scented saffron sauce', MAIN, SA, {
       order: 33, allergens: ['Shellfish'],
-      ingredients: 'shrimp, butternut squash, apple, orange, saffron',
+      ingredients: 'shrimp, butter, thyme, butternut squash, apple, orange, saffron',
       pairWhite: PW_SAUV,
-      i18n: ix('Gambas ecuatorianas “Zafferano”', 'Puré de calabaza y manzana, azafrán al aroma de naranja', 'Crevettes d’Équateur « Zafferano »', 'Purée de potimarron et pomme, safran parfumé à l’orange', '厄瓜多尔大虾「藏红花」', '南瓜与苹果泥、橙香藏红花')
+      i18n: ix('Gambas ecuatorianas “Zafferano”', 'Puré de calabaza y manzana, salsa ligera de azafrán al aroma de naranja', 'Crevettes d’Équateur « Zafferano »', 'Purée de potimarron et pomme, sauce safran parfumée à l’orange', '厄瓜多尔大虾「藏红花」', '南瓜与苹果泥、橙香藏红花酱')
     }),
-    d('sf_m_genovese', 'Pignoli-crusted sole “Genovese”', 'Tomato-basil broth over white asparagus', 'Pasti Principali', SA, {
+    d('sf_m_genovese', 'Toasted pignoli crusted filet of sole “Genovese”', 'Tomato-basil broth over winter caponata', MAIN, SA, {
       order: 34, allergens: ['Fish', 'Tree Nut'],
-      ingredients: 'sole, pignoli, tomato, basil, white asparagus',
+      ingredients: 'sole, pignoli, tomato, basil, caponata',
       pairWhite: PW_GRIGIO,
-      i18n: ix('Lenguado “Genovese” con costra de piñones', 'Caldo de tomate y albahaca sobre espárragos blancos', 'Sole « Genovese » en croûte de pignons', 'Bouillon tomate-basilic sur asperges blanches', '松子脆皮龙利鱼「热那亚」', '番茄罗勒高汤，配白芦笋')
+      i18n: ix('Lenguado “Genovese” con costra de piñones', 'Caldo de tomate y albahaca sobre caponata de invierno', 'Sole « Genovese » en croûte de pignons', 'Bouillon tomate-basilic sur caponata d’hiver', '松子脆皮龙利鱼「热那亚」', '番茄罗勒高汤，配冬季卡波纳塔')
     }),
-    d('sf_m_pork', '16 oz. roasted pork chop “San Domenico”', 'Mascarpone-vodka sauce with chives', 'Pasti Principali', GR, {
+    d('sf_m_pork', '14 oz. roasted pork chop “San Domenico”', 'Mascarpone-vodka sauce with chives', MAIN, GR, {
       order: 35, allergens: ['Dairy'], askTemp: 'pork',
       ingredients: 'pork, mascarpone, vodka, chive',
       pairRed: PR_CHIANTI,
-      i18n: ix('Chuleta de cerdo 16 oz. “San Domenico”', 'Salsa de mascarpone y vodka con cebollino', 'Côte de porc 16 oz « San Domenico »', 'Sauce mascarpone-vodka à la ciboulette', '16盎司猪排「圣多梅尼科」', '马斯卡彭伏特加酱、香葱')
+      i18n: ix('Chuleta de cerdo 14 oz. “San Domenico”', 'Salsa de mascarpone y vodka con cebollino', 'Côte de porc 14 oz « San Domenico »', 'Sauce mascarpone-vodka à la ciboulette', '14盎司猪排「圣多梅尼科」', '马斯卡彭伏特加酱、香葱')
     }),
-    d('sf_m_chicken', 'Boneless breast of chicken strips “Scarpariello”', 'Sausage and potato gratin', 'Pasti Principali', SA, {
+    d('sf_m_chicken', 'Boneless breast of chicken strips “Scarpariello”', 'Sautéed with sausage and gratin of potatoes', MAIN, SA, {
       order: 36, allergens: ['Dairy'],
       ingredients: 'chicken, sausage, potato, cream, cheese',
       pairRed: PR_VALPO,
-      i18n: ix('Tiras de pechuga de pollo “Scarpariello”', 'Salchicha y gratinado de patata', 'Lanières de poulet « Scarpariello »', 'Saucisse et gratin de pommes de terre', '鸡胸「鞋匠」', '香肠与土豆焗')
+      i18n: ix('Tiras de pechuga de pollo “Scarpariello”', 'Salteado con salchicha y gratinado de patata', 'Lanières de poulet « Scarpariello »', 'Sautées avec saucisse et gratin de pommes de terre', '鸡胸「鞋匠」', '香肠与土豆焗')
     }),
-    d('sf_m_veal_val', 'Veal scaloppini “Valdostana”', 'Prosciutto di Parma and fontina in a wild mushroom–Madeira wine sauce', 'Pasti Principali', SA, {
+    d('sf_m_veal_val', 'Veal scallopini “Valdostana”', 'Prosciutto di Parma and fontina in a wild mushroom–Madeira wine sauce', MAIN, SA, {
       order: 37, allergens: ['Dairy'],
       ingredients: 'veal, prosciutto, fontina, wild mushroom, Madeira',
       pairRed: PR_BARBERA,
       i18n: ix('Escalope de ternera “Valdostana”', 'Prosciutto di Parma y fontina en salsa de setas y Madeira', 'Escalope de veau « Valdostana »', 'Prosciutto di Parma et fontina, sauce champignons sauvages au madère', '小牛肉片「瓦尔多斯塔纳」', '帕尔玛火腿与冯蒂纳奶酪、蘑菇马德拉酱')
     }),
-    d('sf_m_osso', 'Lamb “Osso Buco”', 'Off the bone, braised lentils, spicy Sicilian olive and porcini reduction', 'Pasti Principali', GR, {
+    d('sf_m_osso', 'Slowly braised lamb “Osso Bucco”', 'Off the bone, braised lentils, spicy Sicilian sauce and porcini mushroom reduction — $8 supp', MAIN, GR, {
       order: 38, upcharge: 8, allergens: [],
       ingredients: 'lamb, lentil, Sicilian olive, porcini',
       pairRed: PR_BRUNELLO,
-      i18n: ix('Cordero “Osso Buco”', 'Deshuesado, lentejas braseadas, reducción picante de aceituna siciliana y porcini', 'Agneau « Osso Buco »', 'Désossé, lentilles braisées, réduction pimentée d’olive sicilienne et cèpes', '羊肉「骨髓管」', '去骨、烩扁豆、西西里橄榄与牛肝菌浓缩汁')
+      i18n: ix('Cordero “Osso Bucco”', 'Deshuesado, lentejas braseadas, salsa siciliana picante y reducción de porcini — $8 supl.', 'Agneau « Osso Bucco »', 'Désossé, lentilles braisées, sauce sicilienne pimentée et réduction de cèpes — $8 suppl.', '羊肉「骨髓管」', '去骨、烩扁豆、西西里辣酱与牛肝菌浓缩汁 — 加价 $8')
     }),
-    d('sf_m_giambotta', 'Split 10 oz. filet mignon “Giambotta”', 'Spicy wine sauce with mushrooms, onions and hot & sweet peppers', 'Pasti Principali', GR, {
-      order: 40, upcharge: 18, allergens: [], askTemp: 'steak',
+    d('sf_m_giambotta', 'Split 10 oz. filet mignon “Giambotta”', 'Spicy wine sauce with mushrooms, onions and hot & sweet peppers — $10 supp', MAIN, GR, {
+      order: 40, upcharge: 10, allergens: [], askTemp: 'steak',
       ingredients: 'filet mignon, mushroom, onion, hot pepper, sweet pepper, wine',
       pairRed: PR_BRUNELLO,
-      story: 'This 10 oz. filet mignon is from Dutton Ranch in South Carolina. The Dutton family has raised cattle on the same land for generations — grass-fed, finished with care, and sent north so we can serve a steak that still tastes like the pasture it came from. Giambotta is the Neapolitan “little mix”: mushrooms, onions, and hot and sweet peppers in a spicy wine sauce.',
+      story: 'This 10 oz. filet mignon is from Dutton Ranch in South Carolina. Giambotta is the Neapolitan “little mix”: mushrooms, onions, and hot and sweet peppers in a spicy wine sauce.',
       storyUrl: 'https://en.wikipedia.org/wiki/Filet_mignon',
-      i18n: ix('Filet mignon 10 oz. “Giambotta”', 'Salsa de vino picante con champiñones, cebolla y pimientos dulces y picantes', 'Filet mignon 10 oz « Giambotta »', 'Sauce au vin pimentée, champignons, oignons et poivrons doux et forts', '10盎司菲力牛排「江博塔」', '蘑菇、洋葱、甜椒与辣椒的辣味葡萄酒酱')
+      i18n: ix('Filet mignon 10 oz. “Giambotta”', 'Salsa de vino picante con champiñones, cebolla y pimientos dulces y picantes — $10 supl.', 'Filet mignon 10 oz « Giambotta »', 'Sauce au vin pimentée, champignons, oignons et poivrons — $10 suppl.', '10盎司菲力牛排「江博塔」', '蘑菇、洋葱、甜椒与辣椒的辣味葡萄酒酱 — 加价 $10')
     }),
-    d('sf_m_reggiano', 'Pork medallions “Reggiano”', 'Parmigiano crust, garlic sage cognac, endive, apple and hazelnut salad', 'Pasti Principali', SA, {
+    d('sf_m_reggiano', 'Medallions of pork “Reggiano”', 'Parmigiano crust, garlic sage cognac, endive, apple and hazelnut salad', MAIN, SA, {
       order: 41, allergens: ['Dairy', 'Tree Nut'], askTemp: 'pork',
       ingredients: 'pork, Parmigiano, garlic, sage, cognac, endive, apple, hazelnut',
       pairRed: PR_CHIANTI,
       i18n: ix('Medallones de cerdo “Reggiano”', 'Costra de parmesano, ajo, salvia y coñac, ensalada de endibia, manzana y avellana', 'Médaillons de porc « Reggiano »', 'Croûte de parmesan, ail, sauge et cognac, salade d’endive, pomme et noisette', '猪里脊「雷焦」', '帕尔马干酪脆皮、大蒜鼠尾草干邑、菊苣苹果榛子沙拉')
     }),
-    d('sf_m_duck', 'Duck legs “Murphy”', 'Sausage, mushrooms, cherry peppers, potatoes, spicy wine', 'Pasti Principali', GR, {
+    d('sf_m_duck', 'Duck legs “Murphy”', 'Sausage, mushrooms, cherry peppers, potatoes, spicy wine sauce', MAIN, GR, {
       order: 42, allergens: [],
       ingredients: 'duck, sausage, mushroom, cherry pepper, potato, wine',
       pairRed: PR_VALPO,
-      i18n: ix('Muslos de pato “Murphy”', 'Salchicha, champiñones, pimientos cherry, patatas, vino picante', 'Cuisses de canard « Murphy »', 'Saucisse, champignons, piments cerise, pommes de terre, vin pimenté', '鸭腿「墨菲」', '香肠、蘑菇、樱桃椒、土豆、辣味葡萄酒')
+      i18n: ix('Muslos de pato “Murphy”', 'Salchicha, champiñones, pimientos cherry, patatas, salsa de vino picante', 'Cuisses de canard « Murphy »', 'Saucisse, champignons, piments cerise, pommes de terre, sauce au vin pimentée', '鸭腿「墨菲」', '香肠、蘑菇、樱桃椒、土豆、辣味葡萄酒酱')
     }),
 
     d('sf_e_sorbet', 'Coconut–lime sorbet with rum glazed pineapple', 'Entremets served to every guest before dessert. Contains rum and nuts on the plate — check allergies before firing.', 'Entremets', PA, {
@@ -316,7 +317,7 @@
   var courses = [
     { id: 'pfc_welcome', label: 'Primi Piccolo', order: 0, mode: 'auto', fireEach: true },
     { id: 'pfc_primi', label: 'Primi', order: 1, mode: 'choose' },
-    { id: 'pfc_main', label: 'Pasti Principali', order: 2, mode: 'choose' },
+    { id: 'pfc_main', label: MAIN, order: 2, mode: 'choose' },
     { id: 'pfc_entremets', label: 'Entremets', order: 3, mode: 'entremets' },
     { id: 'pfc_dolce', label: 'Dolce', order: 4, mode: 'later', fireAfter: 'main' }
   ];
@@ -380,10 +381,10 @@
   }
 
   var tastingCourses = [
-    tc(1, 'Crostini assortiti', 'Assorted toasted breads with house toppings. Welcome course — fire alone.', GM, {
-      allergens: ['Gluten'], dishId: 'sf_w_crostini', group: 'Welcome',
-      ingredients: 'bread, olive oil, tomato, cheese', pairWhite: PS_BECK,
-      i18n: ix('Crostini surtidos', 'Panes tostados con toppings de la casa. Bienvenida — disparar sola.', 'Crostini assortis', 'Pains grillés et garnitures maison. Mise en bouche — envoyer seule.', '什锦烤面包', '各式烤面包配店内浇头。欢迎菜 — 单独出餐。')
+    tc(1, 'Smoked Salmon', 'Served over brioche toast with lemon-chive crema. Welcome course — fire alone.', GM, {
+      allergens: ['Fish', 'Gluten', 'Dairy'], dishId: 'sf_w_salmon', group: 'Welcome',
+      ingredients: 'smoked salmon, lemon, chive, crema, brioche', pairWhite: PS_BECK,
+      i18n: ix('Salmón ahumado', 'Sobre brioche tostado con crema de limón y cebollino. Bienvenida — disparar sola.', 'Saumon fumé', 'Sur brioche toastée, crème citron-ciboulette. Mise en bouche — envoyer seule.', '烟熏三文鱼', '奶油吐司配柠檬香葱奶油酱。欢迎菜 — 单独出餐。')
     }),
     tc(2, 'Breaded zucchini Milanese', 'Tomato-basil sauce, chili oil. Welcome course — fire alone.', FR, {
       allergens: ['Gluten', 'Egg'], dishId: 'sf_w_zucchini', group: 'Welcome',
@@ -400,10 +401,10 @@
       pairWhite: PW_CHARD,
       i18n: ix('Agnolotti de calabaza con salvia — Emilia-Romaña', 'Mantequilla de salvia, amaretti y mozzarella de búfala', 'Agnolotti au potimarron, sauge — Émilie-Romagne', 'Beurre sauge, amaretti et mozzarella de bufflonne', '鼠尾草南瓜馄饨 — 艾米利亚－罗马涅', '鼠尾草黄油、杏仁饼干、水牛乳鲜奶酪')
     }),
-    tc(5, 'Salmon wild mushroom & black truffle — Umbria', 'Farm-raised salmon “Piemontese” over baby spinach and roasted beets', SA, {
+    tc(5, 'Salmon topped with wild mushroom & black truffle — Umbria', 'Faroe Island salmon “Forrestiere” over spinach and roasted beets', SA, {
       allergens: ['Fish', 'Dairy'], dishId: 'sf_m_forestiere', group: 'Courses', askTemp: 'salmon',
       pairWhite: PW_CHARD, pairRed: PR_BARBERA,
-      i18n: ix('Salmón con setas silvestres y trufa negra — Umbría', 'Salmón “Piemontese”, espinacas baby y remolacha asada', 'Saumon aux champignons et truffe noire — Ombrie', 'Saumon « Piemontese », épinards et betteraves rôties', '蘑菇黑松露三文鱼 — 翁布里亚', '养殖三文鱼「皮埃蒙特」，嫩菠菜与烤甜菜')
+      i18n: ix('Salmón con setas silvestres y trufa negra — Umbría', 'Salmón de las Feroe “Forrestiere”, espinacas y remolacha asada', 'Saumon aux champignons et truffe noire — Ombrie', 'Saumon des Féroé « Forrestiere », épinards et betteraves rôties', '蘑菇黑松露三文鱼 — 翁布里亚', '法罗群岛三文鱼「林间」，菠菜与烤甜菜')
     }),
     tc(6, 'Pan roasted filet mignon “Giambotta” — Toscana', 'Spicy wine sauce with mushrooms, onions and hot & sweet peppers. Take dessert after this meat course.', GR, {
       allergens: [], dishId: 'sf_m_giambotta', group: 'Courses', askTemp: 'steak',
@@ -460,7 +461,7 @@
     id: 'tm_scalini_128',
     version: VERSION,
     name: 'Scalini Fedeli Regional Tasting',
-    subtitle: 'Crostini and zucchini, then Piemonte, Emilia Romagna, Umbria, Toscana',
+    subtitle: 'Smoked salmon and zucchini, then Piemonte, Emilia Romagna, Umbria, Toscana',
     price: 115,
     duration: '~3 hours',
     service: 'dinner',
@@ -471,15 +472,15 @@
     dessertAfter: 'meat',
     dessertMenuId: 'pf_scalini_89',
     i18n: {
-      es: { subtitle: 'Crostini y calabacín, luego Piamonte, Emilia-Romaña, Umbría, Toscana' },
-      fr: { subtitle: 'Crostini et courgette, puis Piémont, Émilie-Romagne, Ombrie, Toscane' },
-      zh: { subtitle: '烤面包与西葫芦之后：皮埃蒙特、艾米利亚－罗马涅、翁布里亚、托斯卡纳' }
+      es: { subtitle: 'Salmón ahumado y calabacín, luego Piamonte, Emilia-Romaña, Umbría, Toscana' },
+      fr: { subtitle: 'Saumon fumé et courgette, puis Piémont, Émilie-Romagne, Ombrie, Toscane' },
+      zh: { subtitle: '烟熏三文鱼与西葫芦之后：皮埃蒙特、艾米利亚－罗马涅、翁布里亚、托斯卡纳' }
     },
     courses: tastingCourses,
     pairings: []
   };
 
-  function wg(id, group, name, producer, vintage, region, varietal, glass) {
+  function wg(id, group, name, producer, vintage, region, country, varietal, glass, bottle) {
     return {
       id: id,
       group: group,
@@ -487,12 +488,15 @@
       producer: producer || '',
       vintage: vintage || 'NV',
       region: region || '',
+      country: country || '',
       varietal: varietal || '',
+      grape: varietal || '',
       glassPrice: glass,
-      bottlePrice: 0,
+      bottlePrice: bottle || 0,
       price: glass,
       byTheGlass: true,
       scaliniOnly: true,
+      kind: 'wine',
       category: 'wine-glass',
       station: 'Bar',
       allergens: ['Sulfites'],
@@ -501,28 +505,54 @@
   }
 
   var winesByGlass = [
-    wg('btg_spark_beck', 'Sparkling', 'Graham Beck Brut', 'Graham Beck', 'NV', 'South Africa', 'Sparkling', 15),
-    wg('btg_spark_zardetto', 'Sparkling', 'Prosecco Zardetto Brut', 'Zardetto', 'NV', 'Veneto', 'Prosecco', 17),
-    wg('btg_spark_laherte', 'Sparkling', 'Laherte-Frères “Ultradition” Brut Nature 2019', 'Laherte-Frères', '2019', 'Champagne', 'Brut Nature', 29),
-    wg('btg_white_haberle', 'White', 'Pinot Bianco “Haberle” Elena Walch 2019', 'Elena Walch', '2019', 'Alto Adige', 'Pinot Bianco', 18),
-    wg('btg_white_baccio', 'White', 'Pinot Grigio delle Venezie “Terre di Baccio” 2021', 'Terre di Baccio', '2021', 'Veneto', 'Pinot Grigio', 15),
-    wg('btg_white_vette', 'White', 'Sauvignon Blanc “Vette” Tenuta San Leonardo 2021', 'Tenuta San Leonardo', '2021', 'Trentino', 'Sauvignon Blanc', 17),
-    wg('btg_white_hartford', 'White', 'Chardonnay “Russian River Valley” Hartford Court 2020', 'Hartford Court', '2020', 'Russian River Valley', 'Chardonnay', 24),
-    wg('btg_red_cora', 'Red', 'Montepulciano d’Abruzzo “Cora” Velenosi 2019', 'Velenosi', '2019', 'Abruzzo', 'Montepulciano', 16),
-    wg('btg_red_fumanelli', 'Red', 'Valpolicella Classico Superiore Marchesi Fumanelli 2020', 'Marchesi Fumanelli', '2020', 'Veneto', 'Valpolicella', 18),
-    wg('btg_red_pianetto', 'Red', 'Merlot “Pianetto” 2018', 'Pianetto', '2018', 'Sicily', 'Merlot', 15),
-    wg('btg_lib_galtelli', 'Library', 'Brunello di Montalcino Riserva Galtelli 2015', 'Galtelli', '2015', 'Montalcino', 'Sangiovese', 38),
-    wg('btg_lib_macie', 'Library', 'Chianti Classico Riserva “Vigneti” Rocca delle Macie 2009', 'Rocca delle Macie', '2009', 'Chianti Classico', 'Sangiovese', 30),
-    wg('btg_lib_vulpis', 'Library', 'Barbera del Monferrato Superiore “Vulpis” Cascina Valpane 2010', 'Cascina Valpane', '2010', 'Monferrato', 'Barbera', 21),
-    wg('btg_des_spinetta', 'Dessert', 'Moscato d’Asti “Bricco Quaglia” La Spinetta 2022', 'La Spinetta', '2022', 'Asti', 'Moscato', 14),
-    wg('btg_des_vidal', 'Dessert', 'Inniskillin Ice Wine Vidal Pearl 2021', 'Inniskillin', '2021', 'Niagara', 'Vidal', 18),
-    wg('btg_des_riesling', 'Dessert', 'Inniskillin Ice Wine Riesling 2021', 'Inniskillin', '2021', 'Niagara', 'Riesling', 20),
-    wg('btg_des_franc', 'Dessert', 'Inniskillin Ice Wine Cabernet Franc 2022', 'Inniskillin', '2022', 'Niagara', 'Cabernet Franc', 25),
-    wg('btg_port_bin27', 'Port', 'Fonseca Ruby Reserve Bin 27', 'Fonseca', 'NV', 'Porto', 'Ruby Port', 12),
-    wg('btg_port_croft', 'Port', 'Croft Distinction Special Reserve', 'Croft', 'NV', 'Porto', 'Reserve Port', 14),
-    wg('btg_port_tawny10', 'Port', 'Fonseca Tawny 10 Years', 'Fonseca', 'NV', 'Porto', 'Tawny Port', 16),
-    wg('btg_port_tawny20', 'Port', 'Fonseca Tawny 20 Years', 'Fonseca', 'NV', 'Porto', 'Tawny Port', 22)
+    wg('btg_spark_beck', 'Sparkling', 'Graham Beck Brut', 'Graham Beck', 'NV', 'Western Cape', 'South Africa', 'Chardonnay / Pinot Noir', 16, 63),
+    wg('btg_spark_roederer', 'Sparkling', 'Roederer Estate Brut', 'Roederer Estate', 'NV', 'Anderson Valley', 'USA', 'Chardonnay / Pinot Noir', 20, 76),
+    wg('btg_spark_lanson', 'Sparkling', 'Lanson Le Black Réserve Brut NV', 'Lanson', 'NV', 'Champagne', 'France', 'Pinot Noir / Chardonnay / Pinot Meunier', 28, 108),
+    wg('btg_white_selvamica', 'White Wine', 'Pinot Grigio “Selvamica” Elena Walch 2022', 'Elena Walch', '2022', 'Alto Adige / Südtirol', 'Italy', 'Pinot Grigio', 16, 63),
+    wg('btg_white_lugana', 'White Wine', 'Trebbiano di Lugana, Cà dei Frati 2022', 'Cà dei Frati', '2022', 'Lugana', 'Italy', 'Turbiana (Trebbiano di Lugana)', 19, 75),
+    wg('btg_white_arneis', 'White Wine', 'Roero Arneis “Sibilla” Vietti 2021', 'Vietti', '2021', 'Roero, Piemonte', 'Italy', 'Arneis', 20, 78),
+    wg('btg_white_hartford', 'White Wine', 'Chardonnay “Four Hearts” Russian River Valley, Hartford Court 2021', 'Hartford Court', '2021', 'Russian River Valley', 'USA', 'Chardonnay', 40, 160),
+    wg('btg_red_cora', 'Red Wine', 'Montepulciano d’Abruzzo “Umani Ronchi” 2020', 'Umani Ronchi', '2020', 'Abruzzo', 'Italy', 'Montepulciano', 18, 70),
+    wg('btg_red_masi', 'Red Wine', 'Valpolicella Classico Superiore, Masi “Brolo Campofiorin Oro” 2019', 'Masi', '2019', 'Valpolicella, Veneto', 'Italy', 'Corvina blend', 19, 75),
+    wg('btg_red_plumpjack', 'Red Wine', 'Merlot, Plumpjack 2019', 'Plumpjack', '2019', 'Napa Valley', 'USA', 'Merlot', 36, 130),
+    wg('btg_lib_gunderloch', 'Library Selection', 'Gunderloch Riesling Spätlese, Rothenberg Nackenheim 2015', 'Gunderloch', '2015', 'Nackenheim, Rheinhessen', 'Germany', 'Riesling', 22, 85),
+    wg('btg_lib_sudtirol', 'Library Selection', 'Südtirol Blauburgunder Riserva Gottfried 2019', 'Gottfried', '2019', 'Südtirol', 'Italy', 'Blauburgunder (Pinot Nero)', 28, 110),
+    wg('btg_lib_macie', 'Library Selection', 'Chianti Classico Riserva, Toscolo “Tenuta” Rocca delle Macie 2018', 'Rocca delle Macie', '2018', 'Chianti Classico, Tuscany', 'Italy', 'Sangiovese', 19, 75),
+    wg('btg_lib_vignot', 'Library Selection', 'Nebbiolo del Monferrato Superiore “Vignot” Cascina Valpane 2016', 'Cascina Valpane', '2016', 'Monferrato, Piemonte', 'Italy', 'Nebbiolo', 32, 120),
+    wg('btg_des_spinetta', 'Dessert', 'Moscato d’Asti “Bera” La Spinetta 2021', 'La Spinetta', '2021', 'Asti, Piemonte', 'Italy', 'Moscato Bianco', 12, 45),
+    wg('btg_des_vidal', 'Dessert', 'Inniskillin Ice Wine “Vidal Pearl” 2021', 'Inniskillin', '2021', 'Niagara Peninsula', 'Canada', 'Vidal', 35, 120),
+    wg('btg_des_riesling', 'Dessert', 'Inniskillin Ice Wine “Riesling” 2021', 'Inniskillin', '2021', 'Niagara Peninsula', 'Canada', 'Riesling', 45, 158),
+    wg('btg_des_franc', 'Dessert', 'Inniskillin Ice Wine “Cabernet Franc” 2019', 'Inniskillin', '2019', 'Niagara Peninsula', 'Canada', 'Cabernet Franc', 50, 175),
+    wg('btg_port_bin27', 'Port', 'Fonseca Ruby Reserve Bin 27', 'Fonseca', 'NV', 'Porto', 'Portugal', 'Touriga Nacional blend', 12, 42),
+    wg('btg_port_cockburn', 'Port', 'Cockburn’s Special Reserve', 'Cockburn’s', 'NV', 'Porto', 'Portugal', 'Touriga Nacional blend', 15, 52),
+    wg('btg_port_tawny10', 'Port', 'Fonseca Tawny 10 Years', 'Fonseca', 'NV', 'Porto', 'Portugal', 'Tawny Port blend', 20, 70),
+    wg('btg_port_tawny20', 'Port', 'Fonseca Tawny 20 Years', 'Fonseca', 'NV', 'Porto', 'Portugal', 'Tawny Port blend', 25, 88)
   ];
+
+  var wineNotes = {
+    btg_spark_beck: 'Graham Beck is a South African house in the Western Cape. This Brut is a traditional-method blend of Chardonnay and Pinot Noir — citrus, green apple, and a clean, dry finish. It is the house sparkler with Scalini’s prix fixe.',
+    btg_spark_roederer: 'Roederer Estate is the Anderson Valley, California house of Champagne Louis Roederer. The Brut is Chardonnay and Pinot Noir, aged on lees — orchard fruit, brioche, and a finer mousse than most California sparkling.',
+    btg_spark_lanson: 'Lanson is a Champagne house in Reims. Le Black Réserve is a Pinot-led NV Brut: red fruit, lemon zest, and a dry, chalky finish typical of the house style that skips malolactic fermentation.',
+    btg_white_selvamica: 'Elena Walch farms in Alto Adige — Südtirol, Italy’s German-speaking alpine north. Selvamica is Pinot Grigio from 2022: pear, white flowers, and a stony finish, drier and more precise than bulk Pinot Grigio.',
+    btg_white_lugana: 'Cà dei Frati sits on Lake Garda. Lugana is made from Turbiana (Trebbiano di Lugana). The 2022 is almond, citrus, and a saline edge from the lake — a classic Italian white with fish and sole.',
+    btg_white_arneis: 'Vietti is a Barolo family who also bottle Roero Arneis. Sibilla 2021 is the white grape of Roero in Piemonte: pear, hazelnut, and a bitter-almond finish. Arneis means “little rascal” — once nearly extinct, now the region’s signature white.',
+    btg_white_hartford: 'Hartford Court farms the Russian River Valley in Sonoma. Four Hearts 2021 is a richer California Chardonnay — ripe apple, citrus, and oak spice. Pair with scallops, salmon, or anything with truffle.',
+    btg_red_cora: 'Umani Ronchi is a Marche and Abruzzo house. Montepulciano d’Abruzzo 2020 is the grape, not the Tuscan town: dark cherry, soft tannin, and a warm Mediterranean finish. Everyday Italian red with pasta and chicken.',
+    btg_red_masi: 'Masi’s Brolo Campofiorin Oro is a Valpolicella Classico Superiore from the Veneto. Corvina and related grapes are partly dried (appassimento) for cherry, spice, and a plush texture — not as heavy as Amarone.',
+    btg_red_plumpjack: 'Plumpjack is a Napa Valley estate. The 2019 Merlot is ripe plum, cocoa, and fine tannin. A California library pour for steak, lamb, and Giambotta.',
+    btg_lib_gunderloch: 'Gunderloch’s Rothenberg vineyard in Nackenheim, Rheinhessen, is a red-slate slope on the Rhine. The 2015 Riesling Spätlese is late-harvest: lime, peach, honey, and bright acidity. A library white with duck or cheese.',
+    btg_lib_sudtirol: 'Südtirol is South Tyrol, the alpine Italian province that also speaks German. Blauburgunder is Pinot Nero (Pinot Noir). Gottfried’s 2019 Riserva is pale, cherry-scented, and earthy — cooler-climate Pinot from the mountains, not Burgundy.',
+    btg_lib_macie: 'Rocca delle Macie farms Chianti Classico in Tuscany. Toscolo Tenuta Riserva 2018 is Sangiovese: sour cherry, leather, and savory herbs. Riserva means extra barrel time. Pair with pork, lamb, or the Bolognese.',
+    btg_lib_vignot: 'Cascina Valpane is in Monferrato, Piemonte. Vignot 2016 is Nebbiolo — the grape of Barolo — grown here as Nebbiolo del Monferrato Superiore: tar, rose, and firm tannin with six extra years of age in the library.',
+    btg_des_spinetta: 'La Spinetta’s Bera is Moscato d’Asti from Piemonte, 2021. Moscato Bianco, lightly sparkling and low alcohol, smells of peach, orange blossom, and honey. A dessert glass, not a dry table white.',
+    btg_des_vidal: 'Inniskillin, Niagara Peninsula, Canada. Vidal Pearl 2021 is ice wine: grapes frozen on the vine, pressed for a tiny yield of honeyed apricot nectar. Vidal is a hardy hybrid used for Canadian ice wine. This is a sweet dessert glass.',
+    btg_des_riesling: 'Inniskillin Riesling Ice Wine 2021, Niagara. Frozen Riesling grapes give lime, pineapple, and petrol notes with electric acidity so the sweetness does not cloy. A glass of Canadian ice wine with chocolate or cheese.',
+    btg_des_franc: 'Inniskillin Cabernet Franc Ice Wine 2019, Niagara. Red ice wine is rare: frozen Cabernet Franc yields strawberry, raspberry, and tea-leaf notes with residual sugar. Dessert glass only.',
+    btg_port_bin27: 'Fonseca Bin 27 is a Ruby Reserve Port from the Douro Valley, Portugal. Touriga Nacional and related grapes, bottled young for ripe blackberry and chocolate. Served slightly cool, after dinner.',
+    btg_port_cockburn: 'Cockburn’s Special Reserve is a Portuguese Port house style: rich, sweet, and spicy, meant as a ready-to-drink reserve rather than a vintage that needs decades.',
+    btg_port_tawny10: 'Fonseca 10 Year Tawny is aged in wood until nutty, caramel, and dried-fig. Serve slightly chilled with cheese or chocolate. Porto, Portugal.',
+    btg_port_tawny20: 'Fonseca 20 Year Tawny is longer in cask: walnut, orange peel, and toffee, silkier than the 10 Year. A library Port glass from the Douro.'
+  };
 
   var ingredientNotes = {
     'smoked salmon': 'Salmon that has been cured and smoked — silky, salty, and served cold as a welcome bite.',
@@ -592,7 +622,11 @@
     'white wine': 'Dry white wine reduced into a pan sauce with lemon and capers.',
     caper: 'Pickled flower buds — salty and floral with lemon.',
     scallop: 'Day-boat sea scallops are sweet and seared. Shellfish.',
-    'celery root': 'Celeriac, a mild celery-flavored root, pureed with peas.',
+    'celery root': 'Celeriac, a mild celery-flavored root, pureed under the scallops.',
+    sunchoke: 'Sunchokes (Jerusalem artichokes) are roasted nutty tubers with the scallops Bianco-Nero.',
+    prosecco: 'Prosecco in the scallop jus — a sparkling Italian white reduced with black truffle.',
+    thyme: 'Thyme is the herb braised with the Ecuadorian shrimp.',
+    caponata: 'Winter caponata is a Sicilian sweet-sour stew of eggplant, tomato, and olive under the Genovese sole.',
     pea: 'Sweet green peas in the puree under the scallops.',
     spinach: 'Baby spinach wilted under the salmon.',
     apple: 'Apple in the squash puree (Zafferano) or in the endive salad (Reggiano).',
@@ -611,7 +645,7 @@
     onion: 'Onions in the Giambotta mix with peppers and mushrooms.',
     'hot pepper': 'Chili peppers for heat in Giambotta.',
     'sweet pepper': 'Bell-style peppers for sweetness in Giambotta.',
-    wine: 'Reduced wine in the pan sauce. Library reds by the glass pair with steak and lamb.',
+    wine: 'When listed on a dish, this is wine reduced into that dish’s sauce — not a glass of wine from the list.',
     parmigiano: 'Parmigiano Reggiano is aged cow’s-milk cheese from Emilia-Romagna, grated into a crust here.',
     cognac: 'Brandy flambéed with garlic and sage for the pork medallions.',
     endive: 'Bitter Belgian endive, sliced into the apple-hazelnut salad.',
@@ -676,10 +710,14 @@
       englishForKitchen: 'English for Food Master',
       translatingLive: 'Translating…',
       aboutDish: 'About this dish',
+      aboutWine: 'About this wine',
       fromTheKitchen: 'From the kitchen',
-      tapForStory: 'Tap to learn about this dish',
-      tapForWine: 'Tap to add this glass to your order',
-      aiExplain: 'What this dish is',
+      tapForStory: 'Tap to add this dish',
+      tapForWine: 'Tap to add this glass',
+      aiExplain: 'More about this dish',
+      aiExplainWine: 'More about this wine',
+      learnMore: 'Learn more',
+      learnMoreWine: 'Learn more about this vintage',
       addToOrder: 'Add to my order',
       addedToOrder: 'Added to your order',
       chooseTemp: 'How would you like it cooked?',
@@ -691,7 +729,12 @@
       ingredientsTitle: 'Ingredients',
       storyLink: 'Read more',
       glassPrice: 'glass',
-      scaliniGlass: 'Scalini Fedeli — by the glass'
+      bottlePrice: 'bottle',
+      scaliniGlass: 'Scalini Fedeli — by the glass',
+      wineMetaVintage: 'Vintage',
+      wineMetaRegion: 'Region',
+      wineMetaCountry: 'Country',
+      wineMetaGrape: 'Grape'
     },
     es: {
       prixFixe: 'Menú degustación a precio fijo',
@@ -727,10 +770,14 @@
       englishForKitchen: 'Inglés para el Food Master',
       translatingLive: 'Traduciendo…',
       aboutDish: 'Sobre este plato',
+      aboutWine: 'Sobre este vino',
       fromTheKitchen: 'Desde la cocina',
-      tapForStory: 'Toque para conocer este plato',
-      tapForWine: 'Toque para añadir esta copa a su pedido',
-      aiExplain: 'Qué es este plato',
+      tapForStory: 'Toque para añadir este plato',
+      tapForWine: 'Toque para añadir esta copa',
+      aiExplain: 'Más sobre este plato',
+      aiExplainWine: 'Más sobre este vino',
+      learnMore: 'Saber más',
+      learnMoreWine: 'Saber más de esta añada',
       addToOrder: 'Añadir a mi pedido',
       addedToOrder: 'Añadido a su pedido',
       chooseTemp: '¿Cómo lo quiere cocinado?',
@@ -742,7 +789,12 @@
       ingredientsTitle: 'Ingredientes',
       storyLink: 'Leer más',
       glassPrice: 'copa',
-      scaliniGlass: 'Scalini Fedeli — por copa'
+      bottlePrice: 'botella',
+      scaliniGlass: 'Scalini Fedeli — por copa',
+      wineMetaVintage: 'Añada',
+      wineMetaRegion: 'Región',
+      wineMetaCountry: 'País',
+      wineMetaGrape: 'Uva'
     },
     fr: {
       prixFixe: 'Menu prix fixe',
@@ -778,10 +830,14 @@
       englishForKitchen: 'Anglais pour le Food Master',
       translatingLive: 'Traduction…',
       aboutDish: 'À propos de ce plat',
+      aboutWine: 'À propos de ce vin',
       fromTheKitchen: 'De la cuisine',
-      tapForStory: 'Touchez pour découvrir ce plat',
-      tapForWine: 'Touchez pour ajouter ce verre à votre commande',
-      aiExplain: 'Ce que c’est',
+      tapForStory: 'Touchez pour ajouter ce plat',
+      tapForWine: 'Touchez pour ajouter ce verre',
+      aiExplain: 'En savoir plus sur ce plat',
+      aiExplainWine: 'En savoir plus sur ce vin',
+      learnMore: 'En savoir plus',
+      learnMoreWine: 'En savoir plus sur ce millésime',
       addToOrder: 'Ajouter à ma commande',
       addedToOrder: 'Ajouté à votre commande',
       chooseTemp: 'Quelle cuisson souhaitez-vous ?',
@@ -793,7 +849,12 @@
       ingredientsTitle: 'Ingrédients',
       storyLink: 'En savoir plus',
       glassPrice: 'verre',
-      scaliniGlass: 'Scalini Fedeli — au verre'
+      bottlePrice: 'bouteille',
+      scaliniGlass: 'Scalini Fedeli — au verre',
+      wineMetaVintage: 'Millésime',
+      wineMetaRegion: 'Région',
+      wineMetaCountry: 'Pays',
+      wineMetaGrape: 'Cépage'
     },
     zh: {
       prixFixe: '套餐',
@@ -829,10 +890,14 @@
       englishForKitchen: '英文（厨房主管）',
       translatingLive: '正在翻译…',
       aboutDish: '关于这道菜',
+      aboutWine: '关于这款酒',
       fromTheKitchen: '厨房故事',
-      tapForStory: '点击了解这道菜',
+      tapForStory: '点击加入这道菜',
       tapForWine: '点击将这杯酒加入订单',
-      aiExplain: '这道菜是什么',
+      aiExplain: '了解这道菜',
+      aiExplainWine: '了解这款酒',
+      learnMore: '了解更多',
+      learnMoreWine: '了解这一年份',
       addToOrder: '加入我的订单',
       addedToOrder: '已加入订单',
       chooseTemp: '您希望几成熟？',
@@ -844,7 +909,12 @@
       ingredientsTitle: '食材',
       storyLink: '了解更多',
       glassPrice: '杯',
-      scaliniGlass: 'Scalini Fedeli — 杯装'
+      bottlePrice: '瓶',
+      scaliniGlass: 'Scalini Fedeli — 杯装',
+      wineMetaVintage: '年份',
+      wineMetaRegion: '产区',
+      wineMetaCountry: '国家',
+      wineMetaGrape: '葡萄品种'
     }
   };
 
@@ -955,6 +1025,7 @@
     tasting: tasting,
     gelatoScoops: GELATO_SCOOPS,
     winesByGlass: winesByGlass,
+    wineNotes: wineNotes,
     ingredientNotes: ingredientNotes,
     ui: ui,
     mergeMenu: mergeMenu,

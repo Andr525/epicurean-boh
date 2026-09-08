@@ -625,12 +625,16 @@ function mmGroupEditor(id) {
   if (id === 'c_wine_glass' || id === 'c_wine_bottle') {
     var glass = id === 'c_wine_glass';
     if (glass) {
-      var btg = (STATE.wines || []).filter(function (w) { return w && (w.byTheGlass || Number(w.glassPrice) > 0); });
+      var seedBtg = (typeof EPICUREAN_SCALINI !== 'undefined' && EPICUREAN_SCALINI.winesByGlass) || [];
+      var cellarBtg = (STATE.wines || []).filter(function (w) { return w && (w.byTheGlass || Number(w.glassPrice) > 0) && String(w.id || '').indexOf('btg_') !== 0; });
+      var btg = seedBtg.length ? seedBtg.concat(cellarBtg) : cellarBtg;
       var grow = btg.map(function (w) {
-        return '<div class="mm-item-card" onclick="mmSelect(\'wine\',\'' + w.id + '\')"><div><div class="mm-item-name">' + esc(w.name) + '</div><div class="mm-item-meta">' + (w.stock || 0) + ' bottles · 6 oz / 2 oz pours</div></div><div class="mm-price">' + money(w.glassPrice) + '</div></div>';
+        var meta = (w.group ? w.group + ' · ' : '') + (w.vintage || '') + (w.region ? ' · ' + w.region : '');
+        if (w.bottlePrice) meta += ' · bottle $' + w.bottlePrice;
+        return '<div class="mm-item-card"><div><div class="mm-item-name">' + esc(w.name) + '</div><div class="mm-item-meta">' + esc(meta) + '</div></div><div class="mm-price">' + money(w.glassPrice) + '</div></div>';
       }).join('');
       return '<div class="mm-card"><h3>SUBGROUP Wine by the glass</h3>' +
-        '<p class="mm-hint">Not loaded yet. When the by-the-glass page is uploaded, glasses (6 oz) and tastes (2 oz) will decrement these bottles. Each bottle holds 25 oz.</p>' +
+        '<p class="mm-hint">Scalini Fedeli printed by-the-glass list (glass / bottle). Same wines on POS, kitchen tickets, and the iPad menu. Südtirol is spelled with the umlaut.</p>' +
         (grow || '<div class="mm-empty">No wines by the glass yet.</div>') + '</div>';
     }
     var q = mmQ();
