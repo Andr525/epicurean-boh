@@ -373,7 +373,7 @@ function mmRebuildPf(pf) {
       (c.options || []).forEach(function (o, oi) {
         pf.dishes.push({
           id: o.id || uid('pfd'), name: o.name, desc: o.desc || '', upcharge: o.upcharge || 0,
-          photoUrl: o.photoUrl || '', story: o.story || '', storyUrl: o.storyUrl || '', course: c.label, station: o.station || KITCHEN_STATIONS[0],
+          photoUrl: o.photoUrl || '', story: o.story || '', storyUrl: o.storyUrl || '', sourceUrl: o.sourceUrl || o.storyUrl || '', moreUrl: o.moreUrl || o.storyUrl || '', course: c.label, station: o.station || KITCHEN_STATIONS[0],
           pairing: o.pairing || '', pairWhite: o.pairWhite || '', pairRed: o.pairRed || '', pairDessert: o.pairDessert || '',
           ingredients: o.ingredients || '', askTemp: o.askTemp || '',
           allergens: o.allergens || [], cookNote: o.cookNote || '',
@@ -408,7 +408,7 @@ function mmRebuildPf(pf) {
       return {
         id: d.id, name: d.name, desc: d.desc, station: d.station, upcharge: d.upcharge || 0,
         pairing: d.pairing || '', pairWhite: d.pairWhite || '', pairRed: d.pairRed || '', pairDessert: d.pairDessert || '',
-        photoUrl: d.photoUrl || '', story: d.story || '', storyUrl: d.storyUrl || '',
+        photoUrl: d.photoUrl || '', story: d.story || '', storyUrl: d.storyUrl || '', sourceUrl: d.sourceUrl || d.storyUrl || '', moreUrl: d.moreUrl || d.storyUrl || '',
         ingredients: d.ingredients || '', askTemp: d.askTemp || '',
         allergens: d.allergens || [],
         cookNote: d.cookNote || '', chooseCount: d.chooseCount || 0, scoops: d.scoops || null,
@@ -685,8 +685,8 @@ function mmItemEditor(id) {
     fld('Name', '<input class="input" id="ie-name" value="' + esc(it.name) + '" placeholder="Dish name">') +
     mmPhotoField(mmResolveItemPhoto(it, mmPhotoKey())) +
     fld('Description (POS &amp; iPad)', '<textarea class="input" id="ie-desc" rows="4">' + esc(it.desc || '') + '</textarea>') +
-    fld('Story for iPad (origin, farm, family — guests see this when they tap the dish)', '<textarea class="input" id="ie-story" rows="4" placeholder="e.g. Filet mignon from Dutton Ranch in South Carolina. The Dutton family has raised cattle on the same land for generations…">' + esc(it.story || '') + '</textarea>') +
-    fld('Story link (optional farm, village, or producer URL)', '<input class="input" id="ie-story-url" value="' + esc(it.storyUrl || '') + '" placeholder="https://…">') +
+    fld('Story for iPad (origin, farm, family — guests see this when they tap Learn more)', '<textarea class="input" id="ie-story" rows="4" placeholder="e.g. Filet mignon from Bastrop Cattle Company, Texas. Filet is the tenderloin, cut along the spine of the cow…">' + esc(it.story || '') + '</textarea>') +
+    fld('Farm / producer / locale link (opens on the iPad)', '<input class="input" id="ie-story-url" value="' + esc(it.storyUrl || it.sourceUrl || it.moreUrl || '') + '" placeholder="https://bastropcattlecompany.com">') +
     '<div class="ff-row cols-3">' + fld('Price ($)', '<input class="input" id="ie-price" type="number" step="0.01" value="' + it.price + '">') +
       fld('Cost ($)', '<input class="input" id="ie-cost" type="number" step="0.01" value="' + (it.cost || 0) + '">') +
       fld('Item code', '<input class="input" id="ie-code" value="' + esc(it.code || '') + '">') + '</div>' +
@@ -939,6 +939,8 @@ function mmSaveItemFromForm(id, toastOk) {
   it.name = name; it.desc = $('ie-desc').value.trim();
   it.story = $('ie-story') ? $('ie-story').value.trim() : (it.story || '');
   it.storyUrl = $('ie-story-url') ? $('ie-story-url').value.trim() : (it.storyUrl || '');
+  it.sourceUrl = it.storyUrl;
+  it.moreUrl = it.storyUrl;
   it.photoUrl = typeof readPhotoUrlFromForm === 'function' ? readPhotoUrlFromForm(it.photoUrl, it.id) : (it.photoUrl || '');
   if (it.photoUrl && typeof rememberMenuPhoto === 'function') rememberMenuPhoto(it.id, it.photoUrl);
   it.price = parseFloat($('ie-price').value) || 0; it.cost = parseFloat($('ie-cost').value) || 0;
@@ -1051,6 +1053,8 @@ function mmReadDishCommon(it) {
   it.desc = $('ie-desc') ? $('ie-desc').value.trim() : (it.desc || '');
   it.story = $('ie-story') ? $('ie-story').value.trim() : (it.story || '');
   it.storyUrl = $('ie-story-url') ? $('ie-story-url').value.trim() : (it.storyUrl || '');
+  it.sourceUrl = it.storyUrl;
+  it.moreUrl = it.storyUrl;
   it.photoUrl = typeof readPhotoUrlFromForm === 'function' ? readPhotoUrlFromForm(it.photoUrl, mmPhotoKey()) : (it.photoUrl || '');
   it.station = $('ie-station') ? $('ie-station').value : (it.station || '');
   it.cookMin = $('ie-cook') ? (parseInt($('ie-cook').value, 10) || 0) : (it.cookMin || 0);
@@ -1081,8 +1085,8 @@ function mmSetDishEditor(it, priceLabel, extraTop, extraMid, saveClick, delClick
     fld('Name', '<input class="input" id="ie-name" value="' + esc(it.name) + '" placeholder="Dish name">') +
     mmPhotoField(mmResolveItemPhoto(it, mmPhotoKey())) +
     fld('Description (POS &amp; iPad)', '<textarea class="input" id="ie-desc" rows="4">' + esc(it.desc || '') + '</textarea>') +
-    fld('Story for iPad (origin, farm, family — guests see this when they tap the dish)', '<textarea class="input" id="ie-story" rows="4" placeholder="e.g. Filet mignon from Dutton Ranch in South Carolina. The Dutton family has raised cattle on the same land for generations…">' + esc(it.story || '') + '</textarea>') +
-    fld('Story link (optional farm, village, or producer URL)', '<input class="input" id="ie-story-url" value="' + esc(it.storyUrl || '') + '" placeholder="https://…">') +
+    fld('Story for iPad (origin, farm, family — guests see this when they tap Learn more)', '<textarea class="input" id="ie-story" rows="4" placeholder="e.g. Filet mignon from Bastrop Cattle Company, Texas. Filet is the tenderloin, cut along the spine of the cow…">' + esc(it.story || '') + '</textarea>') +
+    fld('Farm / producer / locale link (opens on the iPad)', '<input class="input" id="ie-story-url" value="' + esc(it.storyUrl || it.sourceUrl || it.moreUrl || '') + '" placeholder="https://bastropcattlecompany.com">') +
     extraTop +
     '<div class="ff-row cols-3">' + fld(priceLabel, '<input class="input" id="ie-price" type="number" step="0.01" value="' + (it.upcharge != null ? it.upcharge : (it.price || 0)) + '">') +
       fld('Cook time (min)', '<input class="input" id="ie-cook" type="number" value="' + (it.cookMin || it.cookTime || 0) + '">') +

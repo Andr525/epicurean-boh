@@ -1,7 +1,7 @@
 /* Scalini Fedeli prix fixe $89 + Regional Tasting $115.
    Shared by BOH, POS, kitchen, and the iPad menu. Printed BTG 2026-09-08. */
 (function (root) {
-  var VERSION = 20260910;
+  var VERSION = 20260912;
   var GM = 'Cold / Garde Manger';
   var SA = 'Sauté';
   var GR = 'Grill';
@@ -9,20 +9,20 @@
   var PA = 'Pastry';
   var MAIN = 'Piatti Principale';
 
-  var PW_BIANCO = 'Pinot Bianco “Haberle” Elena Walch 2022 · $20';
-  var PW_GRIGIO = 'Pinot Bianco “Haberle” Elena Walch 2022 · $20';
-  var PW_SAUV = 'Sauvignon Blanc “Vette” Tenuta San Leonardo 2022 · $18';
+  var PW_BIANCO = 'Pinot Bianco “Selezione” Elena Walch 2023 · $25';
+  var PW_GRIGIO = 'Fiano di Avellino “Radici” Mastroberardino 2023 · $24';
+  var PW_SAUV = 'Friulano Isonzo del Friuli 2021 · $18';
   var PW_CHARD = 'Chardonnay “Four Hearts” Hartford Court Russian River Valley 2022 · $30';
   var PS_PROSECCO = 'Zardetto Prosecco Brut · $17';
   var PS_BECK = 'Graham Beck Brut · $25';
-  var PR_MONTE = 'Montepulciano d’Abruzzo “Le Corne” Valle Reale 2020 · $22';
-  var PR_VALPO = 'Valpolicella Classico Superiore Musella 2020 · $24';
-  var PR_MERLOT = 'Merlot “Plumbum” 2014 · $35';
+  var PR_MONTE = 'Montevetrano Rosso “Core” 2020 · $22';
+  var PR_VALPO = 'Valpolicella Classico Superiore Marchesi Fumanelli 2019 · $24';
+  var PR_MERLOT = 'Merlot Planeta 2014 · $28';
   var PR_BARBERA = 'Barbera del Monferrato Superiore “Vulpis” Cascina Valpane 2010 · $35';
-  var PR_CHIANTI = 'Chianti Classico Riserva “Vigna del Sorbo” Fontodi 2013 · $35';
-  var PR_BRUNELLO = 'Chianti Classico Riserva “Vigna del Sorbo” Fontodi 2013 · $35';
-  var PD_MOSCATO = 'Moscato d’Asti “Bricco Quaglia” La Spinetta 2022 · $17';
-  var PD_VIDAL = 'Inniskillin Ice Wine Vidal 2019 · $30';
+  var PR_CHIANTI = 'Chianti Classico Riserva “Fizzano” Rocca delle Macie 2009 · $30';
+  var PR_BRUNELLO = 'Südtiroler Blauburgunder Riserva Gries 2015 · $28';
+  var PD_MOSCATO = 'Moscato d’Asti “Bricco Quaglia” La Spinetta 2023 · $15';
+  var PD_VIDAL = 'Inniskillin Ice Wine “Vidal Pearl” 2021 · $30';
   var PD_PORT = 'Fonseca Tawny 10 Year · $20';
 
   function ix(esN, esD, frN, frD, zhN, zhD) {
@@ -58,25 +58,28 @@
       cookTime: extra.cookTime || 0,
       ingredients: extra.ingredients || '',
       askTemp: extra.askTemp || '',
+      sourceUrl: extra.sourceUrl || '',
+      moreUrl: extra.moreUrl || extra.storyUrl || extra.sourceUrl || '',
       i18n: extra.i18n || {}
     };
   }
 
-  var GELATO_STYLE_NOTE = 'Sorbetto is fruit, water, and sugar — no dairy. Gelato is made with milk, churned slowly so it is denser than ice cream, and served a little warmer. Ice cream is cream-based, higher in fat, and whipped with more air.';
+  var GELATO_STYLE_NOTE = '';
 
   var GELATO_SCOOPS = [
     { id: 'scoop_apple', name: 'Green apple', kind: 'sorbetto', allergens: [],
-      desc: 'The only sorbetto of the three scoops: green apple, water, and sugar. Bright, icy, and dairy-free.' },
+      desc: 'Green apple sorbet. Made from green apples grown upstate in New York at Masker Orchards, with water. No dairy.',
+      sourceUrl: 'https://maskers.com' },
     { id: 'scoop_lemon', name: 'Lemon', kind: 'gelato', allergens: ['Dairy'],
-      desc: 'Lemon gelato. Milk-based, dense, with a clean citrus finish — not a water ice.' },
+      desc: 'Lemon gelato. Made from lemon and milk.' },
     { id: 'scoop_vanilla', name: 'Vanilla', kind: 'gelato', allergens: ['Dairy'],
-      desc: 'Vanilla gelato. Milk, cream, and vanilla; denser and less aerated than American ice cream.' },
+      desc: 'Vanilla gelato. Made from vanilla and milk.' },
     { id: 'scoop_caramel', name: 'Caramel', kind: 'gelato', allergens: ['Dairy'],
-      desc: 'Caramel gelato. Cooked sugar folded into a milk base; dairy, not sorbetto.' },
+      desc: 'Caramel gelato. Made from caramelized sugar and milk.' },
     { id: 'scoop_hazelnut', name: 'Hazelnut', kind: 'gelato', allergens: ['Tree Nut', 'Dairy'],
-      desc: 'Hazelnut gelato. Toasted Piedmont hazelnuts in a milk base. Contains tree nuts and dairy.' },
+      desc: 'Hazelnut gelato. Made from Piedmont hazelnuts and milk. Contains tree nuts and dairy.' },
     { id: 'scoop_pistachio', name: 'Pistachio', kind: 'gelato', allergens: ['Tree Nut', 'Dairy'],
-      desc: 'Pistachio gelato. Bronte-style pistachio in a milk base. Contains tree nuts and dairy.' }
+      desc: 'Pistachio gelato. Made from Sicilian pistachios and milk. Contains tree nuts and dairy.' }
   ];
 
   var dishes = [
@@ -232,13 +235,15 @@
       pairRed: PR_BRUNELLO,
       i18n: ix('Cordero “Osso Bucco”', 'Deshuesado, lentejas braseadas, salsa siciliana picante y reducción de porcini — $8 supl.', 'Agneau « Osso Bucco »', 'Désossé, lentilles braisées, sauce sicilienne pimentée et réduction de cèpes — $8 suppl.', '羊肉「骨髓管」', '去骨、烩扁豆、西西里辣酱与牛肝菌浓缩汁 — 加价 $8')
     }),
-    d('sf_m_giambotta', 'Split 10 oz. filet mignon “Giambotta”', 'Spicy wine sauce with mushrooms, onions and hot & sweet peppers — $10 supp', MAIN, GR, {
+    d('sf_m_giambotta', 'Split 10 oz. filet mignon “Giambotta”', 'Spicy wine sauce with mushrooms, onions and hot & sweet peppers — $10 supp. Filet mignon is the tenderloin, cut along the spine of the cow. Ours is from Bastrop Cattle Company, Texas.', MAIN, GR, {
       order: 40, upcharge: 10, allergens: [], askTemp: 'steak',
       ingredients: 'filet mignon, mushroom, onion, hot pepper, sweet pepper, wine',
       pairRed: PR_BRUNELLO,
-      story: 'This 10 oz. filet mignon is from Dutton Ranch in South Carolina. Giambotta is the Neapolitan “little mix”: mushrooms, onions, and hot and sweet peppers in a spicy wine sauce.',
-      storyUrl: 'https://en.wikipedia.org/wiki/Filet_mignon',
-      i18n: ix('Filet mignon 10 oz. “Giambotta”', 'Salsa de vino picante con champiñones, cebolla y pimientos dulces y picantes — $10 supl.', 'Filet mignon 10 oz « Giambotta »', 'Sauce au vin pimentée, champignons, oignons et poivrons — $10 suppl.', '10盎司菲力牛排「江博塔」', '蘑菇、洋葱、甜椒与辣椒的辣味葡萄酒酱 — 加价 $10')
+      sourceUrl: 'https://bastropcattlecompany.com',
+      moreUrl: 'https://bastropcattlecompany.com',
+      story: 'Filet mignon is cut from the tenderloin, the muscle that runs along the spine. That muscle does little work, so it is the most tender steak on the animal. This 10 oz. split filet is from Bastrop Cattle Company in Texas (bastropcattlecompany.com). Giambotta is the Neapolitan “little mix”: mushrooms, onions, and hot and sweet peppers in a spicy wine sauce.',
+      storyUrl: 'https://bastropcattlecompany.com',
+      i18n: ix('Filet mignon 10 oz. “Giambotta”', 'Salsa de vino picante con champiñones, cebolla y pimientos. El filet es el solomillo, a lo largo del lomo. Bastrop Cattle Company, Texas. — $10 supl.', 'Filet mignon 10 oz « Giambotta »', 'Sauce au vin pimentée, champignons, oignons et poivrons. Le filet est le filet, le long de l’échine. Bastrop Cattle Company, Texas. — $10 suppl.', '10盎司菲力牛排「江博塔」', '蘑菇、洋葱、甜椒与辣椒的辣味葡萄酒酱。菲力取自牛脊旁里脊。德州 Bastrop Cattle Company。— 加价 $10')
     }),
     d('sf_m_reggiano', 'Medallions of pork “Reggiano”', 'Parmigiano crust, garlic sage cognac, endive, apple and hazelnut salad', MAIN, SA, {
       order: 41, allergens: ['Dairy', 'Tree Nut'], askTemp: 'pork',
@@ -254,11 +259,11 @@
       i18n: ix('Muslos de pato “Murphy”', 'Salchicha, champiñones, pimientos cherry, patatas, salsa de vino picante', 'Cuisses de canard « Murphy »', 'Saucisse, champignons, piments cerise, pommes de terre, sauce au vin pimentée', '鸭腿「墨菲」', '香肠、蘑菇、樱桃椒、土豆、辣味葡萄酒酱')
     }),
 
-    d('sf_e_sorbet', 'Coconut–lime sorbet with rum glazed pineapple', 'A small course before dessert: coconut–lime sorbet and pineapple glazed with rum. Nuts may finish the plate.', 'Entremets', PA, {
+    d('sf_e_sorbet', 'Coconut–lime sorbet with rum glazed pineapple', 'Served automatically as an entremet (palate cleanser) before dessert. Lime and coconut sorbet with rum-glazed pineapple. Nuts may finish the plate. You do not choose this course.', 'Entremet', PA, {
       order: 50, allergens: ['Tree Nut'], cookNote: 'Allergy check: nuts and rum. Do not fire if the guest has a nut allergy unless confirmed.',
       ingredients: 'coconut, lime, rum, pineapple, nut',
       pairDessert: PD_MOSCATO,
-      i18n: ix('Sorbete de coco y lima con piña al ron', 'Entremets para todos antes del postre. Contiene ron y frutos secos — verificar alergias.', 'Sorbet coco-citron vert, ananas au rhum', 'Entremets servi à tous avant le dessert. Rhum et fruits à coque — vérifier les allergies.', '椰奶青柠雪芭配朗姆酒菠萝', '甜品前的过渡小食。含朗姆酒与坚果，请确认过敏。')
+      i18n: ix('Sorbete de coco y lima con piña al ron', 'Entremet (limpia paladar). Sorbete de coco y lima y piña al ron. Puede llevar frutos secos. La cocina lo envía sola; no se elige.', 'Sorbet coco-citron vert, ananas au rhum', 'Entremet (pause-palais). Sorbet coco-citron vert et ananas au rhum. Fruits à coque possibles. La cuisine l’envoie ; on ne le choisit pas.', '椰奶青柠雪芭配朗姆酒菠萝', '开胃小食（清口）。椰奶青柠雪芭与朗姆酒菠萝。可能含坚果。厨房自动出品，无需点选。')
     }),
 
     d('sf_d_napoleon', 'Napoleon of chocolate painted fillo', 'Layered with chocolate-espresso mousse, bitter chocolate crumbs and praline cream', 'Dolce', PA, {
@@ -309,11 +314,11 @@
       pairDessert: PD_MOSCATO,
       i18n: ix('Plátano en láminas', 'Ligeramente quemado en fillo crujiente con crema de limón y mascarpone', 'Bananes en fines tranches', 'Légèrement brûlées, croûte de filo, crème citron-mascarpone', '薄片香蕉', '菲罗酥皮、柠檬马斯卡彭奶油、轻焦糖')
     }),
-    d('sf_d_gelato', 'Sorbetti e gelati — three scoops', 'Choose three. Green apple is sorbetto (fruit, water, sugar — no dairy). Lemon, vanilla, caramel, hazelnut, and pistachio are gelati (milk-based, denser than ice cream).', 'Dolce', PA, {
+    d('sf_d_gelato', 'Sorbetti e gelati — three scoops', 'Choose three scoops.', 'Dolce', PA, {
       order: 67, allergens: ['Dairy', 'Tree Nut'], chooseCount: 3, scoops: GELATO_SCOOPS,
       ingredients: 'gelato, milk, pistachio, hazelnut',
       pairDessert: PD_MOSCATO,
-      i18n: ix('Sorbete y gelato — tres bolas', 'Elija tres. La manzana verde es sorbetto (sin lácteos). Limón, vainilla, caramelo, avellana y pistacho son gelati.', 'Sorbets et gelati — trois boules', 'Trois parfums. La pomme verte est un sorbetto (sans lait). Citron, vanille, caramel, noisette et pistache sont des gelati.', '雪芭与凝胶ato（三球）', '任选三球。青苹果是 sorbetto（无乳）。柠檬、香草、焦糖、榛子、开心果是 gelato。')
+      i18n: ix('Sorbete y gelato — tres bolas', 'Elija tres bolas.', 'Sorbets et gelati — trois boules', 'Choisissez trois boules.', '雪芭与凝胶ato（三球）', '任选三球。')
     }),
     d('sf_d_formaggio', 'Formaggio', 'Gorgonzola Dolce (Lombardy, cow), Parmigiano Reggiano (Emilia Romagna, cow), Mozzarella di Bufala (Campania, buffalo)', 'Dolce', GM, {
       order: 68, upcharge: 8, allergens: ['Dairy'],
@@ -327,7 +332,7 @@
     { id: 'pfc_welcome', label: 'Primi Piccolo', order: 0, mode: 'auto', fireEach: true },
     { id: 'pfc_primi', label: 'Primi', order: 1, mode: 'choose' },
     { id: 'pfc_main', label: MAIN, order: 2, mode: 'choose' },
-    { id: 'pfc_entremets', label: 'Entremets', order: 3, mode: 'entremets' },
+    { id: 'pfc_entremets', label: 'Entremet', order: 3, mode: 'entremets' },
     { id: 'pfc_dolce', label: 'Dolce', order: 4, mode: 'later', fireAfter: 'main' }
   ];
 
@@ -344,7 +349,9 @@
       pairDessert: x.pairDessert,
       photoUrl: x.photoUrl,
       story: x.story,
-      storyUrl: x.storyUrl,
+      storyUrl: x.storyUrl || x.sourceUrl || x.moreUrl,
+      sourceUrl: x.sourceUrl || x.storyUrl || x.moreUrl || '',
+      moreUrl: x.moreUrl || x.sourceUrl || x.storyUrl || '',
       allergens: x.allergens,
       dietary: x.dietary,
       chooseCount: x.chooseCount,
@@ -371,7 +378,9 @@
       upcharge: extra.upcharge || 0,
       photoUrl: extra.photoUrl || '',
       story: extra.story || extra.notes || extra.descriptionLong || '',
-      storyUrl: extra.storyUrl || '',
+      storyUrl: extra.storyUrl || extra.sourceUrl || extra.moreUrl || '',
+      sourceUrl: extra.sourceUrl || extra.storyUrl || extra.moreUrl || '',
+      moreUrl: extra.moreUrl || extra.sourceUrl || extra.storyUrl || '',
       allergens: extra.allergens || [],
       mode: extra.mode || 'auto',
       pending: !!extra.pending,
@@ -385,6 +394,7 @@
       pairDessert: extra.pairDessert || '',
       ingredients: extra.ingredients || '',
       askTemp: extra.askTemp || '',
+      headingOnly: !!extra.headingOnly,
       i18n: extra.i18n || {}
     };
   }
@@ -415,19 +425,19 @@
       pairWhite: PW_CHARD, pairRed: PR_BARBERA,
       i18n: ix('Salmón con setas silvestres y trufa negra — Umbría', 'Salmón de las Feroe “Forrestiere”, espinacas y remolacha asada', 'Saumon aux champignons et truffe noire — Ombrie', 'Saumon des Féroé « Forrestiere », épinards et betteraves rôties', '蘑菇黑松露三文鱼 — 翁布里亚', '法罗群岛三文鱼「林间」，菠菜与烤甜菜')
     }),
-    tc(6, 'Pan roasted filet mignon “Giambotta” — Toscana', 'Spicy wine sauce with mushrooms, onions and hot & sweet peppers. Take dessert after this meat course.', GR, {
+    tc(6, 'Pan roasted filet mignon “Giambotta” — Toscana', 'Spicy wine sauce with mushrooms, onions and hot & sweet peppers. Filet mignon is the tenderloin, along the spine. From Bastrop Cattle Company, Texas.', GR, {
       allergens: [], dishId: 'sf_m_giambotta', group: 'Courses', askTemp: 'steak',
-      pairRed: PR_BRUNELLO,
-      i18n: ix('Filet mignon “Giambotta” — Toscana', 'Salsa de vino picante con champiñones, cebolla y pimientos. Tomar el postre después de este plato de carne.', 'Filet mignon « Giambotta » — Toscane', 'Sauce au vin pimentée, champignons, oignons et poivrons. Prendre le dessert après cette viande.', '菲力牛排「江博塔」— 托斯卡纳', '辣味葡萄酒酱。此肉菜之后再点甜品。')
+      pairRed: PR_BRUNELLO, sourceUrl: 'https://bastropcattlecompany.com',
+      i18n: ix('Filet mignon “Giambotta” — Toscana', 'Salsa de vino picante con champiñones, cebolla y pimientos. El filet es el solomillo. Bastrop Cattle Company, Texas.', 'Filet mignon « Giambotta » — Toscane', 'Sauce au vin pimentée, champignons, oignons et poivrons. Le filet est le filet, le long de l’échine. Bastrop Cattle Company, Texas.', '菲力牛排「江博塔」— 托斯卡纳', '辣味葡萄酒酱。菲力取自牛脊旁里脊。德州 Bastrop Cattle Company。')
     }),
-    tc(7, 'Lime & coconut sorbet with rum pineapple', 'A small course for every guest before dessert. The pineapple is glazed with rum; nuts may finish the plate.', PA, {
-      allergens: ['Tree Nut'], mode: 'entremets', pending: true, fireAfter: 'meat', dishId: 'sf_e_sorbet', group: 'Entremets',
-      cookNote: 'Allergy check: nuts and rum.', pairDessert: PD_MOSCATO,
-      i18n: ix('Sorbete de lima y coco con piña al ron', 'Un paso breve antes del postre. Piña al ron; el plato puede llevar frutos secos.', 'Sorbet citron vert-coco, ananas au rhum', 'Un passage avant le dessert. Ananas au rhum ; le plat peut porter des fruits à coque.', '青柠椰奶雪芭配朗姆菠萝', '甜品前的一小口。菠萝有朗姆酒；盘上可能有坚果。')
+    tc(7, 'Lime & coconut sorbet with rum pineapple', 'Served automatically as an entremet (palate cleanser) before dessert. Lime and coconut sorbet with rum-glazed pineapple. Nuts may finish the plate. You do not choose this course.', PA, {
+      allergens: ['Tree Nut'], mode: 'entremets', pending: true, fireAfter: 'meat', dishId: 'sf_e_sorbet', group: 'Entremet',
+      cookNote: 'Allergy check: nuts and rum. Auto-fire after the meat course; guest does not choose.', pairDessert: PD_MOSCATO,
+      i18n: ix('Sorbete de lima y coco con piña al ron', 'Se sirve automáticamente como entremet (limpia paladar) antes del postre. El huésped no lo elige.', 'Sorbet citron vert-coco, ananas au rhum', 'Servi automatiquement en entremet (pause palais) avant le dessert. Le client ne le choisit pas.', '青柠椰奶雪芭配朗姆菠萝', '作为餐间清口自动上桌，宾客无需点选。')
     }),
-    tc(8, 'Dolce', 'Dessert is included. Take the order after the meat course; guest chooses from the chocolate, seasonal, gelato, or cheese menus.', PA, {
-      mode: 'later', pending: true, fireAfter: 'meat', group: 'Dolce',
-      i18n: ix('Dolce', 'Postre incluido. Tomar el pedido después de la carne; elija chocolate, de temporada, gelato o queso.', 'Dolce', 'Dessert inclus. Prendre la commande après la viande : chocolat, saison, gelato ou fromage.', '甜品', '含甜品。肉菜之后点单：巧克力、时令、冰淇淋或奶酪。')
+    tc(8, 'Dolce', '', PA, {
+      mode: 'later', pending: true, fireAfter: 'meat', group: 'Dolce', headingOnly: true,
+      i18n: ix('Dolce', '', 'Dolce', '', 'Dolce', '')
     })
   ];
 
@@ -489,7 +499,7 @@
     pairings: []
   };
 
-  function wg(id, group, name, producer, vintage, region, country, varietal, glass, bottle) {
+  function wg(id, group, name, producer, vintage, region, country, varietal, glass, bottle, moreUrl) {
     return {
       id: id,
       group: group,
@@ -509,54 +519,55 @@
       category: 'wine-glass',
       station: 'Bar',
       allergens: ['Sulfites'],
+      sourceUrl: moreUrl || '',
+      moreUrl: moreUrl || '',
+      storyUrl: moreUrl || '',
       desc: [producer, vintage && vintage !== 'NV' ? vintage : '', region, varietal].filter(Boolean).join(' · ')
     };
   }
 
   var winesByGlass = [
-    wg('btg_spark_beck', 'Sparkling', 'Graham Beck Brut', 'Graham Beck', 'NV', 'Western Cape', 'South Africa', 'Chardonnay / Pinot Noir', 25, 0),
-    wg('btg_spark_zardetto', 'Sparkling', 'Zardetto Prosecco Brut', 'Zardetto', 'NV', 'Veneto', 'Italy', 'Glera', 17, 0),
-    wg('btg_spark_concerto', 'Sparkling', 'Lambrusco “Concerto” Medici Ermete 2025', 'Medici Ermete', '2025', 'Emilia-Romagna', 'Italy', 'Lambrusco', 27, 0),
-    wg('btg_white_haberle', 'White Wine', 'Pinot Bianco “Haberle” Elena Walch 2022', 'Elena Walch', '2022', 'Alto Adige / Südtirol', 'Italy', 'Pinot Bianco', 20, 0),
-    wg('btg_white_vette', 'White Wine', 'Sauvignon Blanc “Vette” Tenuta San Leonardo 2022', 'Tenuta San Leonardo', '2022', 'Trentino', 'Italy', 'Sauvignon Blanc', 18, 0),
-    wg('btg_white_gavi', 'White Wine', 'Gavi di Gavi “Lugarara” La Giustiniana 2022', 'La Giustiniana', '2022', 'Gavi, Piemonte', 'Italy', 'Cortese', 18, 0),
-    wg('btg_white_muschelkalk', 'White Wine', 'Pinot Blanc & Auxerrois “Muschelkalk” 2021', '', '2021', 'Alsace / Alto Adige', 'France / Italy', 'Pinot Blanc / Auxerrois', 24, 0),
-    wg('btg_white_hartford', 'White Wine', 'Chardonnay “Four Hearts” Hartford Court Russian River Valley 2022', 'Hartford Court', '2022', 'Russian River Valley', 'USA', 'Chardonnay', 30, 0),
-    wg('btg_red_lecorne', 'Red Wine', 'Montepulciano d’Abruzzo “Le Corne” Valle Reale 2020', 'Valle Reale', '2020', 'Abruzzo', 'Italy', 'Montepulciano', 22, 0),
-    wg('btg_red_musella', 'Red Wine', 'Valpolicella Classico Superiore Musella 2020', 'Musella', '2020', 'Valpolicella, Veneto', 'Italy', 'Corvina blend', 24, 0),
-    wg('btg_red_plumbum', 'Red Wine', 'Merlot “Plumbum” 2014', 'Plumbum', '2014', 'Italy', 'Italy', 'Merlot', 35, 0),
-    wg('btg_lib_sudtirol', 'Library Selection', 'Südtirol Blauburgunder Riserva Gries 2015', 'Gries', '2015', 'Südtirol', 'Italy', 'Blauburgunder (Pinot Nero)', 28, 0),
-    wg('btg_lib_fontodi', 'Library Selection', 'Chianti Classico Riserva “Vigna del Sorbo” Fontodi 2013', 'Fontodi', '2013', 'Chianti Classico, Tuscany', 'Italy', 'Sangiovese', 35, 0),
-    wg('btg_lib_barbera', 'Library Selection', 'Barbera del Monferrato Superiore “Vulpis” Cascina Valpane 2010', 'Cascina Valpane', '2010', 'Monferrato, Piemonte', 'Italy', 'Barbera', 35, 0),
-    wg('btg_des_spinetta', 'Dessert', 'Moscato d’Asti “Bricco Quaglia” La Spinetta 2022', 'La Spinetta', '2022', 'Asti, Piemonte', 'Italy', 'Moscato Bianco', 17, 0),
-    wg('btg_des_vidal', 'Dessert', 'Inniskillin Ice Wine Vidal 2019', 'Inniskillin', '2019', 'Niagara Peninsula', 'Canada', 'Vidal', 30, 0),
-    wg('btg_des_riesling', 'Dessert', 'Inniskillin Ice Wine Riesling 2021', 'Inniskillin', '2021', 'Niagara Peninsula', 'Canada', 'Riesling', 35, 0),
-    wg('btg_des_franc', 'Dessert', 'Inniskillin Ice Wine Cabernet Franc 2022', 'Inniskillin', '2022', 'Niagara Peninsula', 'Canada', 'Cabernet Franc', 45, 0),
-    wg('btg_port_bin27', 'Port', 'Fonseca Ruby Reserve Bin 27', 'Fonseca', 'NV', 'Porto', 'Portugal', 'Touriga Nacional blend', 14, 0),
-    wg('btg_port_croft', 'Port', 'Croft Distinction Special Reserve', 'Croft', 'NV', 'Porto', 'Portugal', 'Touriga Nacional blend', 15, 0),
-    wg('btg_port_tawny10', 'Port', 'Fonseca Tawny 10 Year', 'Fonseca', 'NV', 'Porto', 'Portugal', 'Tawny Port blend', 20, 0),
-    wg('btg_port_tawny20', 'Port', 'Fonseca Tawny 20 Year', 'Fonseca', 'NV', 'Porto', 'Portugal', 'Tawny Port blend', 25, 0)
+    wg('btg_spark_beck', 'Sparkling', 'Graham Beck Brut', 'Graham Beck', 'NV', 'Western Cape', 'South Africa', 'Chardonnay / Pinot Noir', 25, 0, 'https://www.grahambeck.com'),
+    wg('btg_spark_zardetto', 'Sparkling', 'Zardetto Prosecco Brut', 'Zardetto', 'NV', 'Veneto', 'Italy', 'Glera', 17, 0, 'https://www.zardetto.it'),
+    wg('btg_spark_concerto', 'Sparkling', 'Lambrusco “Concerto” Medici Ermete 2025', 'Medici Ermete', '2025', 'Emilia-Romagna', 'Italy', 'Lambrusco', 27, 0, 'https://www.medici.it'),
+    wg('btg_white_walch', 'White Wine', 'Pinot Bianco “Selezione” Elena Walch 2023', 'Elena Walch', '2023', 'Alto Adige / Südtirol', 'Italy', 'Pinot Bianco', 25, 0, 'https://www.elenawalch.com'),
+    wg('btg_white_friulano', 'White Wine', 'Friulano Isonzo del Friuli Tenuta 2021', 'Tenuta', '2021', 'Isonzo del Friuli', 'Italy', 'Friulano', 18, 0, ''),
+    wg('btg_white_fiano', 'White Wine', 'Fiano di Avellino “Radici” Mastroberardino 2023', 'Mastroberardino', '2023', 'Avellino, Campania', 'Italy', 'Fiano', 24, 0, 'https://www.mastroberardino.com'),
+    wg('btg_white_hartford', 'White Wine', 'Chardonnay “Four Hearts” Hartford Court Russian River Valley 2022', 'Hartford Court', '2022', 'Russian River Valley', 'USA', 'Chardonnay', 30, 0, 'https://hartfordwines.com'),
+    wg('btg_red_core', 'Red Wine', 'Montevetrano Rosso “Core” (Aglianico) Montevetrano 2020', 'Montevetrano', '2020', 'Campania', 'Italy', 'Aglianico', 22, 0, 'https://www.montevetrano.it'),
+    wg('btg_red_fumanelli', 'Red Wine', 'Valpolicella Classico Superiore Marchesi Fumanelli 2019', 'Marchesi Fumanelli', '2019', 'Valpolicella, Veneto', 'Italy', 'Corvina blend', 24, 0, 'https://www.marchesifumanelli.it'),
+    wg('btg_red_planeta', 'Red Wine', 'Merlot Planeta 2014', 'Planeta', '2014', 'Sicily', 'Italy', 'Merlot', 28, 0, 'https://planeta.it'),
+    wg('btg_lib_sudtirol', 'Library Selection', 'Südtiroler Blauburgunder Riserva Gries 2015', 'Gries / Kellerei Bozen', '2015', 'Südtirol', 'Italy', 'Blauburgunder (Pinot Nero)', 28, 0, 'https://www.kellereibozen.com'),
+    wg('btg_lib_fizzano', 'Library Selection', 'Chianti Classico Riserva “Fizzano” Rocca delle Macie 2009', 'Rocca delle Macie', '2009', 'Chianti Classico, Tuscany', 'Italy', 'Sangiovese', 30, 0, 'https://www.roccadellemacie.com'),
+    wg('btg_lib_barbera', 'Library Selection', 'Barbera del Monferrato Superiore “Vulpis” Cascina Valpane 2010', 'Cascina Valpane', '2010', 'Monferrato, Piemonte', 'Italy', 'Barbera', 35, 0, 'https://www.cascinavalpane.com'),
+    wg('btg_des_spinetta', 'Dessert', 'Moscato d’Asti “Bricco Quaglia” La Spinetta 2023', 'La Spinetta', '2023', 'Asti, Piemonte', 'Italy', 'Moscato Bianco', 15, 0, 'https://www.la-spinetta.com'),
+    wg('btg_des_vidal', 'Dessert', 'Inniskillin Ice Wine “Vidal Pearl” 2021', 'Inniskillin', '2021', 'Niagara Peninsula', 'Canada', 'Vidal', 30, 0, 'https://www.inniskillin.com'),
+    wg('btg_des_riesling', 'Dessert', 'Inniskillin Ice Wine “Riesling” 2021', 'Inniskillin', '2021', 'Niagara Peninsula', 'Canada', 'Riesling', 35, 0, 'https://www.inniskillin.com'),
+    wg('btg_des_franc', 'Dessert', 'Inniskillin Ice Wine “Cabernet Franc” 2022', 'Inniskillin', '2022', 'Niagara Peninsula', 'Canada', 'Cabernet Franc', 45, 0, 'https://www.inniskillin.com'),
+    wg('btg_port_bin27', 'Port', 'Fonseca Ruby Reserve Bin 27', 'Fonseca', 'NV', 'Porto', 'Portugal', 'Touriga Nacional blend', 14, 0, 'https://www.fonseca.pt'),
+    wg('btg_port_croft', 'Port', 'Croft Distinction Special Reserve', 'Croft', 'NV', 'Porto', 'Portugal', 'Touriga Nacional blend', 18, 0, 'https://www.croftport.com'),
+    wg('btg_port_tawny10', 'Port', 'Fonseca Tawny 10 Years', 'Fonseca', 'NV', 'Porto', 'Portugal', 'Tawny Port blend', 20, 0, 'https://www.fonseca.pt'),
+    wg('btg_port_tawny20', 'Port', 'Fonseca Tawny 20 Years', 'Fonseca', 'NV', 'Porto', 'Portugal', 'Tawny Port blend', 25, 0, 'https://www.fonseca.pt')
   ];
 
   var wineNotes = {
-    btg_spark_beck: 'Méthode traditionnelle from the Western Cape: Chardonnay and Pinot Noir, citrus and green apple, a dry, fine mousse. Vintage NV. Sits well with oysters, simply seasoned fish, and as an aperitif.',
-    btg_spark_zardetto: 'Prosecco Brut from the Veneto, Glera, tank-method, pear and white flowers, dry enough for the table. Vintage NV. Sits well with fried vegetables, shrimp, and a first course.',
-    btg_spark_concerto: 'Lambrusco from Medici Ermete, Concerto, 2025, Emilia-Romagna. Dry enough for the table, violet and red cherry, a light froth. Sits well with salumi, fried vegetables, and pizza.',
-    btg_white_haberle: 'Pinot Bianco from the Haberle vineyard, Alto Adige, 2022. Pear, alpine herbs, and a stony finish. Sits well with sole, salads, and dishes with lemon or herbs.',
-    btg_white_vette: 'Sauvignon Blanc from Tenuta San Leonardo, Trentino, 2022. Grapefruit, boxwood, and a mountain snap. Sits well with shrimp, goat cheese, and herb-driven primi.',
-    btg_white_gavi: 'Cortese from Gavi di Gavi, 2022. White peach, almond, and a saline edge. Sits well with seafood pasta, pesto, and light veal.',
-    btg_white_muschelkalk: 'Pinot Blanc and Auxerrois, 2021, from limestone (Muschelkalk) soils. Apple, white flowers, and a chalky mid-palate. Sits well with roast fish, quiche, and mild cheeses.',
-    btg_white_hartford: 'Russian River Valley Chardonnay, 2022. Ripe apple, citrus, and measured oak. Sits well with scallops, lobster, and dishes with butter or truffle.',
-    btg_red_lecorne: 'Montepulciano the grape, from Abruzzo, 2020. Dark cherry, soft tannin, a warm finish. Sits well with tomato sauces, sausage, and roast chicken.',
-    btg_red_musella: 'Valpolicella Classico Superiore, 2020. Corvina and related grapes: cherry, spice, a plush texture short of Amarone. Sits well with ragù, mushrooms, and duck.',
-    btg_red_plumbum: 'Merlot, 2014. Plum, cocoa, and resolved tannin after a decade in bottle. Sits well with steak, lamb, and hard cheeses.',
-    btg_lib_sudtirol: 'Blauburgunder — Pinot Nero — from Südtirol, Riserva Gries 2015. Pale, cherry, forest floor; alpine Pinot, not Burgundy. Sits well with roast birds, mushrooms, and mild game.',
-    btg_lib_fontodi: 'Chianti Classico Riserva from Vigna del Sorbo, 2013. Sangiovese: sour cherry, leather, and savory herbs after extra years in wood. Sits well with bistecca, lamb, and aged pecorino.',
-    btg_lib_barbera: 'Barbera del Monferrato Superiore, Vulpis, 2010. High acidity, dark cherry, and a long finish from a decade in bottle. Sits well with truffle pasta, braises, and rich meats.',
-    btg_des_spinetta: 'Moscato d’Asti, Bricco Quaglia, 2022. Lightly sparkling, low alcohol, peach and orange blossom. Sits well with fruit tarts and not-too-salty cheeses.',
-    btg_des_vidal: 'Ice wine, Niagara, 2019. Vidal grapes frozen on the vine, pressed for a small yield of apricot and honey, kept in check by acidity. Sits well with fruit pastry and foie gras.',
-    btg_des_riesling: 'Ice wine, Niagara, 2021. Frozen Riesling: lime, pineapple, and a petrol note, with acidity that carries the sugar. Sits well with blue cheese and citrus tarts.',
-    btg_des_franc: 'Ice wine, Niagara, 2022. Cabernet Franc frozen on the vine: strawberry, raspberry, and tea leaf. Sits well with berry desserts and mild blue cheese.',
+    btg_spark_beck: 'Méthode traditionnelle from the Western Cape: Chardonnay and Pinot Noir, citrus and green apple, a dry, fine mousse. Non-vintage. Sits well with oysters, simply seasoned fish, and as an aperitif.',
+    btg_spark_zardetto: 'Prosecco Brut from the Veneto. Glera, tank-method, pear and white flowers, dry enough for the table. Non-vintage. Sits well with fried vegetables, shrimp, and a first course.',
+    btg_spark_concerto: 'Lambrusco Concerto, Medici Ermete, 2025, Emilia-Romagna. Dry enough for the table, violet and red cherry, a light froth. Sits well with salumi, fried vegetables, and pizza.',
+    btg_white_walch: 'Pinot Bianco Selezione, Elena Walch, Alto Adige, 2023. Pear, alpine herbs, and a stony finish. Sits well with sole, salads, and dishes with lemon or herbs.',
+    btg_white_friulano: 'Friulano from Isonzo del Friuli, 2021. Almond, pear, and a dry finish. Sits well with shrimp, goat cheese, and herb-driven primi.',
+    btg_white_fiano: 'Fiano di Avellino Radici, Mastroberardino, 2023. Honey, hazelnut, and volcanic minerality. Sits well with seafood pasta, lobster, and roast fish.',
+    btg_white_hartford: 'Russian River Valley Chardonnay Four Hearts, Hartford Court, 2022. Ripe apple, citrus, and measured oak. Sits well with scallops, lobster, and dishes with butter or truffle.',
+    btg_red_core: 'Montevetrano Rosso Core, Aglianico, 2020. Dark cherry, spice, and firm but approachable tannin. Sits well with tomato sauces, sausage, and roast meats.',
+    btg_red_fumanelli: 'Valpolicella Classico Superiore, Marchesi Fumanelli, 2019. Corvina and related grapes: cherry, spice, a plush texture short of Amarone. Sits well with ragù, mushrooms, and duck.',
+    btg_red_planeta: 'Merlot, Planeta, Sicily, 2014. Plum, cocoa, and resolved tannin after years in bottle. Sits well with steak, lamb, and hard cheeses.',
+    btg_lib_sudtirol: 'Blauburgunder — Pinot Nero — from Südtirol, Riserva Gries 2015. Pale cherry, forest floor; alpine Pinot, not Burgundy. Sits well with roast birds, mushrooms, and mild game.',
+    btg_lib_fizzano: 'Chianti Classico Riserva Fizzano, Rocca delle Macie, 2009. Sangiovese: sour cherry, leather, and savory herbs. Sits well with bistecca, lamb, and aged pecorino.',
+    btg_lib_barbera: 'Barbera del Monferrato Superiore, Vulpis, Cascina Valpane, 2010. High acidity, dark cherry, and a long finish from a decade in bottle. Sits well with truffle pasta, braises, and rich meats.',
+    btg_des_spinetta: 'Moscato d’Asti, Bricco Quaglia, La Spinetta, 2023. Lightly sparkling, low alcohol, peach and orange blossom. Sits well with fruit tarts and cheeses that are not too salty.',
+    btg_des_vidal: 'Ice wine, Niagara, Vidal Pearl, 2021. Grapes frozen on the vine, pressed for a small yield of apricot and honey, kept in check by acidity. Sits well with fruit pastry and foie gras.',
+    btg_des_riesling: 'Ice wine, Niagara, Riesling, 2021. Frozen Riesling: lime, pineapple, and a petrol note, with acidity that carries the sugar. Sits well with blue cheese and citrus tarts.',
+    btg_des_franc: 'Ice wine, Niagara, Cabernet Franc, 2022. Grapes frozen on the vine: strawberry, raspberry, and tea leaf. Sits well with berry desserts and mild blue cheese.',
     btg_port_bin27: 'Ruby Reserve from the Douro. Bottled young for blackberry and chocolate. Serve slightly cool after dinner, with walnuts or dark chocolate.',
     btg_port_croft: 'Special Reserve Port from the Douro: ripe, spicy, ready to pour. Sits well with Stilton and chocolate.',
     btg_port_tawny10: 'Ten years in wood: nut, caramel, and dried fig. Serve lightly chilled with cheese or chocolate.',
@@ -650,7 +661,7 @@
     lamb: 'Lamb shank in the style of osso buco, taken off the bone, with lentils.',
     lentil: 'Braised lentils are earthy legumes under the lamb.',
     'sicilian olive': 'Olives from Sicily, spicy in the lamb reduction.',
-    'filet mignon': 'The tenderloin of beef — this 10 oz. split filet is from Dutton Ranch in South Carolina.',
+    'filet mignon': 'Filet mignon is the tenderloin — the muscle along the spine of the cow. It does little work, so it is the most tender steak. This filet is from Bastrop Cattle Company, Texas. bastropcattlecompany.com',
     onion: 'Onions in the Giambotta mix with peppers and mushrooms.',
     'hot pepper': 'Chili peppers for heat in Giambotta.',
     'sweet pepper': 'Bell-style peppers for sweetness in Giambotta.',
@@ -679,10 +690,10 @@
     banana: 'Thin banana slices, brûléed in fillo.',
     zabaglione: 'A light foam of egg yolk, sugar, and wine, served cold on the pineapple tart.',
     vanilla: 'Vanilla gelato or custard.',
-    gelato: 'Milk-based, denser than ice cream, served a little warmer. Dairy unless it is sorbetto.',
-    sorbetto: 'Fruit, water, and sugar — no dairy. Green apple is the sorbetto on this list.',
-    'ice cream': 'Cream-based, higher in fat, and whipped with more air than gelato.',
-    'green apple': 'Green apple sorbetto: fruit, water, and sugar. Dairy-free.',
+    gelato: 'Milk-based frozen dessert. Each flavor is listed on the scoop cards.',
+    sorbetto: 'Fruit and water — no dairy. Green apple is the sorbet on this list.',
+    'ice cream': 'Cream-based frozen dessert, lighter than gelato.',
+    'green apple': 'Green apple sorbet from Masker Orchards, upstate New York (maskers.com), and water. Non-dairy.',
     gorgonzola: 'Gorgonzola Dolce is a creamy blue cheese from Lombardy.',
     'buffalo mozzarella': 'Fresh Campania mozzarella from water-buffalo milk.'
   };
@@ -699,12 +710,15 @@
       servedAuto: 'Brought first, one at a time',
       dessertLater: 'Chosen after the main course',
       tastingDessertLater: 'Chosen after the meat course',
-      entremetsNote: 'A small course before dessert. The pineapple is glazed with rum; nuts may finish the plate.',
+      entremetsNote: 'Served automatically as an entremet (palate cleanser). Not chosen by the guest.',
+      dessertWord: 'Dessert',
       threeScoops: 'Choose three scoops',
       scoopSorbetto: 'Sorbetto',
       scoopGelato: 'Gelato',
       scoopNeedThree: 'Please choose three scoops',
-      gelatoStyle: 'Sorbetto is fruit, water, and sugar — no dairy. Gelato is milk-based, denser than ice cream, and served a little warmer. Ice cream is cream-based, higher in fat, and whipped with more air.',
+      gelatoStyle: '',
+      exploreLink: 'Explore',
+      tapForInfo: 'Tap to read more',
       needTable: 'Please select a table before opening the menu',
       findCellar: 'Find a bottle, beer, or spirit',
       cellarBeer: 'Beer',
@@ -767,12 +781,15 @@
       servedAuto: 'Se sirven primero, uno a uno',
       dessertLater: 'Se elige después del plato principal',
       tastingDessertLater: 'Se elige después del plato de carne',
-      entremetsNote: 'Un paso breve antes del postre. La piña va al ron; el plato puede llevar frutos secos.',
+      entremetsNote: 'Se sirve automáticamente como entremet (limpia paladar). El huésped no lo elige.',
+      dessertWord: 'Postre',
       threeScoops: 'Elija tres bolas',
       scoopSorbetto: 'Sorbetto',
       scoopGelato: 'Gelato',
       scoopNeedThree: 'Elija tres bolas',
-      gelatoStyle: 'El sorbetto es fruta, agua y azúcar, sin lácteos. El gelato se hace con leche, es más denso que el ice cream y se sirve un poco más tibio. El ice cream es a base de nata, con más grasa y más aire.',
+      gelatoStyle: '',
+      exploreLink: 'Explorar',
+      tapForInfo: 'Toque para leer más',
       needTable: 'Elija una mesa antes de abrir el menú',
       findCellar: 'Buscar botella, cerveza o destilado',
       cellarBeer: 'Cerveza',
@@ -835,12 +852,15 @@
       servedAuto: 'Servis d’abord, un par un',
       dessertLater: 'Choisi après le plat principal',
       tastingDessertLater: 'Choisi après la viande',
-      entremetsNote: 'Un passage avant le dessert. L’ananas est glacé au rhum ; le plat peut porter des fruits à coque.',
+      entremetsNote: 'Servi automatiquement en entremet (pause palais). Le client ne le choisit pas.',
+      dessertWord: 'Dessert',
       threeScoops: 'Choisir trois boules',
       scoopSorbetto: 'Sorbetto',
       scoopGelato: 'Gelato',
       scoopNeedThree: 'Veuillez choisir trois boules',
-      gelatoStyle: 'Le sorbetto est fruit, eau et sucre — sans lait. Le gelato est au lait, plus dense que l’ice cream, servi un peu plus tiède. L’ice cream est à la crème, plus gras et plus aéré.',
+      gelatoStyle: '',
+      exploreLink: 'Explorer',
+      tapForInfo: 'Touchez pour en savoir plus',
       needTable: 'Veuillez choisir une table avant d’ouvrir le menu',
       findCellar: 'Trouver une bouteille, une bière ou un spiritueux',
       cellarBeer: 'Bières',
@@ -903,12 +923,15 @@
       servedAuto: '先上，逐道出品',
       dessertLater: '主菜之后再选',
       tastingDessertLater: '肉菜之后再选',
-      entremetsNote: '甜品前的一小口。菠萝有朗姆酒；盘上可能有坚果。',
+      entremetsNote: '作为餐间清口自动上桌，宾客无需点选。',
+      dessertWord: '甜点',
       threeScoops: '请选三球',
       scoopSorbetto: 'Sorbetto',
       scoopGelato: 'Gelato',
       scoopNeedThree: '请选三球',
-      gelatoStyle: 'Sorbetto 是水果、水与糖，无乳。Gelato 用牛奶，比 ice cream 更致密，温度略高。Ice cream 以奶油为主，脂肪更高、空气更多。',
+      gelatoStyle: '',
+      exploreLink: '了解产地',
+      tapForInfo: '点击阅读介绍',
       needTable: '请先选择桌号再打开菜单',
       findCellar: '查找瓶装酒、啤酒或烈酒',
       cellarBeer: '啤酒',
@@ -917,7 +940,7 @@
       experience: '体验',
       allergies: '过敏',
       welcome: '小头盘',
-      dolce: '甜品',
+      dolce: 'Dolce',
       callServer: '呼叫服务员',
       viewMenu: '查看菜单',
       selectTable: '选择桌号',
@@ -984,8 +1007,6 @@
       var L = live[x.id];
       if (L.photoUrl) { x.photoUrl = L.photoUrl; x.photo = L.photoUrl; }
       else if (L.photo) { x.photo = L.photo; x.photoUrl = L.photo; }
-      if (L.story) x.story = L.story;
-      if (L.storyUrl) x.storyUrl = L.storyUrl;
     }
     (seedMenu.dishes || []).forEach(apply);
     (seedMenu.courses || []).forEach(function (c) {
@@ -1011,6 +1032,8 @@
       if (!d || !s) return;
       if (s.story && !d.story) d.story = s.story;
       if (s.storyUrl && !d.storyUrl) d.storyUrl = s.storyUrl;
+      if (s.sourceUrl && !d.sourceUrl) d.sourceUrl = s.sourceUrl;
+      if (s.moreUrl && !d.moreUrl) d.moreUrl = s.moreUrl;
       if (s.pairWhite && !d.pairWhite) d.pairWhite = s.pairWhite;
       if (s.pairRed && !d.pairRed) d.pairRed = s.pairRed;
       if (s.pairDessert && !d.pairDessert) d.pairDessert = s.pairDessert;
