@@ -1,7 +1,7 @@
 /* Scalini Fedeli prix fixe $89 + Regional Tasting $115.
    Shared by BOH, POS, kitchen, and the iPad menu. Printed BTG 2026-09-08. */
 (function (root) {
-  var VERSION = 20260912;
+  var VERSION = 20260913;
   var GM = 'Cold / Garde Manger';
   var SA = 'Sauté';
   var GR = 'Grill';
@@ -400,15 +400,15 @@
   }
 
   var tastingCourses = [
-    tc(1, 'Smoked Salmon', 'Served over brioche toast with lemon-chive crema. Welcome course — fire alone.', GM, {
+    tc(1, 'Smoked Salmon', 'Served over brioche toast with lemon-chive crema.', GM, {
       allergens: ['Fish', 'Gluten', 'Dairy'], dishId: 'sf_w_salmon', group: 'Welcome',
       ingredients: 'smoked salmon, lemon, chive, crema, brioche', pairWhite: PS_BECK,
-      i18n: ix('Salmón ahumado', 'Sobre brioche tostado con crema de limón y cebollino. Bienvenida — disparar sola.', 'Saumon fumé', 'Sur brioche toastée, crème citron-ciboulette. Mise en bouche — envoyer seule.', '烟熏三文鱼', '奶油吐司配柠檬香葱奶油酱。欢迎菜 — 单独出餐。')
+      i18n: ix('Salmón ahumado', 'Sobre brioche tostado con crema de limón y cebollino.', 'Saumon fumé', 'Sur brioche toastée, crème citron-ciboulette.', '烟熏三文鱼', '奶油吐司配柠檬香葱奶油酱。')
     }),
-    tc(2, 'Breaded zucchini Milanese', 'Tomato-basil sauce, chili oil. Welcome course — fire alone.', FR, {
+    tc(2, 'Breaded zucchini Milanese', 'Tomato-basil sauce, chili oil.', FR, {
       allergens: ['Gluten', 'Egg'], dishId: 'sf_w_zucchini', group: 'Welcome',
       ingredients: 'zucchini, bread crumbs, egg, tomato, basil, chili oil', pairWhite: PW_GRIGIO,
-      i18n: ix('Calabacín a la milanesa empanado', 'Salsa de tomate y albahaca, aceite de chile. Bienvenida — disparar sola.', 'Courgette milanaise panée', 'Sauce tomate-basilic, huile de piment. Mise en bouche — envoyer seule.', '米兰式炸西葫芦', '番茄罗勒、辣椒油。欢迎菜 — 单独出餐。')
+      i18n: ix('Calabacín a la milanesa empanado', 'Salsa de tomate y albahaca, aceite de chile.', 'Courgette milanaise panée', 'Sauce tomate-basilic, huile de piment.', '米兰式炸西葫芦', '番茄罗勒、辣椒油。')
     }),
     tc(3, 'Porcini ravioli — Piemonte', 'Wild mushroom and black truffle sauce', SA, {
       allergens: ['Gluten', 'Dairy'], dishId: 'sf_p_porcini', group: 'Courses',
@@ -445,8 +445,8 @@
     id: 'pf_scalini_89',
     version: VERSION,
     name: 'Scalini Fedeli',
-    subtitle: 'Prix fixe dinner $89. Primi Piccolo arrive first, one at a time; dessert after the main.',
-    desc: 'Three Primi Piccolo are brought first, one at a time. Choose a primo and a main. Dessert is taken after the main. Coconut–lime sorbet is served before dessert.',
+    subtitle: 'Prix fixe dinner $89. Primi Piccolo are served automatically, one at a time; dessert after the main.',
+    desc: 'Smoked salmon, zucchini Milanese, and shrimp are served automatically, one at a time — you do not choose them. Choose a primo and a main. Dessert is taken after the main. Coconut–lime sorbet is served before dessert.',
     price: 89,
     service: 'dinner',
     mealPeriod: 'dinner',
@@ -456,16 +456,16 @@
     dessertAfter: 'main',
     i18n: {
       es: {
-        subtitle: 'Cena prix fixe $89. Los Primi Piccolo llegan primero, uno a uno; postre después del principal.',
-        desc: 'Tres bocados de Primi Piccolo se sirven primero, uno a uno. Elija un primo y un principal. El postre se toma después del principal. El sorbete de coco y lima se sirve antes del postre.'
+        subtitle: 'Cena prix fixe $89. Los Primi Piccolo se sirven solos, uno a uno; postre después del principal.',
+        desc: 'El salmón ahumado, el calabacín a la milanesa y las gambas se sirven solos, uno a uno — usted no los elige. Elija un primo y un principal. El postre se toma después del principal. El sorbete de coco y lima se sirve antes del postre.'
       },
       fr: {
-        subtitle: 'Dîner prix fixe $89. Les Primi Piccolo arrivent d’abord, un par un ; dessert après le plat.',
-        desc: 'Trois Primi Piccolo arrivent d’abord, un à la fois. Choisissez un primo et un plat. Le dessert se prend après le plat. Le sorbet coco-citron vert est servi avant le dessert.'
+        subtitle: 'Dîner prix fixe $89. Les Primi Piccolo sont servis automatiquement, un par un ; dessert après le plat.',
+        desc: 'Saumon fumé, courgette milanaise et crevettes arrivent automatiquement, un à la fois — vous ne les choisissez pas. Choisissez un primo et un plat. Le dessert se prend après le plat. Le sorbet coco-citron vert est servi avant le dessert.'
       },
       zh: {
-        subtitle: '套餐晚餐 $89。小头盘先上，逐道出品。甜品在主菜之后。',
-        desc: '三道小头盘先上，逐道出品。请选择头盘与主菜。甜品在主菜之后。椰奶青柠雪芭在甜品之前。'
+        subtitle: '套餐晚餐 $89。小头盘自动逐道上桌。甜品在主菜之后。',
+        desc: '烟熏三文鱼、米兰式西葫芦与大虾会自动逐道上桌，无需点选。请选择头盘与主菜。甜品在主菜之后。椰奶青柠雪芭在甜品之前。'
       }
     },
     courses: courses,
@@ -480,7 +480,7 @@
     id: 'tm_scalini_128',
     version: VERSION,
     name: 'Scalini Fedeli Regional Tasting',
-    subtitle: 'Smoked salmon and zucchini, then Piemonte, Emilia Romagna, Umbria, Toscana',
+    subtitle: 'Served as written. Choose temperature for salmon and filet, then dessert.',
     price: 115,
     duration: '~3 hours',
     service: 'dinner',
@@ -491,13 +491,18 @@
     dessertAfter: 'meat',
     dessertMenuId: 'pf_scalini_89',
     i18n: {
-      es: { subtitle: 'Salmón ahumado y calabacín, luego Piamonte, Emilia-Romaña, Umbría, Toscana' },
-      fr: { subtitle: 'Saumon fumé et courgette, puis Piémont, Émilie-Romagne, Ombrie, Toscane' },
-      zh: { subtitle: '烟熏三文鱼与西葫芦之后：皮埃蒙特、艾米利亚－罗马涅、翁布里亚、托斯卡纳' }
+      es: { subtitle: 'Se sirve tal cual. Elija temperatura del salmón y el filet, luego el postre.' },
+      fr: { subtitle: 'Servi tel quel. Choisissez la cuisson du saumon et du filet, puis le dessert.' },
+      zh: { subtitle: '按菜单上桌。只需选择三文鱼与菲力的熟度，以及甜点。' }
     },
     courses: tastingCourses,
     pairings: []
   };
+
+  function vintageSearchUrl(producer, name, vintage) {
+    var q = [producer, name, vintage && vintage !== 'NV' ? vintage : ''].filter(Boolean).join(' ');
+    return 'https://www.wine-searcher.com/find/' + encodeURIComponent(q.replace(/\s+/g, ' ').trim());
+  }
 
   function wg(id, group, name, producer, vintage, region, country, varietal, glass, bottle, moreUrl) {
     return {
@@ -522,6 +527,7 @@
       sourceUrl: moreUrl || '',
       moreUrl: moreUrl || '',
       storyUrl: moreUrl || '',
+      vintageUrl: vintageSearchUrl(producer, name, vintage),
       desc: [producer, vintage && vintage !== 'NV' ? vintage : '', region, varietal].filter(Boolean).join(' · ')
     };
   }
@@ -551,27 +557,55 @@
   ];
 
   var wineNotes = {
-    btg_spark_beck: 'Méthode traditionnelle from the Western Cape: Chardonnay and Pinot Noir, citrus and green apple, a dry, fine mousse. Non-vintage. Sits well with oysters, simply seasoned fish, and as an aperitif.',
-    btg_spark_zardetto: 'Prosecco Brut from the Veneto. Glera, tank-method, pear and white flowers, dry enough for the table. Non-vintage. Sits well with fried vegetables, shrimp, and a first course.',
-    btg_spark_concerto: 'Lambrusco Concerto, Medici Ermete, 2025, Emilia-Romagna. Dry enough for the table, violet and red cherry, a light froth. Sits well with salumi, fried vegetables, and pizza.',
-    btg_white_walch: 'Pinot Bianco Selezione, Elena Walch, Alto Adige, 2023. Pear, alpine herbs, and a stony finish. Sits well with sole, salads, and dishes with lemon or herbs.',
-    btg_white_friulano: 'Friulano from Isonzo del Friuli, 2021. Almond, pear, and a dry finish. Sits well with shrimp, goat cheese, and herb-driven primi.',
-    btg_white_fiano: 'Fiano di Avellino Radici, Mastroberardino, 2023. Honey, hazelnut, and volcanic minerality. Sits well with seafood pasta, lobster, and roast fish.',
-    btg_white_hartford: 'Russian River Valley Chardonnay Four Hearts, Hartford Court, 2022. Ripe apple, citrus, and measured oak. Sits well with scallops, lobster, and dishes with butter or truffle.',
-    btg_red_core: 'Montevetrano Rosso Core, Aglianico, 2020. Dark cherry, spice, and firm but approachable tannin. Sits well with tomato sauces, sausage, and roast meats.',
-    btg_red_fumanelli: 'Valpolicella Classico Superiore, Marchesi Fumanelli, 2019. Corvina and related grapes: cherry, spice, a plush texture short of Amarone. Sits well with ragù, mushrooms, and duck.',
-    btg_red_planeta: 'Merlot, Planeta, Sicily, 2014. Plum, cocoa, and resolved tannin after years in bottle. Sits well with steak, lamb, and hard cheeses.',
-    btg_lib_sudtirol: 'Blauburgunder — Pinot Nero — from Südtirol, Riserva Gries 2015. Pale cherry, forest floor; alpine Pinot, not Burgundy. Sits well with roast birds, mushrooms, and mild game.',
-    btg_lib_fizzano: 'Chianti Classico Riserva Fizzano, Rocca delle Macie, 2009. Sangiovese: sour cherry, leather, and savory herbs. Sits well with bistecca, lamb, and aged pecorino.',
-    btg_lib_barbera: 'Barbera del Monferrato Superiore, Vulpis, Cascina Valpane, 2010. High acidity, dark cherry, and a long finish from a decade in bottle. Sits well with truffle pasta, braises, and rich meats.',
-    btg_des_spinetta: 'Moscato d’Asti, Bricco Quaglia, La Spinetta, 2023. Lightly sparkling, low alcohol, peach and orange blossom. Sits well with fruit tarts and cheeses that are not too salty.',
-    btg_des_vidal: 'Ice wine, Niagara, Vidal Pearl, 2021. Grapes frozen on the vine, pressed for a small yield of apricot and honey, kept in check by acidity. Sits well with fruit pastry and foie gras.',
-    btg_des_riesling: 'Ice wine, Niagara, Riesling, 2021. Frozen Riesling: lime, pineapple, and a petrol note, with acidity that carries the sugar. Sits well with blue cheese and citrus tarts.',
-    btg_des_franc: 'Ice wine, Niagara, Cabernet Franc, 2022. Grapes frozen on the vine: strawberry, raspberry, and tea leaf. Sits well with berry desserts and mild blue cheese.',
-    btg_port_bin27: 'Ruby Reserve from the Douro. Bottled young for blackberry and chocolate. Serve slightly cool after dinner, with walnuts or dark chocolate.',
-    btg_port_croft: 'Special Reserve Port from the Douro: ripe, spicy, ready to pour. Sits well with Stilton and chocolate.',
+    btg_spark_beck: 'Bottle-fermented méthode traditionnelle. Citrus, green apple, a dry fine mousse. Oysters, simply seasoned fish, or as an aperitif.',
+    btg_spark_zardetto: 'Tank-method Glera: pear, white flowers, dry enough for the table. Fried vegetables, shrimp, and a first course.',
+    btg_spark_concerto: 'Dry Lambrusco — violet, red cherry, a light froth. Not the sweet supermarket style. Salumi, fried vegetables, and pizza.',
+    btg_white_walch: 'Pear, alpine herbs, and a stony finish. Sole, salads, and dishes with lemon or herbs.',
+    btg_white_friulano: 'Almond, pear, and a dry finish. Shrimp, goat cheese, and herb-driven primi.',
+    btg_white_fiano: 'Honey, hazelnut, volcanic minerality. Seafood pasta, lobster, and roast fish.',
+    btg_white_hartford: 'Ripe apple, citrus, measured oak. Scallops, lobster, and dishes with butter or truffle.',
+    btg_red_core: 'Dark cherry, spice, firm but approachable tannin. Tomato sauces, sausage, and roast meats.',
+    btg_red_fumanelli: 'Cherry, spice, a plush texture short of Amarone. Ragù, mushrooms, and duck.',
+    btg_red_planeta: 'Plum, cocoa, resolved tannin after years in bottle. Steak, lamb, and hard cheeses.',
+    btg_lib_sudtirol: 'Pale cherry, forest floor — alpine Pinot Nero, not Burgundy. Roast birds, mushrooms, and mild game.',
+    btg_lib_fizzano: 'Sour cherry, leather, savory herbs. Bistecca, lamb, and aged pecorino.',
+    btg_lib_barbera: 'High acidity, dark cherry, a long finish from a decade in bottle. Truffle pasta, braises, and rich meats.',
+    btg_des_spinetta: 'Lightly sparkling, low alcohol, peach and orange blossom. Fruit tarts and cheeses that are not too salty.',
+    btg_des_vidal: 'Grapes frozen on the vine: apricot and honey, kept in check by acidity. Fruit pastry and foie gras.',
+    btg_des_riesling: 'Lime, pineapple, a petrol whisper, acidity that carries the sugar. Blue cheese and citrus tarts.',
+    btg_des_franc: 'Strawberry, raspberry, tea leaf. Berry desserts and mild blue cheese.',
+    btg_port_bin27: 'Bottled young for blackberry and chocolate. Serve slightly cool after dinner, with walnuts or dark chocolate.',
+    btg_port_croft: 'Ripe, spicy, ready to pour. Stilton and chocolate.',
     btg_port_tawny10: 'Ten years in wood: nut, caramel, and dried fig. Serve lightly chilled with cheese or chocolate.',
-    btg_port_tawny20: 'Twenty years in cask: walnut, orange peel, and toffee, silkier than the ten-year. Sits well with pecan tart and aged cheese.'
+    btg_port_tawny20: 'Twenty years in cask: walnut, orange peel, and toffee, silkier than the ten-year. Pecan tart and aged cheese.'
+  };
+
+  var explainMore = {
+    veal: 'Veal is beef from a young calf — milder and more tender than grown beef. Fine kitchens use it for scaloppine, osso buco, and some ragùs.',
+    beef: 'Beef flavor follows breed, feed, and aging. Filet (tenderloin) is the most tender cut, not the most flavorful — that is usually ribeye or strip. Wagyu is marbled and lush; grass-fed is leaner and more mineral.',
+    'filet mignon': 'Filet mignon is the small end of the tenderloin, along the spine. Almost no chew, mild beef taste. Best medium-rare so it stays juicy. Ours is from Bastrop Cattle Company in Texas.',
+    tenderloin: 'The tenderloin sits under the spine and does almost no work, so the muscle stays soft. Filet mignon, chateaubriand, and tournedos all come from this muscle.',
+    wagyu: 'Wagyu is Japanese cattle genetics famous for intense marbling. American Wagyu is often a Wagyu–Angus cross: rich, but usually less fatty than pure Japanese A5.',
+    salmon: 'Salmon is an oily fish — omega-3s, pink flesh, a clean taste when well sourced. Faroe Islands fish are farmed in cold North Atlantic water and stay fatty and silky. You choose the temperature.',
+    truffle: 'Truffles are fungi that grow with tree roots. Black winter truffles smell of earth, cocoa, and garlic; white Alba truffles are more garlicky and floral. We shave or infuse them into sauces.',
+    risotto: 'Risotto is rice toasted then fed warm stock until the starch turns creamy. Carnaroli and Vialone Nano hold a firm center (all’onda). Finish off-heat with butter and cheese.',
+    parmigiano: 'Parmigiano Reggiano is a PDO cheese from Emilia-Romagna, aged at least 12 months. Crystals of tyrosine give the crunch; the rind is packed with umami for stocks.',
+    burrata: 'Burrata is a pouch of mozzarella filled with cream and shreds (stracciatella). Cut it at the table so the cream runs. Eat it the day it is made.',
+    mozzarella: 'Mozzarella di bufala is fresh cheese from water-buffalo milk in Campania — milky, springy, meant to be eaten soon after it is made.',
+    prosciutto: 'Prosciutto di Parma is salt-cured hog hind leg, air-dried for months. Sweet, silky, never smoked. Pair with melon, figs, or aged cheese.',
+    pasta: 'Italian pasta is durum wheat and water (or egg in the north). Shape is not decoration — ridges hold ragù, ribbons love butter, tubes love baked sauces.',
+    wine: 'Wine is fermented grape juice. Body comes from alcohol and tannin; acidity keeps food from tasting heavy. Ask what you like: crisp, round, earthy, or fruit-forward.',
+    vintage: 'Vintage is the harvest year. Cool years are lighter and more acidic; warm years are riper and fuller. Age-worthy wines often need time; most whites are best young.',
+    lambrusco: 'Lambrusco is a lightly sparkling red from Emilia-Romagna. Dry (secco) styles like Concerto drink with salumi and rich pasta — not the sweet soda-pop versions.',
+    prosecco: 'Prosecco is sparkling wine from the Veneto, usually Glera, tank-fermented (Charmat) so it stays fresh and floral rather than bready like Champagne.',
+    chianti: 'Chianti Classico is Sangiovese from the hills between Florence and Siena. Look for the black rooster. Riserva means longer aging.',
+    barolo: 'Barolo is Nebbiolo from Piedmont — tar, roses, high tannin and acid. Needs time or rich food (brasato, truffles, aged cheese).',
+    amarone: 'Amarone is Valpolicella grapes dried before ferment, so the wine is dense, high-alcohol, and bittersweet. Think raisins, cocoa, and velvet.',
+    gelato: 'Gelato is denser than American ice cream: less air, less butterfat, served a touch warmer so flavor hits first. Sorbetto is dairy-free fruit ice.',
+    tiramisu: 'Tiramisù is espresso-soaked ladyfingers, mascarpone, cocoa. The name means “pick me up.”',
+    gluten: 'Gluten is the protein net in wheat, barley, and rye. Pasta, bread, and many sauces can hide it. Tell the Food Master before you order if you cannot have gluten.',
+    shellfish: 'Shrimp, lobster, crab, and mussels are shellfish. Allergies can be severe. Tell the Food Master even if you only think you might react.',
+    'ice wine': 'Ice wine is made from grapes frozen on the vine, pressed for a tiny, very sweet yield with enough acid to stay lively. Ours are from Inniskillin in Niagara.'
   };
 
   var ingredientNotes = {
@@ -707,7 +741,7 @@
       perPerson: 'per person',
       choose: 'choose',
       included: 'Included',
-      servedAuto: 'Brought first, one at a time',
+      servedAuto: 'Served automatically, one at a time',
       dessertLater: 'Chosen after the main course',
       tastingDessertLater: 'Chosen after the meat course',
       entremetsNote: 'Served automatically as an entremet (palate cleanser). Not chosen by the guest.',
@@ -728,7 +762,25 @@
       allergies: 'Allergies',
       welcome: 'Primi Piccolo',
       dolce: 'Dolce',
-      callServer: 'Call Server',
+      callServer: 'Call Food Master',
+      callFoodMaster: 'Call Food Master',
+      callingFm: 'Calling your Food Master…',
+      calledFm: 'Your Food Master has been called.',
+      callFailed: 'Could not reach the Food Master. Please raise a hand or try again.',
+      primiPiccoloNote: 'These three tastes are served automatically, one at a time — smoked salmon, zucchini Milanese, then shrimp. Tap a dish to read the story.',
+      tastingAsIs: 'This tasting is served as written. Tap a dish to learn more. You only choose temperature for salmon and filet, then dessert.',
+      tastingTempHint: 'Choose temperature for the Food Master — this dish is already on the tasting.',
+      tastingDessertHint: 'Choose your dessert to finish the tasting.',
+      askAi: 'Ask AI',
+      aboutTab: 'About',
+      openGrok: 'Ask Grok',
+      visitSite: 'Visit website',
+      vintageLookup: 'Vintage notes',
+      sendTemp: 'Send temperature',
+      tempSent: 'Temperature sent to your Food Master',
+      suggestedAsk: 'Try asking',
+      aiPlaceholder: 'Ask anything about this dish…',
+      wineLabelAlt: 'Wine label',
       viewMenu: 'View Menu',
       selectTable: 'Select table',
       table: 'Table',
@@ -799,7 +851,25 @@
       allergies: 'Alergias',
       welcome: 'Primi Piccolo',
       dolce: 'Dolce',
-      callServer: 'Llamar al camarero',
+      callServer: 'Llamar al Food Master',
+      callFoodMaster: 'Llamar al Food Master',
+      callingFm: 'Llamando a su Food Master…',
+      calledFm: 'Su Food Master ha sido llamado.',
+      callFailed: 'No se pudo avisar al Food Master. Levante la mano o inténtelo de nuevo.',
+      primiPiccoloNote: 'Estos tres bocados se sirven solos, uno a uno: salmón ahumado, calabacín a la milanesa y gambas. Toque un plato para leer la historia.',
+      tastingAsIs: 'Esta cata se sirve tal cual. Toque un plato para saber más. Solo elige temperatura del salmón y el filet, luego el postre.',
+      tastingTempHint: 'Elija la temperatura para el Food Master — este plato ya está en la cata.',
+      tastingDessertHint: 'Elija su postre para cerrar la cata.',
+      askAi: 'Preguntar a la IA',
+      aboutTab: 'Sobre',
+      openGrok: 'Preguntar a Grok',
+      visitSite: 'Visitar el sitio',
+      vintageLookup: 'Notas de la añada',
+      sendTemp: 'Enviar temperatura',
+      tempSent: 'Temperatura enviada a su Food Master',
+      suggestedAsk: 'Pruebe a preguntar',
+      aiPlaceholder: 'Pregunte lo que quiera sobre este plato…',
+      wineLabelAlt: 'Etiqueta del vino',
       viewMenu: 'Ver menú',
       selectTable: 'Elegir mesa',
       table: 'Mesa',
@@ -870,7 +940,25 @@
       allergies: 'Allergies',
       welcome: 'Primi Piccolo',
       dolce: 'Dolce',
-      callServer: 'Appeler le serveur',
+      callServer: 'Appeler le Food Master',
+      callFoodMaster: 'Appeler le Food Master',
+      callingFm: 'Appel de votre Food Master…',
+      calledFm: 'Votre Food Master a été appelé.',
+      callFailed: 'Impossible de joindre le Food Master. Levez la main ou réessayez.',
+      primiPiccoloNote: 'Ces trois goûts arrivent automatiquement, un à la fois : saumon fumé, courgette milanaise, puis crevettes. Touchez un plat pour lire l’histoire.',
+      tastingAsIs: 'Cette dégustation est servie telle quelle. Touchez un plat pour en savoir plus. Vous ne choisissez que la cuisson du saumon et du filet, puis le dessert.',
+      tastingTempHint: 'Choisissez la cuisson pour le Food Master — ce plat est déjà dans la dégustation.',
+      tastingDessertHint: 'Choisissez votre dessert pour finir la dégustation.',
+      askAi: 'Demander à l’IA',
+      aboutTab: 'À propos',
+      openGrok: 'Demander à Grok',
+      visitSite: 'Visiter le site',
+      vintageLookup: 'Notes de millésime',
+      sendTemp: 'Envoyer la cuisson',
+      tempSent: 'Cuisson envoyée à votre Food Master',
+      suggestedAsk: 'Essayez de demander',
+      aiPlaceholder: 'Posez une question sur ce plat…',
+      wineLabelAlt: 'Étiquette du vin',
       viewMenu: 'Voir le menu',
       selectTable: 'Choisir une table',
       table: 'Table',
@@ -941,7 +1029,25 @@
       allergies: '过敏',
       welcome: '小头盘',
       dolce: 'Dolce',
-      callServer: '呼叫服务员',
+      callServer: '呼叫厨房主管',
+      callFoodMaster: '呼叫厨房主管',
+      callingFm: '正在呼叫厨房主管…',
+      calledFm: '已通知您的厨房主管。',
+      callFailed: '无法联系厨房主管。请举手或再试一次。',
+      primiPiccoloNote: '这三道小头盘会自动逐道上桌：烟熏三文鱼、米兰式西葫芦，然后大虾。点选即可阅读介绍。',
+      tastingAsIs: '品鉴菜单按既定顺序上桌。点选了解菜品。只需选择三文鱼与菲力的熟度，以及甜点。',
+      tastingTempHint: '请选择熟度告知厨房主管 — 这道菜已包含在品鉴中。',
+      tastingDessertHint: '请选择甜点作为品鉴收尾。',
+      askAi: '问 AI',
+      aboutTab: '介绍',
+      openGrok: '在 Grok 中提问',
+      visitSite: '访问网站',
+      vintageLookup: '年份说明',
+      sendTemp: '发送熟度',
+      tempSent: '熟度已发给厨房主管',
+      suggestedAsk: '可以这样问',
+      aiPlaceholder: '关于这道菜，随便问…',
+      wineLabelAlt: '酒标',
       viewMenu: '查看菜单',
       selectTable: '选择桌号',
       table: '桌号',
@@ -1094,6 +1200,7 @@
     gelatoStyleNote: GELATO_STYLE_NOTE,
     winesByGlass: winesByGlass,
     wineNotes: wineNotes,
+    explainMore: explainMore,
     ingredientNotes: ingredientNotes,
     ui: ui,
     mergeMenu: mergeMenu,

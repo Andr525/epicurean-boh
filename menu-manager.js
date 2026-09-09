@@ -715,6 +715,9 @@ function mmWineEditor(id) {
     fld('Name', '<input class="input" id="w-name" value="' + esc(w.name) + '">') +
     '<div class="ff-row cols-2">' + fld('Producer', '<input class="input" id="w-prod" value="' + esc(w.producer || '') + '">') + fld('Vintage', '<input class="input" id="w-vintage" value="' + esc(w.vintage || '') + '">') + '</div>' +
     fld('Region', '<input class="input" id="w-region" value="' + esc(w.region || '') + '">') +
+    fld('Producer website (opens on the iPad)', '<input class="input" id="w-more-url" value="' + esc(w.moreUrl || w.sourceUrl || w.storyUrl || '') + '" placeholder="https://www.grahambeck.com">') +
+    fld('Wine-Searcher / vintage notes URL', '<input class="input" id="w-vintage-url" value="' + esc(w.vintageUrl || '') + '" placeholder="https://www.wine-searcher.com/find/...">') +
+    fld('Label photo URL (optional — iPad also fetches a wine label)', '<input class="input" id="w-label-url" value="' + esc(w.labelUrl || w.photoUrl || '') + '" placeholder="https://…">') +
     '<div class="ff-row cols-3">' + fld('Bottle price', '<input class="input" id="w-bp" type="number" step="0.01" value="' + w.bottlePrice + '">') +
       fld('Bottles in stock', '<input class="input" id="w-stock" type="number" value="' + (w.stock || 0) + '">') +
       fld('Oz per bottle', '<input class="input" id="w-boz" type="number" step="0.1" value="' + (w.bottleOz || 25) + '">') + '</div>' +
@@ -999,6 +1002,16 @@ function mmSaveWineFromForm(id, toastOk) {
   if (!w || !$('w-name')) return;
   w.name = $('w-name').value.trim() || w.name;
   w.producer = $('w-prod').value.trim(); w.vintage = $('w-vintage').value.trim(); w.region = $('w-region').value.trim();
+  if ($('w-more-url')) {
+    w.moreUrl = $('w-more-url').value.trim();
+    w.sourceUrl = w.moreUrl;
+    w.storyUrl = w.moreUrl;
+  }
+  if ($('w-vintage-url')) w.vintageUrl = $('w-vintage-url').value.trim();
+  if ($('w-label-url')) {
+    w.labelUrl = $('w-label-url').value.trim();
+    if (w.labelUrl) w.photoUrl = w.labelUrl;
+  }
   w.bottlePrice = parseFloat($('w-bp').value) || 0;
   w.stock = parseInt($('w-stock').value, 10) || 0;
   w.bottleOz = parseFloat($('w-boz') && $('w-boz').value) || w.bottleOz || 25;
@@ -1151,6 +1164,7 @@ function mmPfCourseEditor(joinId) {
     fld('Group name', '<input class="input" id="mm-g-name" value="' + esc(g.label) + '">') +
     fld('POS name (button label)', '<input class="input" id="mm-g-pos" value="' + esc(g.posName || '') + '" placeholder="Optional shorter name on POS">') +
     fld('How this course fires', '<select class="input" id="mm-g-mode">' + opts(['choose', 'auto', 'entremets', 'later'], g.mode || 'choose') + '</select>') +
+    '<p class="mm-hint">auto = served automatically (Primi Piccolo). Guests can read the dish on the iPad but cannot add it. choose = guest picks one. entremets = palate cleanser, automatic. later = Dolce, chosen after the main.</p>' +
     '<label class="cbx"><input type="checkbox" id="mm-g-vis"' + (g.visible !== false ? ' checked' : '') + '> Show on POS &amp; iPad</label>' +
     '<div style="margin-top:12px"><button type="button" class="btn btn-gold btn-sm" onclick="mmSavePfCourse(\'' + joinId + '\',true)">Save group</button> ' +
     '<button type="button" class="mm-back" onclick="mmBack()">← Back</button> ' +
@@ -1188,6 +1202,7 @@ function mmTmMenuEditor(id) {
     '<div class="mm-card"><h3>MENU ' + esc(tm.name) + '</h3>' +
     fld('Name', '<input class="input" id="tm-name" value="' + esc(tm.name) + '">') +
     fld('Subtitle', '<input class="input" id="tm-sub" value="' + esc(tm.subtitle || '') + '">') +
+    '<p class="mm-hint">Tasting is served as written. Guests only send temperature for salmon and filet, then choose dessert. Other courses are learn / Ask AI only.</p>' +
     '<div class="ff-row cols-3">' + fld('Price ($ per person)', '<input class="input" id="tm-price" type="number" step="0.01" value="' + (tm.price || 0) + '">') +
       fld('Duration', '<input class="input" id="tm-dur" value="' + esc(tm.duration || '') + '">') +
       fld('Service', '<select class="input" id="tm-service">' + opts(['breakfast', 'brunch', 'lunch', 'dinner', 'all day'], tm.service || 'dinner') + '</select>') + '</div>' +

@@ -1029,7 +1029,7 @@ function showPhotoPreview(input, url){
   preview.style.display='block';
 }
 </script>
-<script src="scalini-dining.js?v=glass-dark-20260912"></script>
+<script src="scalini-dining.js?v=menu-ai-maps-20260913"></script>
 <script src="cellar.js"></script>
 <input type="file" id="photo-file-input" accept="image/*" style="position:fixed;left:-80px;top:0;width:1px;height:1px;opacity:0;" onchange="handlePhotoUpload(this)">
 <script>
@@ -1304,7 +1304,13 @@ var SEED_OBJS = {
     {id:'t4', type:'table', shape:'square', num:4, seats:4, x:240, y:220, w:80,  h:80,  status:'open', server:''},
     {id:'t5', type:'table', shape:'round',  num:5, seats:6, x:440, y:150, w:96,  h:96,  status:'open', server:''},
     {id:'t6', type:'table', shape:'rect',   num:6, seats:8, x:620, y:120, w:150, h:80,  status:'open', server:''},
-    {id:'w1', type:'wall',  x:40, y:40, w:760, h:12, label:''},
+    {id:'t7', type:'table', shape:'square', num:7, seats:4, x:80,  y:360, w:80,  h:80,  status:'open', server:''},
+    {id:'t8', type:'table', shape:'square', num:8, seats:4, x:220, y:360, w:80,  h:80,  status:'open', server:''},
+    {id:'t9', type:'table', shape:'round',  num:9, seats:4, x:380, y:360, w:80,  h:80,  status:'open', server:''},
+    {id:'t10', type:'table', shape:'round', num:10, seats:4, x:540, y:360, w:80, h:80, status:'open', server:''},
+    {id:'t11', type:'table', shape:'round', num:11, seats:4, x:700, y:280, w:88, h:88, status:'open', server:'Andre Mendoza'},
+    {id:'t12', type:'table', shape:'square', num:12, seats:4, x:700, y:400, w:80, h:80, status:'open', server:''},
+    {id:'w1', type:'wall',  x:40, y:40, w:800, h:12, label:''},
     {id:'h1', type:'host',  x:820, y:60, w:70, h:44, label:'Host'}
   ],
   bar:[
@@ -1336,13 +1342,16 @@ function loadRoomObjs(){
   return JSON.parse(JSON.stringify(SEED_OBJS));
 }
 
+var SEED_STATIONS = [
+  { id:'st_main_1', name:'Station 1', room:'main', server:'Andre Mendoza', serverCode:'3001', tableIds:['1','2','3','11'] }
+];
 var STATE = {
   staff:   lsGet('eh_staff',   SEED_STAFF.slice()).map(normStaff),
   punches: lsGet('eh_punches', []),
   guests:  lsGet('eh_guests',  []),
   rooms:   lsGet('eh_rooms', SEED_ROOMS.slice()),
   roomObjs: loadRoomObjs(),
-  stations: lsGet('eh_stations', []),
+  stations: lsGet('eh_stations', SEED_STATIONS.slice()),
   menuCats:   lsGet('eh_menu_cats',   seedMenuCats()),
   menuItems:  lsGet('eh_menu_items',  seedMenuItems()),
   modGroups:  lsGet('eh_mod_groups',  seedModifierGroups()),
@@ -4812,7 +4821,7 @@ function aiSuggestWinePairing(btn){
   toast('✨ AI Suggested: '+bestWine.name,'success');
 }
 </script>
-<script src="menu-manager.js?v=glass-dark-20260912"></script>
+<script src="menu-manager.js?v=menu-ai-maps-20260913"></script>
 <script>
 if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',boot); else boot();
 </script>
