@@ -276,9 +276,8 @@ select.insp-input{appearance:none;background-image:url("data:image/svg+xml,%3Csv
 .status-dot{width:14px;height:14px;border-radius:4px;border:2px solid;flex-shrink:0;}
 
 @media(max-width:1100px){
-  .floor-workspace{grid-template-columns:1fr;}
-  .floor-workspace.live{grid-template-columns:1fr;}
-  .inspector{position:static;}
+  .floor-workspace{grid-template-columns:180px minmax(0,1fr) 220px;}
+  .floor-workspace.live{grid-template-columns:minmax(0,1fr) 220px;}
 }
 
 /* ---------- Forms / grid ---------- */
