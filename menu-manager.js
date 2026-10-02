@@ -471,8 +471,9 @@ function mmTreeHtml() {
     } else if (book.kind === 'bar') {
       ['Cocktail', 'Beer', 'Spirit'].forEach(function (k) {
         html += '<div class="mm-row indent-1"><span>' + k + '</span><span class="mm-kind">Group</span></div>';
-        (STATE.bar || []).filter(function (b) { return b.kind === k && (!mmQ() || mmMatch(b.name)); }).forEach(function (b) {
-          html += '<div class="mm-row indent-2' + (mmSelIs('bar', b.id) ? ' on' : '') + '" onclick="mmSelect(\'bar\',\'' + b.id + '\')"><span>' + esc(b.name) + '</span><span class="mm-kind">Item</span></div>';
+        (STATE.bar || []).filter(function (b) { return b.kind === k && (!mmQ() || mmMatch(b.name + ' ' + (b.lin || '') + ' ' + (b.code || ''))); }).forEach(function (b) {
+          var barKind = (typeof isSpiritBar === 'function' && isSpiritBar(b) && b.lin) ? ('LIN ' + b.lin) : 'Item';
+          html += '<div class="mm-row indent-2' + (mmSelIs('bar', b.id) ? ' on' : '') + '" onclick="mmSelect(\'bar\',\'' + b.id + '\')"><span>' + esc(b.name) + '</span><span class="mm-kind">' + esc(barKind) + '</span></div>';
         });
       });
     } else if (book.kind === 'wine') {
@@ -488,7 +489,7 @@ function mmTreeHtml() {
           if (shown >= 80) return;
           if (!mmMatch(w.name + ' ' + (w.vin || '') + ' ' + (w.region || '') + ' ' + (w.vintage || ''))) return;
           shown += 1;
-          html += '<div class="mm-row indent-2' + (mmSelIs('wine', w.id) ? ' on' : '') + '" onclick="mmSelect(\'wine\',\'' + w.id + '\')"><span>' + esc(w.name) + '</span><span class="mm-kind">' + (w.stock || 0) + ' btl</span></div>';
+          html += '<div class="mm-row indent-2' + (mmSelIs('wine', w.id) ? ' on' : '') + '" onclick="mmSelect(\'wine\',\'' + w.id + '\')"><span>' + esc(w.name) + (w.vin ? ' · VIN ' + esc(w.vin) : '') + '</span><span class="mm-kind">' + (w.stock || 0) + ' btl</span></div>';
         });
       }
     } else if (book.kind === 'retail') {
@@ -561,8 +562,8 @@ function mmBookHasQuery(book) {
       return mmMatch(g.name) || mmItemsInGroup(g.id).some(function (it) { return mmMatch(it.name); });
     });
   }
-  if (book.kind === 'wine') return (STATE.wines || []).some(function (w) { return mmMatch(w.name); });
-  if (book.kind === 'bar') return (STATE.bar || []).some(function (b) { return mmMatch(b.name); });
+  if (book.kind === 'wine') return (STATE.wines || []).some(function (w) { return mmMatch(w.name + ' ' + (w.vin || '') + ' ' + (w.region || '') + ' ' + (w.vintage || '')); });
+  if (book.kind === 'bar') return (STATE.bar || []).some(function (b) { return mmMatch(b.name + ' ' + (b.lin || '') + ' ' + (b.code || '')); });
   if (book.kind === 'retail') return (STATE.retail || []).some(function (p) { return mmMatch(p.name); });
   if (book.kind === 'prixfixe') {
     return (STATE.prixFixeMenus || []).some(function (pf) {
@@ -629,7 +630,7 @@ function mmGroupEditor(id) {
       var cellarBtg = (STATE.wines || []).filter(function (w) { return w && (w.byTheGlass || Number(w.glassPrice) > 0) && String(w.id || '').indexOf('btg_') !== 0; });
       var btg = seedBtg.length ? seedBtg.concat(cellarBtg) : cellarBtg;
       var grow = btg.map(function (w) {
-        var meta = (w.group ? w.group + ' · ' : '') + (w.vintage || '') + (w.region ? ' · ' + w.region : '');
+        var meta = (w.vin ? 'VIN ' + w.vin + ' · ' : '') + (w.group ? w.group + ' · ' : '') + (w.vintage || '') + (w.region ? ' · ' + w.region : '');
         if (w.bottlePrice) meta += ' · bottle $' + w.bottlePrice;
         return '<div class="mm-item-card"><div><div class="mm-item-name">' + esc(w.name) + '</div><div class="mm-item-meta">' + esc(meta) + '</div></div><div class="mm-price">' + money(w.glassPrice) + '</div></div>';
       }).join('');
@@ -641,7 +642,7 @@ function mmGroupEditor(id) {
     var list = (STATE.wines || []).filter(function (w) { return !q || mmMatch(w.name + ' ' + (w.vin || '') + ' ' + (w.region || '') + ' ' + (w.vintage || '')); });
     var extra = list.length > 80 ? list.length - 80 : 0;
     var rows = list.slice(0, 80).map(function (w) {
-      return '<div class="mm-item-card" onclick="mmSelect(\'wine\',\'' + w.id + '\')"><div><div class="mm-item-name">' + esc(w.name) + '</div><div class="mm-item-meta">' + esc(w.vintage || '') + ' · ' + esc(w.region || '') + ' · ' + (w.stock || 0) + ' bottles</div></div><div class="mm-price">' + money(w.bottlePrice) + '</div></div>';
+      return '<div class="mm-item-card" onclick="mmSelect(\'wine\',\'' + w.id + '\')"><div><div class="mm-item-name">' + esc(w.name) + '</div><div class="mm-item-meta">' + (w.vin ? 'VIN ' + esc(w.vin) + ' · ' : '') + esc(w.vintage || '') + ' · ' + esc(w.region || '') + ' · ' + (w.stock || 0) + ' bottles</div></div><div class="mm-price">' + money(w.bottlePrice) + '</div></div>';
     }).join('');
     return '<div class="mm-card"><h3>SUBGROUP Wine by the bottle</h3>' +
       '<p class="mm-hint">' + (STATE.wines || []).length + ' labels. Search in Find to jump to a bottle. Stock is editable and drops when POS sells one.</p>' +
@@ -713,7 +714,8 @@ function mmWineEditor(id) {
   if (!w) return '<div class="mm-empty">Wine not found.</div>';
   return '<form id="mm-editor" data-type="wine" data-id="' + w.id + '"><div class="mm-card"><h3>ITEM ' + esc(w.name) + '</h3>' +
     fld('Name', '<input class="input" id="w-name" value="' + esc(w.name) + '">') +
-    '<div class="ff-row cols-2">' + fld('Producer', '<input class="input" id="w-prod" value="' + esc(w.producer || '') + '">') + fld('Vintage', '<input class="input" id="w-vintage" value="' + esc(w.vintage || '') + '">') + '</div>' +
+    '<div class="ff-row cols-2">' + fld('VIN', '<input class="input" id="w-vin" value="' + esc(w.vin || '') + '">') + fld('Vintage', '<input class="input" id="w-vintage" value="' + esc(w.vintage || '') + '">') + '</div>' +
+    fld('Producer', '<input class="input" id="w-prod" value="' + esc(w.producer || '') + '">') +
     fld('Region', '<input class="input" id="w-region" value="' + esc(w.region || '') + '">') +
     fld('Producer website (opens on the iPad)', '<input class="input" id="w-more-url" value="' + esc(w.moreUrl || w.sourceUrl || w.storyUrl || '') + '" placeholder="https://www.grahambeck.com">') +
     fld('Wine-Searcher / vintage notes URL', '<input class="input" id="w-vintage-url" value="' + esc(w.vintageUrl || '') + '" placeholder="https://www.wine-searcher.com/find/...">') +
@@ -727,6 +729,7 @@ function mmWineEditor(id) {
 function mmBarPanel(id) {
   var b = (STATE.bar || []).filter(function (x) { return x.id === id; })[0];
   if (!b) return '<div class="mm-empty">Drink not found.</div>';
+  var spirit = (typeof isSpiritBar === 'function' ? isSpiritBar(b) : /spirit|liquor|after[\s-]?dinner/i.test(String(b.kind || ''))) || !!b.lin;
   return '<form id="mm-editor" data-type="bar" data-id="' + b.id + '"><div class="mm-card"><h3>ITEM ' + esc(b.name) + '</h3>' +
     fld('Name', '<input class="input" id="b-name" value="' + esc(b.name) + '">') +
     fld('Description', '<input class="input" id="b-desc" value="' + esc(b.desc || '') + '">') +
@@ -734,6 +737,7 @@ function mmBarPanel(id) {
       fld('Cost', '<input class="input" id="b-cost" type="number" step="0.01" value="' + b.cost + '">') +
       fld('Stock (bottles)', '<input class="input" id="b-stock" type="number" value="' + (b.stock || 0) + '">') + '</div>' +
       fld('Type', '<select class="input" id="b-kind">' + opts(['Cocktail', 'Beer', 'Spirit'], b.kind) + '</select>') +
+    (spirit ? fld('LIN', '<input class="input" id="b-lin" value="' + esc(b.lin || '') + '">') : '') +
     '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveBarFromForm(\'' + b.id + '\',true)">Save drink</button> <button type="button" class="mm-back" onclick="mmBack()">← Back</button></div></form>';
 }
 function mmRetailPanel(id) {
@@ -1001,6 +1005,8 @@ function mmSaveWineFromForm(id, toastOk) {
   var w = (STATE.wines || []).filter(function (x) { return x.id === id; })[0];
   if (!w || !$('w-name')) return;
   w.name = $('w-name').value.trim() || w.name;
+  if ($('w-vin')) w.vin = $('w-vin').value.trim();
+  if (!w.vin && typeof assignVin === 'function') w.vin = assignVin();
   w.producer = $('w-prod').value.trim(); w.vintage = $('w-vintage').value.trim(); w.region = $('w-region').value.trim();
   if ($('w-more-url')) {
     w.moreUrl = $('w-more-url').value.trim();
@@ -1033,6 +1039,8 @@ function mmSaveBarFromForm(id, toastOk) {
   if (!b || !$('b-name')) return;
   b.name = $('b-name').value.trim() || b.name; b.desc = $('b-desc').value.trim();
   b.price = parseFloat($('b-price').value) || 0; b.cost = parseFloat($('b-cost').value) || 0; b.kind = $('b-kind').value;
+  if ($('b-lin')) b.lin = $('b-lin').value.trim();
+  if ((typeof isSpiritBar === 'function' ? isSpiritBar(b) : /spirit/i.test(String(b.kind || ''))) && !String(b.lin || '').trim() && typeof assignLin === 'function') b.lin = assignLin();
   if ($('b-stock')) { b.stock = parseInt($('b-stock').value, 10) || 0; b.ozOnHand = (Number(b.bottleOz) || 25) * b.stock; }
   saveBar();
   if (toastOk) { toast('Drink saved', 'success'); mmAfterSave(); }
