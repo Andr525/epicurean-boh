@@ -99,6 +99,16 @@ function mmPaint() {
     var on = document.querySelector('.mm-row.on');
     if (on) on.scrollIntoView({ block: 'nearest' });
   }
+  if (typeof bindVoiceKeywordFields === 'function' && $('ie-voice-kw')) {
+    var form = $('mm-editor');
+    var type = form ? form.getAttribute('data-type') : '';
+    var ctx = ($('voice-conflict') && $('voice-conflict').getAttribute('data-context')) || '';
+    var current = null;
+    if (type === 'item') current = mmFindItem(form.getAttribute('data-id'));
+    if (type === 'pfdish') current = mmFindPfDish(form.getAttribute('data-id'));
+    if (type === 'tmcourse') current = mmFindTmCourse(form.getAttribute('data-id'));
+    bindVoiceKeywordFields(current || {}, ctx);
+  }
 }
 function mmFlush() {
   var form = $('mm-editor');
@@ -379,6 +389,7 @@ function mmRebuildPf(pf) {
           allergens: o.allergens || [], cookNote: o.cookNote || '',
           chooseCount: o.chooseCount || 0, scoops: o.scoops || null, dietary: o.dietary || [],
           cookTime: o.cookTime || 0, cookMin: o.cookTime || 0, i18n: o.i18n || {},
+          voiceKeyword: o.voiceKeyword || '', voiceAliases: o.voiceAliases || [],
           modGroupIds: o.modGroupIds || [], taxIds: o.taxIds || mmDefaultTaxes(), order: oi, active: true
         });
       });
@@ -413,6 +424,7 @@ function mmRebuildPf(pf) {
         allergens: d.allergens || [],
         cookNote: d.cookNote || '', chooseCount: d.chooseCount || 0, scoops: d.scoops || null,
         dietary: d.diet || d.dietary || [], cookTime: d.cookMin || d.cookTime || 0, i18n: d.i18n || {},
+        voiceKeyword: d.voiceKeyword || '', voiceAliases: d.voiceAliases || [],
         modGroupIds: d.modGroupIds || [], taxIds: d.taxIds || []
       };
     });
@@ -684,6 +696,7 @@ function mmItemEditor(id) {
   return '<form id="mm-editor" data-type="item" data-id="' + it.id + '">' +
     '<div class="mm-card"><h3>ITEM ' + esc(it.name) + '</h3>' +
     fld('Name', '<input class="input" id="ie-name" value="' + esc(it.name) + '" placeholder="Dish name">') +
+    (typeof voiceKeywordFieldsHtml === 'function' ? voiceKeywordFieldsHtml(it, 'food:' + ((it.catIds && it.catIds[0]) || 'item')) : '') +
     mmPhotoField(mmResolveItemPhoto(it, mmPhotoKey())) +
     fld('Description (POS &amp; iPad)', '<textarea class="input" id="ie-desc" rows="4">' + esc(it.desc || '') + '</textarea>') +
     fld('Story for iPad (origin, farm, family — guests see this when they tap Learn more)', '<textarea class="input" id="ie-story" rows="4" placeholder="e.g. Filet mignon from Bastrop Cattle Company, Texas. Filet is the tenderloin, cut along the spine of the cow…">' + esc(it.story || '') + '</textarea>') +
@@ -840,7 +853,7 @@ function mmAddGroup(bookId) {
 }
 function mmAddItem(groupId) {
   var defaults = (STATE.taxRates || []).filter(function (t) { return t.isDefault; }).map(function (t) { return t.id; });
-  var it = { id: uid('m'), code: '', name: 'New item', desc: '', price: 0, cost: 0, catIds: groupId ? [groupId] : [], cookMin: 10, station: KITCHEN_STATIONS[0], ingredients: '', allergens: [], diet: [], verified: false, modGroupIds: [], taxIds: defaults, active: true };
+  var it = { id: uid('m'), code: '', name: 'New item', desc: '', price: 0, cost: 0, catIds: groupId ? [groupId] : [], cookMin: 10, station: KITCHEN_STATIONS[0], ingredients: '', allergens: [], diet: [], verified: false, modGroupIds: [], taxIds: defaults, active: true, voiceKeyword: (typeof voiceSuggest === 'function' ? voiceSuggest('New item') : ''), voiceAliases: [] };
   STATE.menuItems.push(it);
   MM.tab = 'full';
   mmSelect('item', it.id);
@@ -895,6 +908,7 @@ function mmSaveWorkspace() {
   saveMenu();
   mmPersistPf();
   mmPersistTm();
+  if (typeof saveDailySpecials === 'function') saveDailySpecials();
   toast('Saved', 'success');
 }
 function mmInlineRename(id, name) {
@@ -963,6 +977,7 @@ function mmSaveItemFromForm(id, toastOk) {
     it.diet = (ab.getAttribute('data-diet') || '').split('|').filter(Boolean);
     it.verified = $('an-verify') ? $('an-verify').checked : it.verified;
   }
+  if (typeof readVoiceKeywordFields === 'function') readVoiceKeywordFields(it);
   saveMenu();
   if (toastOk) { toast('Item saved', 'success'); mmAfterSave(); }
 }
@@ -1095,6 +1110,7 @@ function mmReadDishCommon(it) {
     it.dietary = it.diet;
     it.verified = $('an-verify') ? $('an-verify').checked : it.verified;
   }
+  if (typeof readVoiceKeywordFields === 'function') readVoiceKeywordFields(it);
   mmAttachTemps(it);
 }
 
@@ -1102,8 +1118,10 @@ function mmSetDishEditor(it, priceLabel, extraTop, extraMid, saveClick, delClick
   var mt = mmModTaxHtml(it);
   extraTop = extraTop || '';
   extraMid = extraMid || '';
+  var voiceCtx = (it.course ? ('pf:' + it.course) : ('tasting:' + (it.group || it.course || '')));
   return '<div class="mm-card"><h3>ITEM ' + esc(it.name) + '</h3>' +
     fld('Name', '<input class="input" id="ie-name" value="' + esc(it.name) + '" placeholder="Dish name">') +
+    (typeof voiceKeywordFieldsHtml === 'function' ? voiceKeywordFieldsHtml(it, voiceCtx) : '') +
     mmPhotoField(mmResolveItemPhoto(it, mmPhotoKey())) +
     fld('Description (POS &amp; iPad)', '<textarea class="input" id="ie-desc" rows="4">' + esc(it.desc || '') + '</textarea>') +
     fld('Story for iPad (origin, farm, family — guests see this when they tap Learn more)', '<textarea class="input" id="ie-story" rows="4" placeholder="e.g. Filet mignon from Bastrop Cattle Company, Texas. Filet is the tenderloin, cut along the spine of the cow…">' + esc(it.story || '') + '</textarea>') +
@@ -1318,7 +1336,7 @@ function mmAddPfCourse(pfId) {
 function mmAddPfDish(pfId, courseEnc) {
   var pf = mmFindPf(pfId); if (!pf) return;
   var label = decodeURIComponent(courseEnc || '');
-  var d = { id: uid('pfd'), name: 'New item', desc: '', story: '', upcharge: 0, course: label, station: KITCHEN_STATIONS[0], photoUrl: '', pairing: '', allergens: [], cookNote: '', cookMin: 10, modGroupIds: [], taxIds: mmDefaultTaxes(), order: (pf.dishes || []).length, active: true };
+  var d = { id: uid('pfd'), name: 'New item', desc: '', story: '', upcharge: 0, course: label, station: KITCHEN_STATIONS[0], photoUrl: '', pairing: '', allergens: [], cookNote: '', cookMin: 10, modGroupIds: [], taxIds: mmDefaultTaxes(), order: (pf.dishes || []).length, active: true, voiceKeyword: (typeof voiceSuggest === 'function' ? voiceSuggest('New item') : ''), voiceAliases: [] };
   pf.dishes = pf.dishes || [];
   pf.dishes.push(d);
   mmRebuildPf(pf);
@@ -1336,7 +1354,7 @@ function mmAddTmGroup(tmId) {
 function mmAddTmCourse(tmId, groupEnc) {
   var tm = mmFindTm(tmId); if (!tm) return;
   var gname = decodeURIComponent(groupEnc || 'Courses');
-  var c = { id: uid('tmc'), num: (tm.courses || []).length + 1, name: 'New item', desc: '', story: '', station: KITCHEN_STATIONS[0], upcharge: 0, photoUrl: '', allergens: [], group: gname, mode: gname === 'Welcome' ? 'auto' : (gname === 'Entremets' ? 'entremets' : (gname === 'Dolce' ? 'later' : 'auto')), modGroupIds: [], taxIds: mmDefaultTaxes() };
+  var c = { id: uid('tmc'), num: (tm.courses || []).length + 1, name: 'New item', desc: '', story: '', station: KITCHEN_STATIONS[0], upcharge: 0, photoUrl: '', allergens: [], group: gname, mode: gname === 'Welcome' ? 'auto' : (gname === 'Entremets' ? 'entremets' : (gname === 'Dolce' ? 'later' : 'auto')), modGroupIds: [], taxIds: mmDefaultTaxes(), voiceKeyword: (gname === 'Dolce' ? '' : (typeof voiceSuggest === 'function' ? voiceSuggest('New item') : '')), voiceAliases: [] };
   tm.courses = tm.courses || [];
   tm.courses.push(c);
   MM.open['tm:' + tmId] = true;
