@@ -5,8 +5,9 @@ import { fileURLToPath } from 'node:url';
 
 const require = createRequire(import.meta.url);
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-require(path.join(root, 'scalini-dining.js'));
+const scaliniMod = require(path.join(root, 'scalini-dining.js'));
 const voice = require(path.join(root, 'voice-vocab.js'));
+voice.applyOntoScalini(globalThis.EPICUREAN_SCALINI || scaliniMod.EPICUREAN_SCALINI);
 
 assert.equal(voice.suggestVoiceKeyword('Venison with cranberry sauce'), 'VENISON');
 assert.equal(voice.suggestVoiceKeyword('Beef Wellington'), 'WELLINGTON');

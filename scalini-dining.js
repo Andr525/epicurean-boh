@@ -1265,4 +1265,5 @@
     mergeMenu: mergeMenu,
     mergeList: mergeList
   };
-})(typeof window !== 'undefined' ? window : this);
+  if (typeof globalThis !== 'undefined') globalThis.EPICUREAN_SCALINI = root.EPICUREAN_SCALINI;
+})(typeof window !== 'undefined' ? window : (typeof globalThis !== 'undefined' ? globalThis : this));
