@@ -392,7 +392,7 @@ select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xml
 .mm-fill .chip-diet{background:#ecfdf3;color:#067647;border-color:#abefc6;}
 .mm-hint{font-size:12.5px;color:#344054;line-height:1.55;margin-top:8px;}
 .mm-empty{color:#000;padding:18px 8px;font-size:14px;}
-.mm-mod-opt{display:flex;gap:8px;align-items:center;margin-bottom:6px;}
+.mm-mod-opt{display:flex;gap:8px;align-items:center;margin-bottom:6px;flex-wrap:wrap;}
 .mm-mod-opt .input{flex:1;}
 @media(max-width:980px){
   .mm-body{grid-template-columns:1fr;}
@@ -1035,6 +1035,7 @@ function showPhotoPreview(input, url){
 </script>
 <script src="scalini-dining.js?v=menu-ai-maps-20260913"></script>
 <script src="voice-vocab.js"></script>
+<script src="voice-profiles.js"></script>
 <script src="cellar.js"></script>
 <script src="ops-codes.js"></script>
 <input type="file" id="photo-file-input" accept="image/*" style="position:fixed;left:-80px;top:0;width:1px;height:1px;opacity:0;" onchange="handlePhotoUpload(this)">
@@ -1050,14 +1051,15 @@ function showPhotoPreview(input, url){
 function lsGet(k, fb){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):fb; }catch(e){ return fb; } }
 function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function fbGetDoc(col,id){ if(!fbReady)return Promise.resolve(null); return fbDb.collection(col).doc(id).get().then(function(s){return s.exists?s.data():null;}).catch(function(e){console.warn('read',e);return null;}); }
-function fbSetDoc(col,id,data){
+function fbSetDoc(col,id,data,opts){
   if(!fbReady){
     console.warn('Firebase is not initialized');
     if(typeof toast==='function') toast('Cloud save unavailable — check Firebase setup','error');
     return Promise.resolve(false);
   }
   function write(){
-    return fbDb.collection(col).doc(id).set(data,{merge:true}).then(function(){return true;}).catch(function(e){
+    var merge = !(opts && opts.merge === false);
+    return fbDb.collection(col).doc(id).set(data,{merge:merge}).then(function(){return true;}).catch(function(e){
       console.error('Firebase write failed',e);
       if(typeof toast==='function') toast('Cloud save failed: '+(e.code||e.message||'unknown error'),'error');
       return false;
@@ -1364,6 +1366,8 @@ var STATE = {
   taxRates:   lsGet('eh_tax_rates',   seedTaxRates()),
   menuBooks:  lsGet('eh_menu_books',  seedMenuBooks()),
   dailySpecials: lsGet('eh_daily_specials', []),
+  voiceProfiles: lsGet('eh_voice_profiles', null),
+  voiceActiveRevision: lsGet('eh_voice_active_rev', ''),
   menuPhotos: lsGet('eh_menu_photos', {}),
   bar:        lsGet('eh_bar',         seedBar()),
   wines:      lsGet('eh_wines',       seedWines()),
@@ -1634,6 +1638,64 @@ function saveDailySpecials(){
   lsSet('eh_daily_specials', STATE.dailySpecials);
   return fbSetDoc('boh_shared','daily_specials',{ list:STATE.dailySpecials, updatedAt:Date.now() });
 }
+
+/* ---------------- BOH Voice profiles (additive metadata only) ----------------
+   Profiles live in their own document and reference existing item ids. No
+   beverage, cellar, VIN/LIN, price, or stock record is read-modified here. */
+function voiceProfilesApi(){ return (typeof EPICUREAN_VOICE_PROFILES!=='undefined') ? EPICUREAN_VOICE_PROFILES : null; }
+function voiceProfileStore(){
+  var api=voiceProfilesApi();
+  if(!api) return null;
+  STATE.voiceProfiles=api.normalizeProfileStore(STATE.voiceProfiles);
+  return STATE.voiceProfiles;
+}
+function voiceSources(){
+  var api=voiceProfilesApi();
+  if(!api) return [];
+  return api.collectVoiceSources({ state:STATE, scalini:(typeof EPICUREAN_SCALINI!=='undefined'?EPICUREAN_SCALINI:null) });
+}
+function saveVoiceProfiles(){
+  var store=voiceProfileStore();
+  if(!store) return Promise.resolve(false);
+  lsSet('eh_voice_profiles', store);
+  if(typeof fbReady==='undefined' || !fbReady) return Promise.resolve(true);
+  return fbSetDoc('boh_shared', EPICUREAN_VOICE_PROFILES.PROFILE_DOC_ID, {
+    schemaVersion:store.schemaVersion, seeds:store.seeds, profiles:store.profiles, updatedAt:Date.now()
+  }, {merge:false});
+}
+function ensureVoiceProfiles(){
+  var api=voiceProfilesApi();
+  var store=voiceProfileStore();
+  if(!api || !store) return { changed:false };
+  var res=api.seedVoiceProfiles(store, voiceSources(), {});
+  if(res.changed) saveVoiceProfiles();
+  return res;
+}
+function voiceSnapshot(){
+  var api=voiceProfilesApi();
+  if(!api) return null;
+  return api.buildVoiceSnapshot({ store:voiceProfileStore(), sources:voiceSources(), modGroups:STATE.modGroups||[] });
+}
+function publishVoiceVocabulary(){
+  var api=voiceProfilesApi();
+  if(!api){ toast('Voice vocabulary module not loaded','error'); return Promise.resolve(false); }
+  var snap=voiceSnapshot();
+  if(!snap.entryCount){ toast('No active Voice keywords to publish','error'); return Promise.resolve(false); }
+  toast('Publishing Voice vocabulary '+snap.revision+'…','');
+  return api.publishVoiceSnapshot(snap, {
+    writeChunk:function(docId,data){ return fbSetDoc(api.SHARED_COLLECTION, docId, data, {merge:false}); },
+    writeControl:function(docId,data){ return fbSetDoc(api.SHARED_COLLECTION, docId, data, {merge:false}); }
+  }).then(function(r){
+    STATE.voiceActiveRevision=r.revision;
+    lsSet('eh_voice_active_rev', r.revision);
+    toast('Voice vocabulary '+r.revision+' is live · '+snap.entryCount+' keywords in '+snap.chunks.length+' chunk'+(snap.chunks.length===1?'':'s'),'success');
+    return r;
+  }).catch(function(e){
+    console.warn('voice publish', e);
+    toast('Voice vocabulary not published — the active revision is unchanged','error');
+    return false;
+  });
+}
 function publishMenusToFrontOfHouse(){
   toast('Sending menus to POS and iPad...','');
   return Promise.all([
@@ -1776,7 +1838,9 @@ function syncFromCloud(){
     fbGetDoc('boh_shared','retail').then(function(d){ if(d&&d.list){ STATE.retail=d.list; lsSet('eh_retail',STATE.retail); } }),
     fbGetDoc('boh_shared','ingredients').then(function(d){ if(d&&d.list){ STATE.ingredients=d.list; lsSet('eh_ingredients',STATE.ingredients); } }),
     fbGetDoc('boh_shared','sales').then(function(d){ if(d&&d.list){ STATE.sales=d.list; lsSet('eh_sales',STATE.sales); } }),
-    fbGetDoc('boh_shared','daily_specials').then(function(d){ if(d&&d.list){ STATE.dailySpecials=d.list; lsSet('eh_daily_specials',STATE.dailySpecials); } })
+    fbGetDoc('boh_shared','daily_specials').then(function(d){ if(d&&d.list){ STATE.dailySpecials=d.list; lsSet('eh_daily_specials',STATE.dailySpecials); } }),
+    fbGetDoc('boh_shared','voice_profiles').then(function(d){ if(d&&d.profiles){ STATE.voiceProfiles=d; voiceProfileStore(); lsSet('eh_voice_profiles',STATE.voiceProfiles); } }),
+    fbGetDoc('boh_shared','voice_vocab_active').then(function(d){ if(d&&d.activeRevision){ STATE.voiceActiveRevision=d.activeRevision; lsSet('eh_voice_active_rev',d.activeRevision); } })
   ]).catch(function(){});
 }
 /* preserve local faceprints (clock app writes them) while taking cloud's roster */
@@ -3555,7 +3619,7 @@ function boot(){
   publishOperationalIds();
   var saved=sessionStorage.getItem('eh_boh_user'); if(saved){ try{ SESSION.user=JSON.parse(saved); }catch(e){} }
   render();
-  syncFromCloud().then(function(){ ensureBinwiseCellar(); publishOperationalIds(); if(SESSION.user)render(); });
+  syncFromCloud().then(function(){ ensureBinwiseCellar(); publishOperationalIds(); ensureVoiceProfiles(); if(SESSION.user)render(); });
 }
 /* ============================================================
    PRODUCT MODULE — Menu / Bar / Wine / Retail / Inventory / Reports
@@ -3681,10 +3745,29 @@ function voiceKeywordFieldsHtml(it, context){
     fld('Voice Aliases','<input class="input" id="ie-voice-aliases" value="'+esc(aliases)+'" placeholder="DEER, optional">')+
     '</div><div id="voice-conflict" class="voice-conflict" data-context="'+esc(context||'')+'" data-id="'+esc(it.id||'')+'"></div>';
 }
-function readVoiceKeywordFields(it){
+function voiceSourceById(id, sourceType){
+  var api=voiceProfilesApi();
+  if(!api) return null;
+  return api.findSource(voiceSources(), id, sourceType);
+}
+/* Mirrors a value the manager just typed into the BOH-owned profile store. The
+   item keeps its own field exactly as before; this only adds the profile. */
+function voiceMirrorProfile(it, sourceType){
+  var api=voiceProfilesApi();
+  var store=voiceProfileStore();
+  if(!api || !store || !it || !it.id) return false;
+  var src=voiceSourceById(it.id, sourceType);
+  if(!src && sourceType) src={ sourceType:sourceType, sourceId:it.id, name:it.name||'', family:api.familyFor(sourceType,it) };
+  if(!src) return false;
+  var r=api.upsertProfile(store, src, { voiceKeyword:it.voiceKeyword||'', voiceAliases:it.voiceAliases||[] }, {});
+  if(r.changed) saveVoiceProfiles();
+  return r.changed;
+}
+function readVoiceKeywordFields(it, sourceType){
   if(!it) return it;
   if($('ie-voice-kw')) it.voiceKeyword=$('ie-voice-kw').value.trim().toUpperCase();
   if($('ie-voice-aliases')) it.voiceAliases=parseVoiceAliases($('ie-voice-aliases').value);
+  voiceMirrorProfile(it, sourceType);
   return it;
 }
 function refreshVoiceConflict(it, context){
@@ -3812,7 +3895,7 @@ function openItemEditor(id){
     it.allergens=(ab.getAttribute('data-al')||'').split('|').filter(Boolean);
     it.diet=(ab.getAttribute('data-diet')||'').split('|').filter(Boolean);
     it.verified=$('an-verify')?$('an-verify').checked:it.verified;
-    readVoiceKeywordFields(it);
+    readVoiceKeywordFields(it,'food');
     if(isNew)STATE.menuItems.push(it);
     if(it.photoUrl && typeof rememberMenuPhoto==='function') rememberMenuPhoto(it.id, it.photoUrl);
     saveMenu(); toast('Item saved','success'); render();
@@ -3988,7 +4071,7 @@ function openSpecialEditor(id){
     it.activeTo=$('ds-to').value;
     it.ingredients=$('ie-ing').value.trim();
     it.active=$('ds-active').checked;
-    readVoiceKeywordFields(it);
+    readVoiceKeywordFields(it,'special');
     if(isNew) STATE.dailySpecials.push(it);
     saveDailySpecials();
     toast('Special saved','success');

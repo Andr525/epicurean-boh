@@ -1,7 +1,8 @@
 /* Menu manager overlay — Menus → Groups → Items → Modifiers.
    Loaded after index.html so PAGE_menu and related helpers are replaced. */
 var MENU_CAT_FILTER = 'all';
-var MM = { tab: 'full', sel: { type: 'book', id: 'mb_dinner' }, q: '', open: {} };
+var MM = { tab: 'full', sel: { type: 'book', id: 'mb_dinner' }, q: '', open: {}, voiceFamily: 'btg-sparkling', voiceSeeded: false };
+var MM_VOICE_ROWS = 60;
 
 function ensureMenuManager() {
   var dirty = false;
@@ -99,6 +100,8 @@ function mmPaint() {
     var on = document.querySelector('.mm-row.on');
     if (on) on.scrollIntoView({ block: 'nearest' });
   }
+  if (MM.tab === 'voice' && typeof mmVoiceRefreshWarnings === 'function') mmVoiceRefreshWarnings();
+  if (MM.tab === 'modifiers' && typeof mmModRefreshVoiceWarn === 'function') mmModRefreshVoiceWarn();
   if (typeof bindVoiceKeywordFields === 'function' && $('ie-voice-kw')) {
     var form = $('mm-editor');
     var type = form ? form.getAttribute('data-type') : '';
@@ -119,6 +122,7 @@ function mmFlush() {
   if (type === 'group') mmSaveGroupFromForm(id, false);
   if (type === 'mod') mmSaveModFromForm(id, false);
   if (type === 'tax') mmSaveTaxesFromForm(false);
+  if (type === 'voice') mmVoiceSaveFromForm(false);
   if (type === 'wine') mmSaveWineFromForm(id, false);
   if (type === 'bar') mmSaveBarFromForm(id, false);
   if (type === 'retail') mmSaveRetailFromForm(id, false);
@@ -290,8 +294,8 @@ function mmPhotoField(url) {
     '</div>');
 }
 function mmBody() {
-  var tabs = ['full', 'items', 'modifiers', 'taxes'].map(function (t) {
-    var label = { full: 'Full menu', items: 'Items', modifiers: 'Modifiers', taxes: 'Taxes' }[t];
+  var tabs = ['full', 'items', 'modifiers', 'voice', 'taxes'].map(function (t) {
+    var label = { full: 'Full menu', items: 'Items', modifiers: 'Modifiers', voice: 'Voice', taxes: 'Taxes' }[t];
     return '<button class="mm-tab' + (MM.tab === t ? ' on' : '') + '" onclick="mmTab(\'' + t + '\')">' + label + '</button>';
   }).join('');
   var crumb = '<button type="button" class="mm-clink" onclick="go(\'overview\')">Home</button> / <button type="button" class="mm-clink" onclick="MM.tab=\'full\'; MM.sel={type:\'book\',id:(MM.sel&&MM.sel.type===\'book\'?MM.sel.id:\'mb_dinner\')}; mmPaint()">Menu manager</button>';
@@ -320,7 +324,7 @@ function mmBody() {
       '</div>' +
     '</div>' +
     '<div class="mm-tabs">' + tabs + '</div>' +
-    (MM.tab === 'full' ? mmFullView() : MM.tab === 'items' ? mmItemsView() : MM.tab === 'modifiers' ? mmModsView() : mmTaxesView()) +
+    (MM.tab === 'full' ? mmFullView() : MM.tab === 'items' ? mmItemsView() : MM.tab === 'modifiers' ? mmModsView() : MM.tab === 'voice' ? mmVoiceView() : mmTaxesView()) +
   '</div>';
 }
 function mmQ() { return (MM.q || '').trim().toLowerCase(); }
@@ -812,19 +816,59 @@ function mmModsView() {
   return '<div class="mm-body"><div class="mm-tree" style="padding:14px">' + cards +
     '<button class="mm-add" onclick="mmAddMod()">+ Add modifier group</button></div><div class="mm-detail">' + editor + '</div></div>';
 }
+function mmModDraftGroup(g) {
+  if (!g || !$('mg-voice-role')) return g;
+  var names = document.querySelectorAll('.mopt-name');
+  var aliases = document.querySelectorAll('.mopt-alias');
+  var options = [];
+  for (var i = 0; i < names.length; i++) {
+    var nm = names[i].value.trim();
+    if (!nm) continue;
+    options.push({
+      id: (g.options[i] && g.options[i].id) || ('draft' + i),
+      name: nm,
+      voiceAliases: aliases[i] ? aliases[i].value : ''
+    });
+  }
+  return { id: g.id, name: ($('mg-name') && $('mg-name').value) || g.name, voiceRole: $('mg-voice-role').value, options: options };
+}
+function mmModRefreshVoiceWarn() {
+  var api = mmVoiceApi();
+  var box = $('mg-voice-warn');
+  var form = $('mm-editor');
+  if (!api || !box || !form) return;
+  var g = mmFindMod(form.getAttribute('data-id'));
+  var res = api.detectModifierCollisions([mmModDraftGroup(g)]);
+  if (!res.conflicts.length) { box.className = 'voice-conflict'; box.innerHTML = ''; return; }
+  box.className = 'voice-conflict warn';
+  box.innerHTML = res.conflicts.map(function (c) {
+    return 'VOICE MODIFIER CONFLICT — ' + esc(c.keyword) + ' (' + esc(c.scope) + ') used by ' +
+      c.items.map(function (i) { return esc(i.name); }).join(', ');
+  }).join('<br>');
+}
 function mmModEditor(id) {
   var g = mmFindMod(id);
   if (!g) return '<div class="mm-empty">Pick a modifier group.</div>';
   var optRows = (g.options || []).map(function (o, i) {
-    return '<div class="mm-mod-opt"><input class="input mopt-name" data-i="' + i + '" value="' + esc(o.name) + '" placeholder="Option">' +
+    var ref = o.itemRef ? (o.itemRef.sourceType + ':' + o.itemRef.sourceId) : '';
+    return '<div class="mm-mod-opt"><input class="input mopt-name" data-i="' + i + '" value="' + esc(o.name) + '" placeholder="Option" oninput="mmModRefreshVoiceWarn()">' +
       '<input class="input mopt-up" data-i="' + i + '" type="number" step="0.01" value="' + (o.up || 0) + '" style="width:100px" placeholder="$">' +
+      '<input class="input mopt-alias" data-i="' + i + '" value="' + esc((o.voiceAliases || []).join(', ')) + '" placeholder="Voice aliases" style="width:170px" oninput="mmModRefreshVoiceWarn()">' +
+      '<input class="input mopt-ref" data-i="' + i + '" value="' + esc(ref) + '" placeholder="item ref e.g. bar:spirit-id" style="width:170px">' +
       '<button type="button" class="btn btn-ghost btn-sm" onclick="mmDropModOpt(\'' + g.id + '\',' + i + ')">✕</button></div>';
+  }).join('');
+  var roleOpts = (mmVoiceApi() ? mmVoiceApi().MODIFIER_VOICE_ROLES : ['']).map(function (r) {
+    var label = { '': '— none —', spirit: 'Spirit / brand', preparation: 'Preparation', service: 'Service', garnish: 'Garnish', mixer: 'Mixer' }[r] || r;
+    return '<option value="' + esc(r) + '"' + ((g.voiceRole || '') === r ? ' selected' : '') + '>' + esc(label) + '</option>';
   }).join('');
   return '<form id="mm-editor" data-type="mod" data-id="' + g.id + '"><div class="mm-card"><h3>MODIFIERS · ' + esc(g.name) + '</h3>' +
     fld('Group name', '<input class="input" id="mg-name" value="' + esc(g.name) + '">') +
     '<label class="cbx"><input type="checkbox" id="mg-req"' + (g.required ? ' checked' : '') + '> Required on POS</label>' +
     '<label class="cbx"><input type="checkbox" id="mg-multi"' + (g.multi ? ' checked' : '') + '> Allow multiple selections</label>' +
-    '<div class="ff" style="margin-top:12px"><label>Options</label>' + optRows +
+    fld('Voice role', '<select class="input" id="mg-voice-role" onchange="mmModRefreshVoiceWarn()">' + roleOpts + '</select>') +
+    '<div id="mg-voice-warn" class="voice-conflict"></div>' +
+    '<div class="ff" style="margin-top:12px"><label>Options</label>' +
+    '<p class="mm-hint">Price is whatever you type here — never guessed from a referenced item. An item ref is <b>sourceType:sourceId</b> of an existing item (food, pfdish, tmcourse, btg, bar, wine, scoop, special).</p>' + optRows +
     '<button type="button" class="mm-add" onclick="mmAddModOpt(\'' + g.id + '\')">+ Add option</button></div>' +
     '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveModFromForm(\'' + g.id + '\',true)">Save modifiers</button> ' +
     '<button type="button" class="btn btn-danger btn-sm" onclick="deleteModGroup(\'' + g.id + '\')">Delete group</button></div></form>';
@@ -842,6 +886,168 @@ function mmTaxesView() {
     (rows || '<tr><td colspan="4" class="mm-empty">No tax rates.</td></tr>') + '</tbody></table></div>' +
     '<button type="button" class="mm-add" onclick="mmAddTax()">+ Add tax rate</button> ' +
     '<button type="button" class="btn btn-gold btn-sm" onclick="mmSaveTaxesFromForm(true)">Save taxes</button></div></form></div>';
+}
+
+/* ============================================================
+   VOICE — BOH-only keyword/alias management per family.
+   Nothing here edits a product: it writes Voice profiles that reference
+   existing item ids, and publishes versioned vocabulary snapshots.
+   ============================================================ */
+function mmVoiceApi() { return (typeof EPICUREAN_VOICE_PROFILES !== 'undefined') ? EPICUREAN_VOICE_PROFILES : null; }
+function mmVoiceStore() { return typeof voiceProfileStore === 'function' ? voiceProfileStore() : null; }
+function mmVoiceSources() { return typeof voiceSources === 'function' ? voiceSources() : []; }
+function mmVoiceFamily() {
+  var api = mmVoiceApi();
+  if (!api) return null;
+  return api.familyInfo(MM.voiceFamily) || api.FAMILIES[0];
+}
+function mmVoiceTab(familyId) { mmFlush(); MM.voiceFamily = familyId; mmPaint(); }
+
+function mmVoiceEdits() {
+  var api = mmVoiceApi();
+  var out = {};
+  if (!api) return out;
+  Array.prototype.slice.call(document.querySelectorAll('.vp-kw')).forEach(function (el) {
+    var key = el.getAttribute('data-vkey');
+    var al = document.querySelector('.vp-al[data-vkey="' + key + '"]');
+    var act = document.querySelector('.vp-active[data-vkey="' + key + '"]');
+    out[key] = {
+      sourceType: el.getAttribute('data-stype'),
+      sourceId: el.getAttribute('data-sid'),
+      family: el.getAttribute('data-family'),
+      name: el.getAttribute('data-name') || '',
+      voiceKeyword: el.value,
+      voiceAliases: al ? al.value : '',
+      active: act ? act.checked : true
+    };
+  });
+  return out;
+}
+function mmVoiceRefreshWarnings() {
+  var api = mmVoiceApi();
+  var box = $('vp-warnings');
+  if (!api || !box) return;
+  var res = api.detectCollisions(mmVoiceStore(), mmVoiceSources(), { overrides: mmVoiceEdits() });
+  if (!res.conflicts.length) {
+    box.className = 'voice-conflict';
+    box.innerHTML = '';
+    return;
+  }
+  box.className = 'voice-conflict warn';
+  box.innerHTML = res.conflicts.map(function (c) {
+    var who = c.items.map(function (i) { return esc(i.name); }).join(', ');
+    return 'VOICE KEYWORD CONFLICT — ' + esc(c.keyword) + ' (' + esc(c.scope) + ') used by ' + who +
+      (c.suggestion ? '. Try ' + esc(c.suggestion) : '');
+  }).join('<br>');
+}
+function mmVoiceSaveFromForm(toastOk) {
+  var form = $('mm-editor');
+  if (!form || form.getAttribute('data-type') !== 'voice') return;
+  var api = mmVoiceApi();
+  var store = mmVoiceStore();
+  if (!api || !store) return;
+  var sources = mmVoiceSources();
+  var byKey = {};
+  sources.forEach(function (s) { byKey[s.key] = s; });
+  var edits = mmVoiceEdits();
+  var changed = 0;
+  Object.keys(edits).forEach(function (key) {
+    var e = edits[key];
+    var src = byKey[key] || { sourceType: e.sourceType, sourceId: e.sourceId, family: e.family, name: e.name };
+    var r = api.upsertProfile(store, src, {
+      voiceKeyword: e.voiceKeyword, voiceAliases: e.voiceAliases, active: e.active
+    }, {});
+    if (r.changed) changed += 1;
+  });
+  api.pruneEmptyProfiles(store);
+  if (typeof saveVoiceProfiles === 'function') saveVoiceProfiles();
+  if (toastOk) { toast(changed ? changed + ' Voice profile' + (changed === 1 ? '' : 's') + ' saved' : 'No Voice changes to save', changed ? 'success' : ''); mmPaint(); }
+}
+function mmVoiceSuggestFamily() {
+  var api = mmVoiceApi();
+  if (!api) return;
+  mmVoiceSaveFromForm(false);
+  var list = api.suggestForSources(mmVoiceStore(), mmVoiceSources(), { family: MM.voiceFamily });
+  var filled = 0;
+  list.forEach(function (s) {
+    var el = document.querySelector('.vp-kw[data-vkey="' + s.key + '"]');
+    if (!el || el.value.trim()) return;
+    el.value = s.suggestion;
+    filled += 1;
+  });
+  mmVoiceRefreshWarnings();
+  toast(filled ? filled + ' suggestion' + (filled === 1 ? '' : 's') + ' filled in — edit, then Save Voice' : 'No eligible items are missing a keyword', filled ? 'success' : '');
+}
+function mmVoicePublish() {
+  mmVoiceSaveFromForm(false);
+  if (typeof publishVoiceVocabulary === 'function') publishVoiceVocabulary().then(function () { mmPaint(); });
+}
+function mmVoiceRow(api, store, src, suggestions) {
+  var p = api.getProfile(store, src.sourceType, src.sourceId) || null;
+  var kw = p ? p.voiceKeyword : '';
+  var aliases = p ? (p.voiceAliases || []).join(', ') : '';
+  var active = p ? p.active !== false : true;
+  var hint = kw ? (p.origin === 'seed' ? 'Build 55 approved' : 'Manager') : (suggestions[src.key] ? 'Suggestion: ' + suggestions[src.key] : (api.isSuggestEligible(src) ? 'No keyword yet' : 'VIN / code addressed'));
+  var meta = [src.group || src.kind || '', src.varietal || ''].filter(Boolean).join(' · ');
+  return '<tr>' +
+    '<td class="td-name">' + esc(src.name) + (meta ? '<div class="mm-item-meta">' + esc(meta) + '</div>' : '') + '</td>' +
+    '<td><input class="input vp-kw" data-vkey="' + esc(src.key) + '" data-stype="' + esc(src.sourceType) + '" data-sid="' + esc(src.sourceId) + '" data-family="' + esc(src.family) + '" data-name="' + esc(src.name) + '" value="' + esc(kw) + '" placeholder="' + esc(suggestions[src.key] || '') + '" oninput="mmVoiceRefreshWarnings()"></td>' +
+    '<td><input class="input vp-al" data-vkey="' + esc(src.key) + '" value="' + esc(aliases) + '" placeholder="optional, comma separated" oninput="mmVoiceRefreshWarnings()"></td>' +
+    '<td><label class="cbx"><input type="checkbox" class="vp-active" data-vkey="' + esc(src.key) + '"' + (active ? ' checked' : '') + ' onchange="mmVoiceRefreshWarnings()"> On</label></td>' +
+    '<td class="mm-item-meta">' + esc(hint) + '</td>' +
+  '</tr>';
+}
+function mmVoiceView() {
+  var api = mmVoiceApi();
+  if (!api) return '<div class="mm-detail" style="grid-column:1/-1"><div class="mm-empty">Voice vocabulary module not loaded.</div></div>';
+  if (!MM.voiceSeeded && typeof ensureVoiceProfiles === 'function') { ensureVoiceProfiles(); MM.voiceSeeded = true; }
+  var store = mmVoiceStore();
+  var sources = mmVoiceSources();
+  var fam = mmVoiceFamily();
+  var famTabs = api.FAMILIES.map(function (f) {
+    var inFam = api.sourcesByFamily(sources, f.id);
+    var withKw = inFam.filter(function (s) {
+      var p = api.getProfile(store, s.sourceType, s.sourceId);
+      return p && p.voiceKeyword;
+    }).length;
+    return '<div class="cat-tab' + (MM.voiceFamily === f.id ? ' active' : '') + '" onclick="mmVoiceTab(\'' + f.id + '\')">' +
+      esc(f.label) + ' <span class="mm-pill">' + withKw + '/' + inFam.length + '</span></div>';
+  }).join('');
+
+  var all = api.sourcesByFamily(sources, fam.id);
+  var q = mmQ();
+  var list = all.filter(function (s) { return !q || mmMatch(s.name + ' ' + (s.group || '') + ' ' + (s.kind || '') + ' ' + (s.varietal || '')); });
+  var hidden = list.length > MM_VOICE_ROWS ? list.length - MM_VOICE_ROWS : 0;
+  var shown = list.slice(0, MM_VOICE_ROWS);
+  var suggestions = {};
+  api.suggestForSources(store, sources, { family: fam.id }).forEach(function (s) { suggestions[s.key] = s.suggestion; });
+  var rows = shown.map(function (s) { return mmVoiceRow(api, store, s, suggestions); }).join('');
+  var live = STATE.voiceActiveRevision || '';
+  var snapshotNote = '';
+  if (typeof voiceSnapshot === 'function') {
+    var snap = voiceSnapshot();
+    snapshotNote = snap.entryCount + ' active keyword' + (snap.entryCount === 1 ? '' : 's') + ' · next revision ' + esc(snap.revision) + ' in ' + snap.chunks.length + ' chunk' + (snap.chunks.length === 1 ? '' : 's');
+  }
+
+  return '<div class="mm-detail" style="grid-column:1/-1">' +
+    '<form id="mm-editor" data-type="voice" data-id="' + esc(fam.id) + '">' +
+    '<div class="mm-card"><h3>VOICE · ' + esc(fam.label) + '</h3>' +
+    '<p class="mm-hint">Keywords and aliases are what a server says. They are stored as BOH Voice profiles against the existing item id — prices, stock, VIN, LIN, and cellar records are untouched. ' +
+    (fam.suggest ? '' : 'This family is addressed by its printed code, so suggestions are only generated for bottles also poured by the glass. ') +
+    'Publishing writes a BOH revision only. POS ordering is unchanged and does not read it yet.</p>' +
+    '<div class="cat-tabs">' + famTabs + '</div>' +
+    '<div id="vp-warnings" class="voice-conflict"></div>' +
+    '<div class="table-wrap"><table class="dt"><thead><tr><th>Item</th><th>Voice keyword</th><th>Aliases</th><th>Active</th><th>Status</th></tr></thead><tbody>' +
+    (rows || '<tr><td colspan="5" class="mm-empty">Nothing in this family' + (q ? ' matches the search' : '') + '.</td></tr>') +
+    '</tbody></table></div>' +
+    (hidden ? '<p class="mm-hint">+' + hidden + ' more — narrow it down with Find.</p>' : '') +
+    '<div style="margin-top:14px;display:flex;gap:8px;flex-wrap:wrap">' +
+      '<button type="button" class="btn btn-gold btn-sm" onclick="mmVoiceSaveFromForm(true)">Save Voice</button>' +
+      '<button type="button" class="btn btn-ghost btn-sm" onclick="mmVoiceSuggestFamily()">Suggest missing keywords</button>' +
+      '<button type="button" class="btn btn-gold btn-sm" onclick="mmVoicePublish()">Publish Voice vocabulary</button>' +
+    '</div>' +
+    '<p class="mm-hint">' + snapshotNote + (live ? ' · live revision ' + esc(live) : ' · nothing published yet') + '</p>' +
+    '</div></form></div>';
 }
 function mmAddGroup(bookId) {
   var c = { id: uid('c'), name: 'New group', visible: true };
@@ -977,7 +1183,7 @@ function mmSaveItemFromForm(id, toastOk) {
     it.diet = (ab.getAttribute('data-diet') || '').split('|').filter(Boolean);
     it.verified = $('an-verify') ? $('an-verify').checked : it.verified;
   }
-  if (typeof readVoiceKeywordFields === 'function') readVoiceKeywordFields(it);
+  if (typeof readVoiceKeywordFields === 'function') readVoiceKeywordFields(it, 'food');
   saveMenu();
   if (toastOk) { toast('Item saved', 'success'); mmAfterSave(); }
 }
@@ -995,13 +1201,31 @@ function mmSaveModFromForm(id, toastOk) {
   g.required = $('mg-req') ? $('mg-req').checked : !!g.required;
   g.multi = $('mg-multi') ? $('mg-multi').checked : !!g.multi;
   var names = document.querySelectorAll('.mopt-name'), ups = document.querySelectorAll('.mopt-up');
+  var aliases = document.querySelectorAll('.mopt-alias'), refs = document.querySelectorAll('.mopt-ref');
+  var api = mmVoiceApi();
+  var sourceKeys = {};
+  if (api) mmVoiceSources().forEach(function (s) { sourceKeys[s.key] = 1; });
+  var unresolved = [];
   var next = [];
   for (var i = 0; i < names.length; i++) {
     var nm = names[i].value.trim();
-    if (nm) next.push({ id: (g.options[i] && g.options[i].id) || uid('mo'), name: nm, up: parseFloat(ups[i].value) || 0 });
+    if (!nm) continue;
+    var opt = { id: (g.options[i] && g.options[i].id) || uid('mo'), name: nm, up: parseFloat(ups[i].value) || 0 };
+    if (aliases[i] && aliases[i].value.trim() && api) opt.voiceAliases = api.aliasList(aliases[i].value);
+    var raw = refs[i] ? refs[i].value.trim() : '';
+    if (raw) {
+      var cut = raw.indexOf(':');
+      var ref = cut > 0 ? { sourceType: raw.slice(0, cut).trim(), sourceId: raw.slice(cut + 1).trim() } : null;
+      if (ref && sourceKeys[ref.sourceType + ':' + ref.sourceId]) opt.itemRef = ref;
+      else unresolved.push(nm);
+    }
+    next.push(opt);
   }
   g.options = next;
+  if ($('mg-voice-role')) g.voiceRole = $('mg-voice-role').value;
+  if (api) api.normalizeModifierVoice(g);
   saveMenu();
+  if (unresolved.length) toast('Item ref not found for ' + unresolved.join(', ') + ' — left blank', 'error');
   if (toastOk) { toast('Modifiers saved', 'success'); mmPaint(); }
 }
 function mmSaveTaxesFromForm(toastOk) {
@@ -1084,7 +1308,7 @@ function mmWinePairOpts(sel) {
     return '<option value="' + esc(w) + '"' + (sel === w ? ' selected' : '') + '>' + esc(w) + '</option>';
   }).join('');
 }
-function mmReadDishCommon(it) {
+function mmReadDishCommon(it, sourceType) {
   it.name = $('ie-name').value.trim() || it.name;
   it.desc = $('ie-desc') ? $('ie-desc').value.trim() : (it.desc || '');
   it.story = $('ie-story') ? $('ie-story').value.trim() : (it.story || '');
@@ -1110,7 +1334,7 @@ function mmReadDishCommon(it) {
     it.dietary = it.diet;
     it.verified = $('an-verify') ? $('an-verify').checked : it.verified;
   }
-  if (typeof readVoiceKeywordFields === 'function') readVoiceKeywordFields(it);
+  if (typeof readVoiceKeywordFields === 'function') readVoiceKeywordFields(it, sourceType);
   mmAttachTemps(it);
 }
 
@@ -1405,7 +1629,7 @@ function mmSavePfDish(joinId, toastOk) {
   var pf = mmFindPf(mmJoinParent(joinId));
   var d = mmFindPfDish(joinId);
   if (!pf || !d || !$('ie-name')) return;
-  mmReadDishCommon(d);
+  mmReadDishCommon(d, 'pfdish');
   if (d.photoUrl && typeof rememberMenuPhoto === 'function') rememberMenuPhoto('pfdish:' + joinId, d.photoUrl);
   d.upcharge = parseFloat($('ie-price').value) || 0;
   d.price = d.upcharge;
@@ -1440,7 +1664,7 @@ function mmSaveTmCourse(joinId, toastOk) {
   var tm = mmFindTm(mmJoinParent(joinId));
   var c = mmFindTmCourse(joinId);
   if (!tm || !c || !$('ie-name')) return;
-  mmReadDishCommon(c);
+  mmReadDishCommon(c, 'tmcourse');
   if (c.photoUrl && typeof rememberMenuPhoto === 'function') rememberMenuPhoto('tmcourse:' + joinId, c.photoUrl);
   c.upcharge = parseFloat($('ie-price').value) || 0;
   c.price = c.upcharge;
