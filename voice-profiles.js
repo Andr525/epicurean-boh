@@ -457,6 +457,13 @@
     };
   }
 
+  /* A profile, including one the manager cleared, owns the field. Renaming the
+     dish must not replace that choice with a fresh suggestion. */
+  function keywordFieldIsUserOwned(profile, item) {
+    var shown = editorVoice(profile, item || {});
+    return !!shown.fromProfile || !isBlank(item && item.voiceKeyword);
+  }
+
   /* ---------- suggestions ---------- */
 
   function usedKeywordsInScope(store, sources, scope, exceptKey) {
@@ -851,6 +858,7 @@
     upsertProfile: upsertProfile,
     pruneEmptyProfiles: pruneEmptyProfiles,
     editorVoice: editorVoice,
+    keywordFieldIsUserOwned: keywordFieldIsUserOwned,
     suggestForSource: suggestForSource,
     suggestForSources: suggestForSources,
     detectCollisions: detectCollisions,

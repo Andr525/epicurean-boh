@@ -236,6 +236,9 @@ section('families');
   assert.deepEqual(cleared.voiceAliases, []);
   VP.seedVoiceProfiles(store, sources, { now: 210, force: true });
   assert.equal(VP.getProfile(store, 'pfdish', 'sf_w_salmon').voiceKeyword, '', 'seed does not restore a manager-cleared keyword');
+  assert.equal(VP.keywordFieldIsUserOwned(VP.getProfile(store, 'pfdish', 'sf_w_salmon'), { voiceKeyword: '' }), true,
+    'a cleared profile stays user-owned so a rename cannot suggest over it');
+  assert.equal(VP.keywordFieldIsUserOwned(null, { voiceKeyword: '' }), false, 'a brand-new dish can still take a suggestion');
   const untouched = VP.emptyProfileStore();
   untouched.profiles['food:blank'] = { key: 'food:blank', sourceType: 'food', sourceId: 'blank', family: 'food', voiceKeyword: '', voiceAliases: [], active: true, origin: '', seedVersion: '', updatedAt: 1 };
   assert.equal(VP.pruneEmptyProfiles(untouched), 1, 'an untouched empty profile can be pruned');

@@ -3746,8 +3746,9 @@ function voiceKeywordFieldsHtml(it, context, sourceType){
   var kw=shown.voiceKeyword;
   if(!shown.fromProfile && !kw) kw=voiceSuggest(it.name||'', { kind:it.kind, varietal:it.varietal });
   var aliases=(shown.voiceAliases||[]).join(', ');
+  var owned=api ? api.keywordFieldIsUserOwned(profile, it) : !!it.voiceKeyword;
   return '<div class="ff-row cols-2">'+
-    fld('Voice Keyword','<input class="input" id="ie-voice-kw" value="'+esc(kw)+'" placeholder="VENISON" autocomplete="off">')+
+    fld('Voice Keyword','<input class="input" id="ie-voice-kw" value="'+esc(kw)+'" placeholder="VENISON" autocomplete="off"'+(owned?' data-user="1"':'')+'>')+
     fld('Voice Aliases','<input class="input" id="ie-voice-aliases" value="'+esc(aliases)+'" placeholder="DEER, optional">')+
     '</div><div id="voice-conflict" class="voice-conflict" data-context="'+esc(context||'')+'" data-id="'+esc(it.id||'')+'"></div>';
 }
