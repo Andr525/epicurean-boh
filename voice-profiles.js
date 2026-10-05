@@ -363,16 +363,23 @@
       }
       if (!p.family) p.family = input.family;
       var touched = false;
-      if (isBlank(p.voiceKeyword)) {
-        if (input.voiceKeyword) { p.voiceKeyword = input.voiceKeyword; touched = true; }
-      } else if (p.voiceKeyword !== input.voiceKeyword && input.voiceKeyword) {
-        preserved += 1;
-      }
-      if (!p.voiceAliases.length && input.voiceAliases.length) {
-        p.voiceAliases = input.voiceAliases.slice();
-        touched = true;
-      } else if (p.voiceAliases.length && input.voiceAliases.length) {
-        preserved += 1;
+      /* A manager edit owns the profile even when the keyword or aliases were
+         cleared. A later seed must not put the approved value back. */
+      if (p.origin === 'manager') {
+        if (input.voiceKeyword && p.voiceKeyword !== input.voiceKeyword) preserved += 1;
+        if (input.voiceAliases.length && p.voiceAliases.join('|') !== input.voiceAliases.join('|')) preserved += 1;
+      } else {
+        if (isBlank(p.voiceKeyword)) {
+          if (input.voiceKeyword) { p.voiceKeyword = input.voiceKeyword; touched = true; }
+        } else if (p.voiceKeyword !== input.voiceKeyword && input.voiceKeyword) {
+          preserved += 1;
+        }
+        if (!p.voiceAliases.length && input.voiceAliases.length) {
+          p.voiceAliases = input.voiceAliases.slice();
+          touched = true;
+        } else if (p.voiceAliases.length && input.voiceAliases.length) {
+          preserved += 1;
+        }
       }
       if (touched) {
         filled += 1;
@@ -422,12 +429,32 @@
     var removed = 0;
     Object.keys(store.profiles || {}).forEach(function (k) {
       var p = store.profiles[k];
-      if (p && isBlank(p.voiceKeyword) && !(p.voiceAliases || []).length && p.active !== false) {
+      if (!p || p.origin === 'manager') return;
+      if (isBlank(p.voiceKeyword) && !(p.voiceAliases || []).length && p.active !== false) {
         delete store.profiles[k];
         removed += 1;
       }
     });
     return removed;
+  }
+
+  /* The dish editor must show the profile when one exists, including a blank
+     keyword the manager cleared. The copy stored on the dish is not allowed
+     to replace it. */
+  function editorVoice(profile, item) {
+    item = item || {};
+    if (profile) {
+      return {
+        voiceKeyword: normKeyword(profile.voiceKeyword),
+        voiceAliases: aliasList(profile.voiceAliases),
+        fromProfile: true
+      };
+    }
+    return {
+      voiceKeyword: normKeyword(item.voiceKeyword),
+      voiceAliases: aliasList(item.voiceAliases),
+      fromProfile: false
+    };
   }
 
   /* ---------- suggestions ---------- */
@@ -823,6 +850,7 @@
     seedVoiceProfiles: seedVoiceProfiles,
     upsertProfile: upsertProfile,
     pruneEmptyProfiles: pruneEmptyProfiles,
+    editorVoice: editorVoice,
     suggestForSource: suggestForSource,
     suggestForSources: suggestForSources,
     detectCollisions: detectCollisions,

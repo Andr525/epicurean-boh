@@ -3736,10 +3736,16 @@ function collectVoiceEntries(exceptId){
   (STATE.dailySpecials||[]).forEach(function(it){ add(it, 'special:'+(it.course||it.category||'')); });
   return entries;
 }
-function voiceKeywordFieldsHtml(it, context){
+function voiceKeywordFieldsHtml(it, context, sourceType){
   it=it||{};
-  var kw=it.voiceKeyword || voiceSuggest(it.name||'', { kind:it.kind, varietal:it.varietal });
-  var aliases=(it.voiceAliases||[]).join(', ');
+  var api=voiceProfilesApi();
+  var store=voiceProfileStore();
+  var src=voiceSourceById(it.id, sourceType);
+  var profile=api && store && src ? api.getProfile(store, src.sourceType, src.sourceId) : null;
+  var shown=api ? api.editorVoice(profile, it) : { voiceKeyword:it.voiceKeyword||'', voiceAliases:it.voiceAliases||[], fromProfile:false };
+  var kw=shown.voiceKeyword;
+  if(!shown.fromProfile && !kw) kw=voiceSuggest(it.name||'', { kind:it.kind, varietal:it.varietal });
+  var aliases=(shown.voiceAliases||[]).join(', ');
   return '<div class="ff-row cols-2">'+
     fld('Voice Keyword','<input class="input" id="ie-voice-kw" value="'+esc(kw)+'" placeholder="VENISON" autocomplete="off">')+
     fld('Voice Aliases','<input class="input" id="ie-voice-aliases" value="'+esc(aliases)+'" placeholder="DEER, optional">')+
@@ -3750,8 +3756,9 @@ function voiceSourceById(id, sourceType){
   if(!api) return null;
   return api.findSource(voiceSources(), id, sourceType);
 }
-/* Mirrors a value the manager just typed into the BOH-owned profile store. The
-   item keeps its own field exactly as before; this only adds the profile. */
+/* Copies the open editor into the profile. The editor is hydrated from the
+   profile when one exists, so a stale keyword left on the dish cannot replace
+   a manager edit. */
 function voiceMirrorProfile(it, sourceType){
   var api=voiceProfilesApi();
   var store=voiceProfileStore();
@@ -3762,6 +3769,25 @@ function voiceMirrorProfile(it, sourceType){
   var r=api.upsertProfile(store, src, { voiceKeyword:it.voiceKeyword||'', voiceAliases:it.voiceAliases||[] }, {});
   if(r.changed) saveVoiceProfiles();
   return r.changed;
+}
+function voiceSyncLegacy(src, keyword, aliases){
+  if(!src) return '';
+  var type=src.sourceType;
+  var id=String(src.sourceId||'');
+  var item=null;
+  if(type==='food') item=(STATE.menuItems||[]).filter(function(x){ return x&&x.id===id; })[0];
+  else if(type==='special') item=(STATE.dailySpecials||[]).filter(function(x){ return x&&x.id===id; })[0];
+  else if(type==='pfdish'){
+    (STATE.prixFixeMenus||[]).forEach(function(pf){ (pf.dishes||[]).forEach(function(d){ if(d&&d.id===id) item=d; }); });
+  } else if(type==='tmcourse'){
+    (STATE.tastingMenus||[]).forEach(function(tm){ (tm.courses||[]).forEach(function(c){ if(c&&(c.dishId===id||c.id===id)) item=c; }); });
+  } else return '';
+  if(!item) return '';
+  var al=aliases||[];
+  if((item.voiceKeyword||'')===keyword && (item.voiceAliases||[]).join('|')===al.join('|')) return '';
+  item.voiceKeyword=keyword;
+  item.voiceAliases=al.slice();
+  return type;
 }
 function readVoiceKeywordFields(it, sourceType){
   if(!it) return it;
@@ -3868,7 +3894,7 @@ function openItemEditor(id){
       fld('Price ($)','<input class="input" id="ie-price" type="number" step="0.01" value="'+it.price+'">')+
       fld('Cost ($)','<input class="input" id="ie-cost" type="number" step="0.01" value="'+it.cost+'">')+'</div>'+
     fld('Name','<input class="input" id="ie-name" value="'+esc(it.name)+'" placeholder="Dish name">')+
-    voiceKeywordFieldsHtml(it, 'food:'+((it.catIds&&it.catIds[0])||'item'))+
+    voiceKeywordFieldsHtml(it, 'food:'+((it.catIds&&it.catIds[0])||'item'), 'food')+
     fld('Description (shown to customers on iPad menu & servers on POS)','<textarea class="input" id="ie-desc" rows="3" placeholder="Full description of the dish — ingredients, preparation, presentation">'+esc(it.desc)+'</textarea>')+
     fld('Photo','<div class="mc-photo-row"><div class="mc-photo-controls"><input class="input" id="ie-photo" value="'+esc(photoInputDisplayValue(it.photoUrl||''))+'" placeholder="'+(isDisplayablePhotoUrl(it.photoUrl)&&!photoInputDisplayValue(it.photoUrl)?'Photo attached — upload to replace':'Paste URL or Upload')+'" style="flex:1;" oninput="showPhotoPreview(this,this.value); if(typeof applyPhotoUrlToCurrent===\'function\') applyPhotoUrlToCurrent(this.value)"><label class="btn btn-gold btn-sm mm-photo-pick">📷 Upload<input type="file" accept="image/*" onchange="handleMenuItemPhotoPick(this)"></label></div><img class="upload-preview mm-photo-hero" alt="Dish photo"></div>')+
     '<div class="ff-row cols-2">'+fld('Cook time (minutes)','<input class="input" id="ie-cook" type="number" value="'+(it.cookMin||0)+'">')+
@@ -4046,7 +4072,7 @@ function openSpecialEditor(id){
   var ctx='special:'+(it.course||'');
   var body='<div class="ie-form">'+
     fld('Name','<input class="input" id="ie-name" value="'+esc(it.name)+'" placeholder="Special name">')+
-    voiceKeywordFieldsHtml(it, ctx)+
+    voiceKeywordFieldsHtml(it, ctx, 'special')+
     fld('Short name','<input class="input" id="ds-short" value="'+esc(it.shortName||'')+'">')+
     fld('Description','<textarea class="input" id="ie-desc" rows="3">'+esc(it.desc||'')+'</textarea>')+
     '<div class="ff-row cols-3">'+fld('Price ($)','<input class="input" id="ie-price" type="number" step="0.01" value="'+(it.price||0)+'">')+

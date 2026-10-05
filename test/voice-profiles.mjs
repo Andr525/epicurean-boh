@@ -220,12 +220,27 @@ section('families');
   });
   log.push('  ' + edits.length + ' beverage families edited and round-tripped');
 
-  // Clearing a keyword is allowed and prunes the empty profile.
-  const clearSrc = VP.sourcesByFamily(sources, 'cocktail')[0];
-  VP.upsertProfile(store, clearSrc, { voiceKeyword: '', voiceAliases: [] }, { now: 200 });
-  const pruned = VP.pruneEmptyProfiles(store);
-  assert.ok(pruned >= 1, 'cleared profiles are pruned');
-  assert.equal(VP.getProfile(store, clearSrc.sourceType, clearSrc.sourceId), null);
+  // A manager clear stays on the profile. The stale dish keyword must not win.
+  const salmon = sources.filter((s) => s.sourceType === 'pfdish' && s.sourceId === 'sf_w_salmon')[0];
+  VP.upsertProfile(store, salmon, { voiceKeyword: 'LOX', voiceAliases: ['CURED'] }, { now: 180 });
+  const staleDish = { voiceKeyword: 'SMOKED', voiceAliases: [] };
+  const shown = VP.editorVoice(VP.getProfile(store, 'pfdish', 'sf_w_salmon'), staleDish);
+  assert.equal(shown.voiceKeyword, 'LOX');
+  assert.deepEqual(shown.voiceAliases, ['CURED']);
+  assert.equal(shown.fromProfile, true);
+  VP.upsertProfile(store, salmon, shown, { now: 190 });
+  assert.equal(VP.getProfile(store, 'pfdish', 'sf_w_salmon').voiceKeyword, 'LOX', 'saving the editor value keeps the manager keyword');
+  VP.upsertProfile(store, salmon, { voiceKeyword: '', voiceAliases: [] }, { now: 200 });
+  const cleared = VP.editorVoice(VP.getProfile(store, 'pfdish', 'sf_w_salmon'), staleDish);
+  assert.equal(cleared.voiceKeyword, '', 'a cleared profile hides the stale dish keyword');
+  assert.deepEqual(cleared.voiceAliases, []);
+  VP.seedVoiceProfiles(store, sources, { now: 210, force: true });
+  assert.equal(VP.getProfile(store, 'pfdish', 'sf_w_salmon').voiceKeyword, '', 'seed does not restore a manager-cleared keyword');
+  const untouched = VP.emptyProfileStore();
+  untouched.profiles['food:blank'] = { key: 'food:blank', sourceType: 'food', sourceId: 'blank', family: 'food', voiceKeyword: '', voiceAliases: [], active: true, origin: '', seedVersion: '', updatedAt: 1 };
+  assert.equal(VP.pruneEmptyProfiles(untouched), 1, 'an untouched empty profile can be pruned');
+  assert.equal(VP.pruneEmptyProfiles(store), 0, 'a manager-cleared profile is kept');
+  assert.ok(VP.getProfile(store, 'pfdish', 'sf_w_salmon'));
 }
 
 /* ============================================================

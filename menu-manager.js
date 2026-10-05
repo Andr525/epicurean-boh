@@ -700,7 +700,7 @@ function mmItemEditor(id) {
   return '<form id="mm-editor" data-type="item" data-id="' + it.id + '">' +
     '<div class="mm-card"><h3>ITEM ' + esc(it.name) + '</h3>' +
     fld('Name', '<input class="input" id="ie-name" value="' + esc(it.name) + '" placeholder="Dish name">') +
-    (typeof voiceKeywordFieldsHtml === 'function' ? voiceKeywordFieldsHtml(it, 'food:' + ((it.catIds && it.catIds[0]) || 'item')) : '') +
+    (typeof voiceKeywordFieldsHtml === 'function' ? voiceKeywordFieldsHtml(it, 'food:' + ((it.catIds && it.catIds[0]) || 'item'), 'food') : '') +
     mmPhotoField(mmResolveItemPhoto(it, mmPhotoKey())) +
     fld('Description (POS &amp; iPad)', '<textarea class="input" id="ie-desc" rows="4">' + esc(it.desc || '') + '</textarea>') +
     fld('Story for iPad (origin, farm, family — guests see this when they tap Learn more)', '<textarea class="input" id="ie-story" rows="4" placeholder="e.g. Filet mignon from Bastrop Cattle Company, Texas. Filet is the tenderloin, cut along the spine of the cow…">' + esc(it.story || '') + '</textarea>') +
@@ -951,6 +951,7 @@ function mmVoiceSaveFromForm(toastOk) {
   sources.forEach(function (s) { byKey[s.key] = s; });
   var edits = mmVoiceEdits();
   var changed = 0;
+  var legacy = {};
   Object.keys(edits).forEach(function (key) {
     var e = edits[key];
     var src = byKey[key] || { sourceType: e.sourceType, sourceId: e.sourceId, family: e.family, name: e.name };
@@ -958,9 +959,17 @@ function mmVoiceSaveFromForm(toastOk) {
       voiceKeyword: e.voiceKeyword, voiceAliases: e.voiceAliases, active: e.active
     }, {});
     if (r.changed) changed += 1;
+    if (r.changed && typeof voiceSyncLegacy === 'function') {
+      var kind = voiceSyncLegacy(src, r.profile.voiceKeyword, r.profile.voiceAliases);
+      if (kind) legacy[kind] = 1;
+    }
   });
   api.pruneEmptyProfiles(store);
   if (typeof saveVoiceProfiles === 'function') saveVoiceProfiles();
+  if (legacy.food && typeof saveMenu === 'function') saveMenu();
+  if (legacy.special && typeof saveDailySpecials === 'function') saveDailySpecials();
+  if (legacy.pfdish && typeof savePrixFixeMenus === 'function') savePrixFixeMenus();
+  if (legacy.tmcourse && typeof saveTastingMenus === 'function') saveTastingMenus();
   if (toastOk) { toast(changed ? changed + ' Voice profile' + (changed === 1 ? '' : 's') + ' saved' : 'No Voice changes to save', changed ? 'success' : ''); mmPaint(); }
 }
 function mmVoiceSuggestFamily() {
@@ -1338,14 +1347,14 @@ function mmReadDishCommon(it, sourceType) {
   mmAttachTemps(it);
 }
 
-function mmSetDishEditor(it, priceLabel, extraTop, extraMid, saveClick, delClick) {
+function mmSetDishEditor(it, priceLabel, extraTop, extraMid, saveClick, delClick, sourceType) {
   var mt = mmModTaxHtml(it);
   extraTop = extraTop || '';
   extraMid = extraMid || '';
   var voiceCtx = (it.course ? ('pf:' + it.course) : ('tasting:' + (it.group || it.course || '')));
   return '<div class="mm-card"><h3>ITEM ' + esc(it.name) + '</h3>' +
     fld('Name', '<input class="input" id="ie-name" value="' + esc(it.name) + '" placeholder="Dish name">') +
-    (typeof voiceKeywordFieldsHtml === 'function' ? voiceKeywordFieldsHtml(it, voiceCtx) : '') +
+    (typeof voiceKeywordFieldsHtml === 'function' ? voiceKeywordFieldsHtml(it, voiceCtx, sourceType) : '') +
     mmPhotoField(mmResolveItemPhoto(it, mmPhotoKey())) +
     fld('Description (POS &amp; iPad)', '<textarea class="input" id="ie-desc" rows="4">' + esc(it.desc || '') + '</textarea>') +
     fld('Story for iPad (origin, farm, family — guests see this when they tap Learn more)', '<textarea class="input" id="ie-story" rows="4" placeholder="e.g. Filet mignon from Bastrop Cattle Company, Texas. Filet is the tenderloin, cut along the spine of the cow…">' + esc(it.story || '') + '</textarea>') +
@@ -1436,7 +1445,7 @@ function mmPfDishEditor(joinId) {
     fld('Dessert wine', '<input class="input" id="ie-pair-dessert" value="' + esc(d.pairDessert || '') + '" placeholder="Moscato d’Asti · $14">');
   return '<form id="mm-editor" data-type="pfdish" data-id="' + joinId + '">' +
     mmSetDishEditor(d, 'Price / upcharge ($)', extra, '<p class="mm-hint">0.00 means the dish is included in the ' + money(pf.price) + ' menu price.</p>',
-      'mmSavePfDish(\'' + joinId + '\',true)', 'mmDelPfDish(\'' + joinId + '\')') +
+      'mmSavePfDish(\'' + joinId + '\',true)', 'mmDelPfDish(\'' + joinId + '\')', 'pfdish') +
     '</form>';
 }
 function mmTmMenuEditor(id) {
@@ -1496,7 +1505,7 @@ function mmTmCourseEditor(joinId) {
   c.upcharge = c.upcharge || 0;
   return '<form id="mm-editor" data-type="tmcourse" data-id="' + joinId + '">' +
     mmSetDishEditor(c, 'Price / upcharge ($)', fld('Menu group', groupSel), '<p class="mm-hint">0.00 means included in the ' + money(tm.price) + ' tasting price. Courses fire to the kitchen in list order.</p>',
-      'mmSaveTmCourse(\'' + joinId + '\',true)', 'mmDelTmCourse(\'' + joinId + '\')') +
+      'mmSaveTmCourse(\'' + joinId + '\',true)', 'mmDelTmCourse(\'' + joinId + '\')', 'tmcourse') +
     '</form>';
 }
 function mmTmPairGroupEditor(joinId) {
