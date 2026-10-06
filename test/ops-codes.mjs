@@ -83,6 +83,14 @@ assert.equal(live[1].vin, '20007');
 assert.equal(live[1].stock, 8);
 assert.equal(live[1].bottlePrice, 275);
 assert.equal(ops.applyBundledSkuVins(live, seed), false);
+const temporary = [{ id: 'w2148NV375ml', vin: '20007', stock: 8, bottlePrice: 275 }];
+assert.equal(ops.applyBundledSkuVins(temporary, [{ id: 'w2148NV375ml', vin: '400' }]), true);
+assert.equal(temporary[0].vin, '400');
+assert.equal(temporary[0].stock, 8);
+assert.equal(temporary[0].bottlePrice, 275);
+const managerVin = [{ id: 'w2148NV375ml', vin: '8801', stock: 8 }];
+assert.equal(ops.applyBundledSkuVins(managerVin, [{ id: 'w2148NV375ml', vin: '400' }]), false);
+assert.equal(managerVin[0].vin, '8801');
 const held = [
   { id: 'w15542021750ml', vin: '1554', name: 'Clau de Nell', size: '750ml', active: true },
   { id: 'w15541999750ml', vin: '1554', name: 'Brunate- Le Coste', size: '750ml', active: true }

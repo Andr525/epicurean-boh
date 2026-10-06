@@ -141,7 +141,8 @@
       var next = planned[String(w.id)];
       var cur = vinKey(w.vin);
       if (!next || !cur || next === cur) return;
-      if ((counts[cur] || 0) < 2) return;
+      var temporary = /^\d+$/.test(cur) && Number(cur) >= 20000 && Number(cur) <= 20257;
+      if ((counts[cur] || 0) < 2 && !temporary) return;
       w.vin = next;
       counts[cur] -= 1;
       counts[next] = (counts[next] || 0) + 1;
