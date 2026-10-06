@@ -1252,9 +1252,12 @@ function mmSaveTaxesFromForm(toastOk) {
 function mmSaveWineFromForm(id, toastOk) {
   var w = (STATE.wines || []).filter(function (x) { return x.id === id; })[0];
   if (!w || !$('w-name')) return;
+  var prevVin = String(w.vin || '').trim();
+  var nextVin = $('w-vin') ? $('w-vin').value.trim() : prevVin;
+  if (!nextVin && typeof assignVin === 'function') nextVin = assignVin();
+  if (typeof vinSaveBlocked === 'function' && vinSaveBlocked(nextVin, w.id, prevVin)) return;
   w.name = $('w-name').value.trim() || w.name;
-  if ($('w-vin')) w.vin = $('w-vin').value.trim();
-  if (!w.vin && typeof assignVin === 'function') w.vin = assignVin();
+  w.vin = nextVin;
   w.producer = $('w-prod').value.trim(); w.vintage = $('w-vintage').value.trim(); w.region = $('w-region').value.trim();
   if ($('w-more-url')) {
     w.moreUrl = $('w-more-url').value.trim();

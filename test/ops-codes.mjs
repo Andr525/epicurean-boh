@@ -69,6 +69,36 @@ state.bar.filter(function (b) { return ops.isSpiritBar(b); }).forEach(function (
   seen[b.lin] = 1;
 });
 
+const live = [
+  { id: 'w2148NV750ml', vin: '2148', name: 'Krug Grande Cuvée', size: '750ml', bottlePrice: 275, stock: 9 },
+  { id: 'w2148NV375ml', vin: '2148', name: 'Grande Cuvée (375ml)', size: '375ml', bottlePrice: 275, stock: 8 }
+];
+const seed = [
+  { id: 'w2148NV750ml', vin: '2148' },
+  { id: 'w2148NV375ml', vin: '20007' }
+];
+assert.equal(ops.applyBundledSkuVins(live, seed), true);
+assert.equal(live[0].vin, '2148');
+assert.equal(live[1].vin, '20007');
+assert.equal(live[1].stock, 8);
+assert.equal(live[1].bottlePrice, 275);
+assert.equal(ops.applyBundledSkuVins(live, seed), false);
+const held = [
+  { id: 'w15542021750ml', vin: '1554', name: 'Clau de Nell', size: '750ml', active: true },
+  { id: 'w15541999750ml', vin: '1554', name: 'Brunate- Le Coste', size: '750ml', active: true }
+];
+assert.equal(ops.applyBundledSkuVins(held, held), false);
+assert.equal(held[0].vin, '1554');
+assert.equal(held[1].vin, '1554');
+const collisions = ops.findVinCollisions({ wines: held });
+assert.equal(collisions.length, 1);
+assert.equal(collisions[0].vin, '1554');
+assert.equal(collisions[0].wines.length, 2);
+const blocked = ops.collidingSkus({ wines: live }, '2148', 'new-id');
+assert.equal(blocked.length, 1);
+assert.equal(blocked[0].id, 'w2148NV750ml');
+assert.equal(ops.collidingSkus({ wines: live }, '20007', 'w2148NV375ml').length, 0);
+
 console.log('ops-codes.mjs ok');
 console.log(JSON.stringify({
   keptBinwise: ['2148', '2148'],

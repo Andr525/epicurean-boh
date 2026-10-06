@@ -1036,7 +1036,7 @@ function showPhotoPreview(input, url){
 <script src="scalini-dining.js?v=menu-ai-maps-20260913"></script>
 <script src="voice-vocab.js"></script>
 <script src="voice-profiles.js"></script>
-<script src="cellar.js"></script>
+<script src="cellar.js?v=binwise-375-park-v2"></script>
 <script src="ops-codes.js"></script>
 <input type="file" id="photo-file-input" accept="image/*" style="position:fixed;left:-80px;top:0;width:1px;height:1px;opacity:0;" onchange="handlePhotoUpload(this)">
 <script>
@@ -1720,6 +1720,33 @@ function persistOpsCodes(){
 function opsApi(){ return (typeof EpicureanOpsCodes!=='undefined') ? EpicureanOpsCodes : null; }
 function isSpiritBar(b){ var api=opsApi(); return api?api.isSpiritBar(b):!!(b&&/spirit|liquor|after[\s-]?dinner/i.test(String(b.kind||''))); }
 function assignVin(){ var api=opsApi(); return api?api.assignVin(STATE):String(20000+Math.floor(Math.random()*70000)); }
+function skuVinLabel(w){
+  return (w&&w.name?w.name:'Untitled')+' ('+(w&&w.size?w.size:'750ml')+', '+(w&&w.id?w.id:'')+')';
+}
+function vinSaveBlocked(nextVin, id, prevVin){
+  var api=opsApi();
+  if(!api||!api.collidingSkus) return false;
+  var hits=api.collidingSkus(STATE, nextVin, id);
+  if(!hits.length) return false;
+  var msg='VIN '+nextVin+' is already on '+hits.map(skuVinLabel).join('; ');
+  if(String(prevVin||'').trim()===String(nextVin||'').trim()){
+    toast(msg+'. Shared VIN left unchanged.','error');
+    return false;
+  }
+  toast(msg+'. Save blocked.','error');
+  return true;
+}
+function persistBundledSkuVins(){
+  var api=opsApi();
+  var seed=typeof BINWISE_CELLAR!=='undefined'?BINWISE_CELLAR:null;
+  if(!api||!seed||!api.applyBundledSkuVins) return false;
+  var changed=api.applyBundledSkuVins(STATE.wines, seed.wines);
+  if(!changed) return false;
+  STATE.cellarVer=seed.v||STATE.cellarVer;
+  lsSet('eh_cellar_ver', STATE.cellarVer);
+  saveWines();
+  return true;
+}
 function assignLin(){ var api=opsApi(); return api?api.assignLin(STATE):String(1000+Math.floor(Math.random()*89000)); }
 function ensureOperationalIds(){
   var api=opsApi();
@@ -3616,10 +3643,11 @@ function boot(){
   hydrateStationOverlays();
   if(typeof ensureMenuManager==='function')ensureMenuManager();
   ensureBinwiseCellar();
+  persistBundledSkuVins();
   publishOperationalIds();
   var saved=sessionStorage.getItem('eh_boh_user'); if(saved){ try{ SESSION.user=JSON.parse(saved); }catch(e){} }
   render();
-  syncFromCloud().then(function(){ ensureBinwiseCellar(); publishOperationalIds(); ensureVoiceProfiles(); if(SESSION.user)render(); });
+  syncFromCloud().then(function(){ ensureBinwiseCellar(); persistBundledSkuVins(); publishOperationalIds(); ensureVoiceProfiles(); if(SESSION.user)render(); });
 }
 /* ============================================================
    PRODUCT MODULE — Menu / Bar / Wine / Retail / Inventory / Reports
@@ -4193,7 +4221,18 @@ function wineBody(){
   return sectionHead('Wine list', n+' bottle labels from 375 Park Ave. By-the-glass is not on this list. Stock starts at 12 / 6 / 2 bottles by price and drops when POS sells a bottle. Each 750ml bottle is 25 oz for later 6 oz and 2 oz pours.', btns)+
     '<div class="ff" style="max-width:420px;margin:0 0 12px"><label>Find a wine</label><input class="input" id="wine-q" value="'+esc(WINE_FILTER)+'" placeholder="Bin, producer, vintage, region"></div>'+
     '<div class="mini-note" id="wine-count">'+wineFiltered().length+' shown'+(wineFiltered().length>250?' (first 250)':'')+'</div>'+
+    wineCollisionNote()+
     '<div class="table-wrap"><table class="dt"><thead><tr><th>VIN / Bin</th><th>Name</th><th>Vintage</th><th>Region</th><th>Bottle</th><th>Stock</th><th>Ounces</th><th></th></tr></thead><tbody id="wine-table-body">'+wineRows()+'</tbody></table></div>';
+}
+function wineCollisionNote(){
+  var api=opsApi();
+  if(!api||!api.findVinCollisions) return '';
+  var groups=api.findVinCollisions(STATE);
+  if(!groups.length) return '';
+  var text=groups.map(function(g){
+    return 'VIN '+g.vin+' is on '+g.wines.map(skuVinLabel).join(' and ');
+  }).join(' · ');
+  return '<div class="mini-note">VIN collision — two cellar SKUs cannot share a VIN. '+esc(text)+'</div>';
 }
 function openWineEditor(id){
   var w=id?STATE.wines.filter(function(x){return x.id===id;})[0]:{id:uid('w'),vin:assignVin(),name:'',producer:'',vintage:'',region:'',varietal:'',bottlePrice:0,glassPrice:0,stock:12,bottleOz:WINE_BOTTLE_OZ,ozOnHand:12*WINE_BOTTLE_OZ,openOz:0,size:'750ml',byTheGlass:false,active:true};
@@ -4204,9 +4243,11 @@ function openWineEditor(id){
     '<div class="ff-row cols-3">'+fld('Bottle price','<input class="input" id="w-bp" type="number" step="0.01" value="'+w.bottlePrice+'">')+fld('Bottles in stock','<input class="input" id="w-stock" type="number" value="'+w.stock+'">')+fld('Ounces per bottle','<input class="input" id="w-boz" type="number" step="0.1" value="'+(w.bottleOz||WINE_BOTTLE_OZ)+'">')+'</div>'+
     '<div class="mini-note">Glass price stays at $0 until the by-the-glass list is loaded. Then 6 oz glasses and 2 oz tastes will draw from these bottles (25 oz each).</div>';
   openModal(id?'Edit Wine':'New Wine', body, 'Save', function(){
-    w.vin=$('w-vin').value.trim(); w.name=$('w-name').value.trim(); w.producer=$('w-prod').value.trim();
+    var nextVin=$('w-vin').value.trim();
+    if(!nextVin) nextVin=assignVin();
+    if(vinSaveBlocked(nextVin, w.id, w.vin)) return false;
+    w.vin=nextVin; w.name=$('w-name').value.trim(); w.producer=$('w-prod').value.trim();
     w.vintage=$('w-vintage').value.trim(); w.region=$('w-region').value.trim(); w.size=$('w-size').value.trim()||'750ml';
-    if(!w.vin) w.vin=assignVin();
     w.bottlePrice=parseFloat($('w-bp').value)||0; w.stock=parseInt($('w-stock').value,10)||0;
     w.bottleOz=parseFloat($('w-boz').value)||WINE_BOTTLE_OZ;
     w.ozOnHand=Math.round(w.stock*w.bottleOz*10)/10; w.openOz=0; w.glassPrice=w.glassPrice||0;

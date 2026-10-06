@@ -18,8 +18,8 @@ function fileSha(name) { return sha(fs.readFileSync(path.join(root, name))); }
 
 /* 1. Files that Stage A is forbidden from touching. */
 const PROTECTED_FILE_SHA = {
-  'cellar.js': '9f8735ae1e507160b4fa4c3cde9d0901',
-  'ops-codes.js': '71ea49b03b8b3bb47146c57fe866772a',
+  'cellar.js': 'c26fd1e03de98bc809006b6e12a163d3',
+  'ops-codes.js': 'dd5d48d58ad8c98cca09ac3feb94928d',
   'scalini-dining.js': '4073c2157582157c0cfc1f817b83decf'
 };
 Object.keys(PROTECTED_FILE_SHA).forEach((f) => {
@@ -49,15 +49,15 @@ function barFingerprint(list) {
 }
 
 const CELLAR_BASELINE = {
-  v: 'binwise-375-park-v1',
+  v: 'binwise-375-park-v2',
   wines: 3612,
   beers: 18,
   spirits: 89,
   flights: 0,
-  winesSha: 'b3a418113a0ce93ba8ebc6b0ac29337a',
+  winesSha: '4f993c10f72cbe8c034780421b5a94f2',
   beersSha: 'ac9bb44a1ab190b52efcc7a752b745f0',
   spiritsSha: '75ae164003018bca6d82738d6fc7e835',
-  vinSha: '1691d7027ec0b66b5c422f25c84cce6e',
+  vinSha: '0cb031ccbf4817a6d9c1105281855f86',
   bottlePriceTotal: 7412595,
   stockTotal: 28038,
   ozTotal: 747697.4

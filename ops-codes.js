@@ -1,6 +1,10 @@
 /* VIN / LIN operational lookup codes.
-   VIN = wine.vin (digits). LIN = liquor/spirit bar.lin.
-   Existing Binwise VINs stay as-is, including size/vintage duplicates.
+   VIN = wine.vin. One VIN belongs to one sellable cellar SKU.
+   Bottle size is part of that SKU, so two cellar ids never share a VIN
+   by producer, vintage, or other descriptive fields.
+   ensureOperationalIds fills a blank VIN only. It does not rewrite a VIN
+   that is already stored. applyBundledSkuVins moves a record off a shared
+   VIN when the published cellar assigns that id a different VIN.
    New codes are random in namespace and never reuse retired values. */
 (function (root) {
   'use strict';
@@ -89,6 +93,62 @@
     state.bar = (state.bar || []).filter(function (x) { return !x || x.id !== id; });
     return b || null;
   }
+  function vinKey(v) {
+    return opsCodeDigits(v) || String(v == null ? '' : v).trim();
+  }
+  function activeWine(w) {
+    return !!(w && w.active !== false);
+  }
+  function findVinCollisions(state) {
+    var groups = {};
+    (state.wines || []).forEach(function (w) {
+      if (!activeWine(w)) return;
+      var key = vinKey(w.vin);
+      if (!key) return;
+      (groups[key] = groups[key] || []).push(w);
+    });
+    return Object.keys(groups).filter(function (key) {
+      return groups[key].length > 1;
+    }).map(function (key) {
+      return { vin: key, wines: groups[key] };
+    });
+  }
+  function collidingSkus(state, vin, exceptId) {
+    var key = vinKey(vin);
+    if (!key) return [];
+    return (state.wines || []).filter(function (w) {
+      if (!activeWine(w)) return false;
+      if (exceptId != null && String(w.id) === String(exceptId)) return false;
+      return vinKey(w.vin) === key;
+    });
+  }
+  function applyBundledSkuVins(list, seedWines) {
+    var planned = {};
+    (seedWines || []).forEach(function (w) {
+      if (!w || !w.id) return;
+      planned[String(w.id)] = vinKey(w.vin);
+    });
+    var counts = {};
+    (list || []).forEach(function (w) {
+      if (!w) return;
+      var key = vinKey(w.vin);
+      if (!key) return;
+      counts[key] = (counts[key] || 0) + 1;
+    });
+    var changed = false;
+    (list || []).forEach(function (w) {
+      if (!w || !w.id) return;
+      var next = planned[String(w.id)];
+      var cur = vinKey(w.vin);
+      if (!next || !cur || next === cur) return;
+      if ((counts[cur] || 0) < 2) return;
+      w.vin = next;
+      counts[cur] -= 1;
+      counts[next] = (counts[next] || 0) + 1;
+      changed = true;
+    });
+    return changed;
+  }
   function ensureOperationalIds(state) {
     state.retiredVins = Array.isArray(state.retiredVins) ? state.retiredVins : [];
     state.retiredLins = Array.isArray(state.retiredLins) ? state.retiredLins : [];
@@ -122,6 +182,10 @@
     randomOpsCode: randomOpsCode,
     assignVin: assignVin,
     assignLin: assignLin,
+    vinKey: vinKey,
+    findVinCollisions: findVinCollisions,
+    collidingSkus: collidingSkus,
+    applyBundledSkuVins: applyBundledSkuVins,
     retireVin: retireVin,
     retireLin: retireLin,
     deleteWine: deleteWine,
