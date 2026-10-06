@@ -3,12 +3,14 @@
   "install": "python3 --version",
   "repositoryDependencies": [
     "github.com/Andr525/epicurean-pos",
-    "github.com/Andr525/epicurean-names"
+    "github.com/Andr525/epicurean-names",
+    "github.com/Andr525/epicurean-kitchen",
+    "github.com/Andr525/epicurean-clock"
   ],
   "terminals": [
     {
       "name": "static-server",
-      "command": "python3 -m http.server 8000 --bind 0.0.0.0"
+      "command": "python3 -m http.server 8000 --bind 0.0.0.0 --directory \"$(dirname \"$PWD\")\""
     }
   ],
   "ports": [8000]
