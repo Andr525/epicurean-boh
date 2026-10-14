@@ -1,0 +1,1 @@
+{"result":"PASS","checks":["empty start without seed fallback","explicit authentic import","arbitrary menu creation/section/offering/rename","publish and consume POS/Voice/digital contract","invalid publication retains previous release","local browser reload preserves verified release"],"physicalDeviceTested":false,"backendTested":false,"externalRequests":0,"browserErrors":0}

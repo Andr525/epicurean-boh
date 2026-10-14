@@ -1,0 +1,21 @@
+✔ Authentic import preserves source, recipe/allergens/photos/modifiers/price; PF and tasting rules (16.41917ms)
+✔ Arbitrary owner menu created, named, edited, organized, published and consumed identically by three readers (73.388845ms)
+✔ Empty BOH publication stays empty; old release remains readable without fallback (51.028953ms)
+✔ Invalid publication and simulated partial staging failure leave active pointer intact (64.398351ms)
+✔ Concurrent publications use expected revision; only one activation succeeds (71.830814ms)
+✔ Missing/corrupt chunks rejected; direct activation cannot skip complete verification (17.133721ms)
+✔ Rollback preserves immutable price snapshots for existing checks (91.391664ms)
+✔ Unknown allergens/routes explicit and not orderable; public projection excludes legacy/internal fields (35.975734ms)
+✔ Schedules, hidden offerings and channels agree across consumers (52.736417ms)
+✔ IDs, minimum choices, modifier references and absent standalone prices fail closed (22.169819ms)
+✔ New legacy book kind imports generically, no name-based whitelist or source mutation (6.303833ms)
+✔ Local storage restore retains verified releases; content hashes deterministic and snapshots immutable (79.409152ms)
+✔ Existing BOH entry points do not load or activate the new contract (2.588974ms)
+ℹ tests 13
+ℹ suites 0
+ℹ pass 13
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 661.187747
