@@ -1,21 +1,36 @@
-✔ Authentic import preserves source, recipe/allergens/photos/modifiers/price; PF and tasting rules (16.41917ms)
-✔ Arbitrary owner menu created, named, edited, organized, published and consumed identically by three readers (73.388845ms)
-✔ Empty BOH publication stays empty; old release remains readable without fallback (51.028953ms)
-✔ Invalid publication and simulated partial staging failure leave active pointer intact (64.398351ms)
-✔ Concurrent publications use expected revision; only one activation succeeds (71.830814ms)
-✔ Missing/corrupt chunks rejected; direct activation cannot skip complete verification (17.133721ms)
-✔ Rollback preserves immutable price snapshots for existing checks (91.391664ms)
-✔ Unknown allergens/routes explicit and not orderable; public projection excludes legacy/internal fields (35.975734ms)
-✔ Schedules, hidden offerings and channels agree across consumers (52.736417ms)
-✔ IDs, minimum choices, modifier references and absent standalone prices fail closed (22.169819ms)
-✔ New legacy book kind imports generically, no name-based whitelist or source mutation (6.303833ms)
-✔ Local storage restore retains verified releases; content hashes deterministic and snapshots immutable (79.409152ms)
-✔ Existing BOH entry points do not load or activate the new contract (2.588974ms)
-ℹ tests 13
+✔ Authentic import preserves source, recipe/allergens/photos/modifiers/price; PF and tasting rules (50.18006ms)
+✔ Arbitrary owner menu created, named, edited, organized, published and consumed identically by three readers (197.408902ms)
+✔ Empty BOH publication stays empty; old release remains readable without fallback (114.703318ms)
+✔ Invalid publication and simulated partial staging failure leave active pointer intact (167.633553ms)
+✔ Concurrent publications use expected revision; only one activation succeeds (233.513646ms)
+✔ Missing/corrupt chunks rejected; direct activation cannot skip complete verification (60.386007ms)
+✔ Rollback preserves immutable price snapshots for existing checks (242.250878ms)
+✔ Unknown allergens/routes explicit and not orderable; public projection excludes legacy/internal fields (108.492199ms)
+✔ Schedules, hidden offerings and channels agree across consumers (203.389187ms)
+✔ IDs, minimum choices, modifier references and absent standalone prices fail closed (86.489731ms)
+✔ New legacy book kind imports generically, no name-based whitelist or source mutation (25.23785ms)
+✔ Local storage restore retains verified releases; content hashes deterministic and snapshots immutable (193.432638ms)
+✔ Existing BOH entry points do not load or activate the new contract (2.812295ms)
+✔ R1: empty, false, missing or string verification never implies allergen safety (134.066635ms)
+✔ R2: one price function handles packages, extras, upcharges, signed modifiers and quantity (23.361885ms)
+✔ R2: inconsistent menu/section prices and unsafe modifier totals are rejected (47.987073ms)
+✔ R3/4: actual STATE exporter covers catalog collections and excludes personal data (16.202217ms)
+✔ R4: orphan source records, missing references and unsupported fields block publication (48.50241ms)
+✔ R5: one dish identity survives multiple books, prix fixe and tasting menus (24.080227ms)
+✔ R6: required prix-fixe and deferred dessert rules plus chooseCount are enforced (32.510968ms)
+✔ R7: structured temperatures, aliases, dietary, fire timing and wine groupings survive (24.742519ms)
+✔ R8: voice/digital projections cannot leak costs, raw availability, legacy or arbitrary metadata (16.593516ms)
+✔ R8/12: media URLs and projection field types fail closed at publication boundary (29.461516ms)
+✔ R9: 86/stock/inactive availability blocked in projections and direct pricing, without mutation (89.944112ms)
+✔ R9: schedule-dependent required section is explicitly non-orderable, never silently satisfied (33.922033ms)
+✔ R10: editing/deletion retains immutable source evidence and rejects required-section damage (29.098162ms)
+✔ R12: schema artifact equals runtime schema; independent Draft 2020-12 validator agrees on shapes (205.296456ms)
+✔ R1/R7: ingredient modifiers retain allergens and cannot use unknown/empty verification (56.061271ms)
+ℹ tests 28
 ℹ suites 0
-ℹ pass 13
+ℹ pass 28
 ℹ fail 0
 ℹ cancelled 0
 ℹ skipped 0
 ℹ todo 0
-ℹ duration_ms 661.187747
+ℹ duration_ms 1776.98788

@@ -1,0 +1,1293 @@
+// Generated from the same schema as schema.json; regenerate: python catalog/tools/generate-schema.py; parity: node --test catalog/test/corrections.test.mjs
+export const schema = {
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:epicurean:catalog:v1",
+  "oneOf": [
+    {
+      "$ref": "#/$defs/Catalog"
+    },
+    {
+      "$ref": "#/$defs/Release"
+    }
+  ],
+  "$defs": {
+    "Rule": {
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "selection"
+              ]
+            },
+            "min": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "max": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "automatic": {
+              "type": "boolean"
+            },
+            "deferred": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "min",
+            "max",
+            "automatic",
+            "deferred"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "individual",
+                "fixed-price"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "Menu": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "orderingRuleId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "basePriceCents": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "presentationGroup": {
+          "type": "string"
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "channels": {
+          "type": "array",
+          "items": {
+            "enum": [
+              "pos",
+              "voice",
+              "digital"
+            ]
+          }
+        },
+        "availabilityPolicyId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "sectionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "metadata": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "orderingRuleId",
+        "basePriceCents",
+        "presentationGroup",
+        "active",
+        "channels",
+        "availabilityPolicyId",
+        "sectionIds",
+        "metadata"
+      ],
+      "additionalProperties": false
+    },
+    "Section": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "menuId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "orderingRuleId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "offeringIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "pricing": {
+          "enum": [
+            "individual",
+            "included"
+          ]
+        },
+        "fireTiming": {
+          "type": "object",
+          "properties": {
+            "fireEach": {
+              "type": "boolean"
+            },
+            "fireAfter": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "fireEach",
+            "fireAfter"
+          ],
+          "additionalProperties": false
+        },
+        "metadata": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "menuId",
+        "name",
+        "orderingRuleId",
+        "offeringIds",
+        "pricing",
+        "fireTiming",
+        "metadata"
+      ],
+      "additionalProperties": false
+    },
+    "Offering": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sectionId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "productId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "priceCents": {
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "upchargeCents": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "taxRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "active": {
+          "type": "boolean"
+        },
+        "availabilityPolicyId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "pour": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "sectionId",
+        "productId",
+        "priceCents",
+        "upchargeCents",
+        "taxRuleIds",
+        "active",
+        "availabilityPolicyId"
+      ],
+      "additionalProperties": false
+    },
+    "Scoop": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allergens": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allergenVerified": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "voiceKeyword": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "allergens",
+        "allergenVerified",
+        "description",
+        "voiceKeyword",
+        "kind"
+      ],
+      "additionalProperties": false
+    },
+    "Product": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "sourceId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "description": {
+          "type": "string"
+        },
+        "photos": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "format": "media-url"
+          }
+        },
+        "allergens": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allergenDataStatus": {
+          "enum": [
+            "unknown",
+            "declared",
+            "verified"
+          ]
+        },
+        "allergenVerified": {
+          "type": "boolean"
+        },
+        "modifierGroupIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "temperatureGroupId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "routeId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
+        "dietary": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "voiceKeyword": {
+          "type": "string"
+        },
+        "voiceAliases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "temperature": {
+          "type": "object",
+          "properties": {
+            "prompt": {
+              "type": "string"
+            },
+            "groupId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "prompt",
+            "groupId"
+          ],
+          "additionalProperties": false
+        },
+        "chooseCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Scoop"
+          }
+        },
+        "wineComponents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "productId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "pourOz": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "productId",
+              "pourOz"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "cookNote": {
+          "type": "string"
+        },
+        "cookMinutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "fireTiming": {
+          "type": "object",
+          "properties": {
+            "fireEach": {
+              "type": "boolean"
+            },
+            "fireAfter": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "fireEach",
+            "fireAfter"
+          ],
+          "additionalProperties": false
+        },
+        "displayMetadata": {
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "vin": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "lin": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "vintage": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "producer": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "region": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "country": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "varietal": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "grape": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "size": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "unit": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "group": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "kind": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "category": {
+              "type": [
+                "string",
+                "number"
+              ]
+            }
+          },
+          "required": [],
+          "additionalProperties": false
+        },
+        "translations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "desc": {
+                "type": "string"
+              },
+              "subtitle": {
+                "type": "string"
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "availability": {
+          "type": "object",
+          "properties": {
+            "active": {
+              "type": "boolean"
+            },
+            "available": {
+              "type": "boolean"
+            },
+            "eightySixed": {
+              "type": "boolean"
+            },
+            "stock": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "ozOnHand": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "startDate": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "endDate": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "timezone": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "active",
+            "available",
+            "eightySixed",
+            "stock",
+            "ozOnHand",
+            "startDate",
+            "endDate",
+            "timezone"
+          ],
+          "additionalProperties": false
+        },
+        "legacy": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "sourceId",
+        "name",
+        "description",
+        "photos",
+        "allergens",
+        "allergenDataStatus",
+        "allergenVerified",
+        "modifierGroupIds",
+        "temperatureGroupId",
+        "routeId",
+        "dietary",
+        "voiceKeyword",
+        "voiceAliases",
+        "temperature",
+        "chooseCount",
+        "choices",
+        "wineComponents",
+        "cookNote",
+        "cookMinutes",
+        "fireTiming",
+        "displayMetadata",
+        "translations",
+        "availability",
+        "legacy"
+      ],
+      "additionalProperties": false
+    },
+    "ModifierGroup": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "min": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "max": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "kind": {
+          "enum": [
+            "temperature",
+            "preference",
+            "ingredient",
+            "pricing",
+            "unknown"
+          ]
+        },
+        "options": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "name": {
+                "type": "string",
+                "minLength": 1
+              },
+              "priceDeltaCents": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "allergens": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "allergenVerified": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "id",
+              "name",
+              "priceDeltaCents",
+              "allergens",
+              "allergenVerified"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "legacy": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "min",
+        "max",
+        "kind",
+        "options"
+      ],
+      "additionalProperties": false
+    },
+    "TaxRule": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "ratePercent": {
+          "type": "number",
+          "minimum": 0,
+          "maximum": 100
+        },
+        "isDefault": {
+          "type": "boolean"
+        },
+        "legacy": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "ratePercent",
+        "isDefault"
+      ],
+      "additionalProperties": false
+    },
+    "Route": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "id",
+        "name"
+      ],
+      "additionalProperties": false
+    },
+    "AvailabilityPolicy": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "timezone": {
+          "type": "string",
+          "minLength": 1
+        },
+        "windows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "days": {
+                "type": "array",
+                "items": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 6
+                }
+              },
+              "start": {
+                "type": "string",
+                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+              },
+              "end": {
+                "type": "string",
+                "pattern": "^([01][0-9]|2[0-3]):[0-5][0-9]$"
+              }
+            },
+            "required": [
+              "days",
+              "start",
+              "end"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "timezone",
+        "windows"
+      ],
+      "additionalProperties": false
+    },
+    "ImportReport": {
+      "type": "object",
+      "properties": {
+        "sourceRecords": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "targetIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "disposition": {
+                "enum": [
+                  "mapped",
+                  "preserved",
+                  "unresolved"
+                ]
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "targetIds",
+              "disposition",
+              "reason"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "unresolved": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "sourceRecords",
+        "unresolved"
+      ],
+      "additionalProperties": false
+    },
+    "Catalog": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": "epicurean.catalog/v1"
+        },
+        "currency": {
+          "const": "USD"
+        },
+        "menus": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Menu"
+          }
+        },
+        "sections": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Section"
+          }
+        },
+        "offerings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Offering"
+          }
+        },
+        "products": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Product"
+          }
+        },
+        "orderingRules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Rule"
+          }
+        },
+        "modifierGroups": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ModifierGroup"
+          }
+        },
+        "taxRules": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TaxRule"
+          }
+        },
+        "routes": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Route"
+          }
+        },
+        "availabilityPolicies": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AvailabilityPolicy"
+          }
+        },
+        "provenance": {
+          "type": "array",
+          "items": {
+            "type": "object"
+          }
+        },
+        "legacySnapshots": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "records": {
+                "type": "object"
+              }
+            },
+            "required": [
+              "id",
+              "records"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "importReport": {
+          "$ref": "#/$defs/ImportReport"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "currency",
+        "menus",
+        "sections",
+        "offerings",
+        "products",
+        "orderingRules",
+        "modifierGroups",
+        "taxRules",
+        "routes",
+        "availabilityPolicies",
+        "provenance",
+        "legacySnapshots",
+        "importReport"
+      ],
+      "additionalProperties": false
+    },
+    "Release": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "manifest": {
+          "type": "object",
+          "properties": {
+            "schemaVersion": {
+              "const": "epicurean.catalog/v1"
+            },
+            "currency": {
+              "const": "USD"
+            },
+            "recordCounts": {
+              "type": "object",
+              "properties": {
+                "menus": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "sections": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "offerings": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "products": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "orderingRules": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "modifierGroups": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "taxRules": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "routes": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "availabilityPolicies": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "provenance": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "legacySnapshots": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "importReport": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                }
+              },
+              "required": [
+                "menus",
+                "sections",
+                "offerings",
+                "products",
+                "orderingRules",
+                "modifierGroups",
+                "taxRules",
+                "routes",
+                "availabilityPolicies",
+                "provenance",
+                "legacySnapshots",
+                "importReport"
+              ],
+              "additionalProperties": false
+            },
+            "chunks": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "hash": {
+                    "type": "string",
+                    "pattern": "^[a-f0-9]{64}$"
+                  },
+                  "collection": {
+                    "enum": [
+                      "menus",
+                      "sections",
+                      "offerings",
+                      "products",
+                      "orderingRules",
+                      "modifierGroups",
+                      "taxRules",
+                      "routes",
+                      "availabilityPolicies",
+                      "provenance",
+                      "legacySnapshots",
+                      "importReport"
+                    ]
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 0,
+                    "maximum": 9007199254740991
+                  }
+                },
+                "required": [
+                  "id",
+                  "hash",
+                  "collection",
+                  "count"
+                ],
+                "additionalProperties": false
+              }
+            }
+          },
+          "required": [
+            "schemaVersion",
+            "currency",
+            "recordCounts",
+            "chunks"
+          ],
+          "additionalProperties": false
+        },
+        "chunks": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "id": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "hash": {
+                "type": "string",
+                "pattern": "^[a-f0-9]{64}$"
+              },
+              "data": {
+                "type": "object",
+                "properties": {
+                  "collection": {
+                    "enum": [
+                      "menus",
+                      "sections",
+                      "offerings",
+                      "products",
+                      "orderingRules",
+                      "modifierGroups",
+                      "taxRules",
+                      "routes",
+                      "availabilityPolicies",
+                      "provenance",
+                      "legacySnapshots",
+                      "importReport"
+                    ]
+                  },
+                  "records": {
+                    "type": "array",
+                    "items": {}
+                  }
+                },
+                "required": [
+                  "collection",
+                  "records"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "id",
+              "hash",
+              "data"
+            ],
+            "additionalProperties": false
+          }
+        }
+      },
+      "required": [
+        "id",
+        "manifest",
+        "chunks"
+      ],
+      "additionalProperties": false
+    }
+  }
+};

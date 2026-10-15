@@ -1,8 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "urn:epicurean:catalog:v1",
-  "title": "Epicurean unified catalog v1 and complete publication envelope",
-  "description": "Semantic reference, selection, hash and ownership checks are enforced by contract.mjs/publication.mjs. Schema does not authorize a production activation.",
   "oneOf": [
     {
       "$ref": "#/$defs/Catalog"
@@ -13,43 +11,79 @@
   ],
   "$defs": {
     "Rule": {
-      "type": "object",
-      "properties": {
-        "id": {
-          "type": "string",
-          "minLength": 1
-        },
-        "name": {
-          "type": "string"
-        },
-        "kind": {
-          "enum": [
-            "individual",
-            "fixed-price",
-            "selection"
-          ]
-        },
-        "min": {
-          "type": "integer",
-          "minimum": 0
-        },
-        "max": {
-          "type": [
-            "integer",
-            "null"
+      "anyOf": [
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "selection"
+              ]
+            },
+            "min": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            "max": {
+              "anyOf": [
+                {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "automatic": {
+              "type": "boolean"
+            },
+            "deferred": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "id",
+            "kind",
+            "min",
+            "max",
+            "automatic",
+            "deferred"
           ],
-          "minimum": 0
+          "additionalProperties": false
         },
-        "automatic": {
-          "type": "boolean"
-        },
-        "deferred": {
-          "type": "boolean"
+        {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1
+            },
+            "name": {
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "individual",
+                "fixed-price"
+              ]
+            }
+          },
+          "required": [
+            "id",
+            "kind"
+          ],
+          "additionalProperties": false
         }
-      },
-      "required": [
-        "id",
-        "kind"
       ]
     },
     "Menu": {
@@ -68,11 +102,16 @@
           "minLength": 1
         },
         "basePriceCents": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "presentationGroup": {
           "type": "string"
@@ -85,15 +124,20 @@
           "items": {
             "enum": [
               "pos",
-              "digital",
-              "voice"
+              "voice",
+              "digital"
             ]
           }
         },
         "availabilityPolicyId": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "sectionIds": {
@@ -101,8 +145,10 @@
           "items": {
             "type": "string",
             "minLength": 1
-          },
-          "uniqueItems": true
+          }
+        },
+        "metadata": {
+          "type": "object"
         }
       },
       "required": [
@@ -110,10 +156,14 @@
         "name",
         "orderingRuleId",
         "basePriceCents",
+        "presentationGroup",
         "active",
         "channels",
-        "sectionIds"
-      ]
+        "availabilityPolicyId",
+        "sectionIds",
+        "metadata"
+      ],
+      "additionalProperties": false
     },
     "Section": {
       "type": "object",
@@ -139,8 +189,32 @@
           "items": {
             "type": "string",
             "minLength": 1
+          }
+        },
+        "pricing": {
+          "enum": [
+            "individual",
+            "included"
+          ]
+        },
+        "fireTiming": {
+          "type": "object",
+          "properties": {
+            "fireEach": {
+              "type": "boolean"
+            },
+            "fireAfter": {
+              "type": "string"
+            }
           },
-          "uniqueItems": true
+          "required": [
+            "fireEach",
+            "fireAfter"
+          ],
+          "additionalProperties": false
+        },
+        "metadata": {
+          "type": "object"
         }
       },
       "required": [
@@ -148,8 +222,12 @@
         "menuId",
         "name",
         "orderingRuleId",
-        "offeringIds"
-      ]
+        "offeringIds",
+        "pricing",
+        "fireTiming",
+        "metadata"
+      ],
+      "additionalProperties": false
     },
     "Offering": {
       "type": "object",
@@ -167,24 +245,21 @@
           "minLength": 1
         },
         "priceCents": {
-          "type": [
-            "integer",
-            "null"
-          ],
-          "minimum": 0
+          "anyOf": [
+            {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            },
+            {
+              "type": "null"
+            }
+          ]
         },
         "upchargeCents": {
           "type": "integer",
-          "minimum": 0
-        },
-        "active": {
-          "type": "boolean"
-        },
-        "availabilityPolicyId": {
-          "type": [
-            "string",
-            "null"
-          ]
+          "minimum": 0,
+          "maximum": 9007199254740991
         },
         "taxRuleIds": {
           "type": "array",
@@ -193,7 +268,27 @@
             "minLength": 1
           }
         },
+        "active": {
+          "type": "boolean"
+        },
+        "availabilityPolicyId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ]
+        },
         "pour": {
+          "type": "string"
+        },
+        "displayName": {
+          "type": "string"
+        },
+        "description": {
           "type": "string"
         }
       },
@@ -203,8 +298,53 @@
         "productId",
         "priceCents",
         "upchargeCents",
-        "active"
-      ]
+        "taxRuleIds",
+        "active",
+        "availabilityPolicyId"
+      ],
+      "additionalProperties": false
+    },
+    "Scoop": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        },
+        "allergens": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "allergenVerified": {
+          "type": "boolean"
+        },
+        "description": {
+          "type": "string"
+        },
+        "voiceKeyword": {
+          "type": "string"
+        },
+        "kind": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "allergens",
+        "allergenVerified",
+        "description",
+        "voiceKeyword",
+        "kind"
+      ],
+      "additionalProperties": false
     },
     "Product": {
       "type": "object",
@@ -227,7 +367,8 @@
         "photos": {
           "type": "array",
           "items": {
-            "type": "string"
+            "type": "string",
+            "format": "media-url"
           }
         },
         "allergens": {
@@ -239,9 +380,13 @@
         },
         "allergenDataStatus": {
           "enum": [
+            "unknown",
             "declared",
-            "unknown"
+            "verified"
           ]
+        },
+        "allergenVerified": {
+          "type": "boolean"
         },
         "modifierGroupIds": {
           "type": "array",
@@ -251,25 +396,310 @@
           }
         },
         "temperatureGroupId": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
           ]
         },
         "routeId": {
-          "type": [
-            "string",
-            "null"
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
           ]
         },
-        "translations": {
-          "type": "object"
+        "dietary": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "voiceKeyword": {
+          "type": "string"
+        },
+        "voiceAliases": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "temperature": {
+          "type": "object",
+          "properties": {
+            "prompt": {
+              "type": "string"
+            },
+            "groupId": {
+              "anyOf": [
+                {
+                  "type": "string",
+                  "minLength": 1
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "prompt",
+            "groupId"
+          ],
+          "additionalProperties": false
+        },
+        "chooseCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "choices": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/Scoop"
+          }
+        },
+        "wineComponents": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "productId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "pourOz": {
+                "type": "number",
+                "minimum": 0
+              }
+            },
+            "required": [
+              "productId",
+              "pourOz"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "cookNote": {
+          "type": "string"
+        },
+        "cookMinutes": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "fireTiming": {
+          "type": "object",
+          "properties": {
+            "fireEach": {
+              "type": "boolean"
+            },
+            "fireAfter": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "fireEach",
+            "fireAfter"
+          ],
+          "additionalProperties": false
         },
         "displayMetadata": {
-          "type": "object"
+          "type": "object",
+          "properties": {
+            "code": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "vin": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "lin": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "vintage": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "producer": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "region": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "country": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "varietal": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "grape": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "size": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "unit": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "group": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "kind": {
+              "type": [
+                "string",
+                "number"
+              ]
+            },
+            "category": {
+              "type": [
+                "string",
+                "number"
+              ]
+            }
+          },
+          "required": [],
+          "additionalProperties": false
         },
-        "operationalAvailability": {
-          "type": "object"
+        "translations": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string"
+              },
+              "desc": {
+                "type": "string"
+              },
+              "subtitle": {
+                "type": "string"
+              }
+            },
+            "required": [],
+            "additionalProperties": false
+          }
+        },
+        "availability": {
+          "type": "object",
+          "properties": {
+            "active": {
+              "type": "boolean"
+            },
+            "available": {
+              "type": "boolean"
+            },
+            "eightySixed": {
+              "type": "boolean"
+            },
+            "stock": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "ozOnHand": {
+              "anyOf": [
+                {
+                  "type": "number",
+                  "minimum": 0
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "startDate": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "endDate": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            },
+            "timezone": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ]
+            }
+          },
+          "required": [
+            "active",
+            "available",
+            "eightySixed",
+            "stock",
+            "ozOnHand",
+            "startDate",
+            "endDate",
+            "timezone"
+          ],
+          "additionalProperties": false
         },
         "legacy": {
           "type": "object"
@@ -277,11 +707,32 @@
       },
       "required": [
         "id",
+        "sourceId",
         "name",
+        "description",
+        "photos",
         "allergens",
         "allergenDataStatus",
-        "modifierGroupIds"
-      ]
+        "allergenVerified",
+        "modifierGroupIds",
+        "temperatureGroupId",
+        "routeId",
+        "dietary",
+        "voiceKeyword",
+        "voiceAliases",
+        "temperature",
+        "chooseCount",
+        "choices",
+        "wineComponents",
+        "cookNote",
+        "cookMinutes",
+        "fireTiming",
+        "displayMetadata",
+        "translations",
+        "availability",
+        "legacy"
+      ],
+      "additionalProperties": false
     },
     "ModifierGroup": {
       "type": "object",
@@ -296,11 +747,22 @@
         },
         "min": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 9007199254740991
         },
         "max": {
           "type": "integer",
-          "minimum": 0
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "kind": {
+          "enum": [
+            "temperature",
+            "preference",
+            "ingredient",
+            "pricing",
+            "unknown"
+          ]
         },
         "options": {
           "type": "array",
@@ -317,14 +779,28 @@
               },
               "priceDeltaCents": {
                 "type": "integer",
-                "minimum": 0
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
+              },
+              "allergens": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "allergenVerified": {
+                "type": "boolean"
               }
             },
             "required": [
               "id",
               "name",
-              "priceDeltaCents"
-            ]
+              "priceDeltaCents",
+              "allergens",
+              "allergenVerified"
+            ],
+            "additionalProperties": false
           }
         },
         "legacy": {
@@ -336,8 +812,10 @@
         "name",
         "min",
         "max",
+        "kind",
         "options"
-      ]
+      ],
+      "additionalProperties": false
     },
     "TaxRule": {
       "type": "object",
@@ -365,8 +843,10 @@
       "required": [
         "id",
         "name",
-        "ratePercent"
-      ]
+        "ratePercent",
+        "isDefault"
+      ],
+      "additionalProperties": false
     },
     "Route": {
       "type": "object",
@@ -383,7 +863,8 @@
       "required": [
         "id",
         "name"
-      ]
+      ],
+      "additionalProperties": false
     },
     "AvailabilityPolicy": {
       "type": "object",
@@ -422,7 +903,8 @@
               "days",
               "start",
               "end"
-            ]
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -430,7 +912,61 @@
         "id",
         "timezone",
         "windows"
-      ]
+      ],
+      "additionalProperties": false
+    },
+    "ImportReport": {
+      "type": "object",
+      "properties": {
+        "sourceRecords": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "path": {
+                "type": "string",
+                "minLength": 1
+              },
+              "targetIds": {
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "minLength": 1
+                }
+              },
+              "disposition": {
+                "enum": [
+                  "mapped",
+                  "preserved",
+                  "unresolved"
+                ]
+              },
+              "reason": {
+                "type": "string"
+              }
+            },
+            "required": [
+              "path",
+              "targetIds",
+              "disposition",
+              "reason"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "unresolved": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        }
+      },
+      "required": [
+        "sourceRecords",
+        "unresolved"
+      ],
+      "additionalProperties": false
     },
     "Catalog": {
       "type": "object",
@@ -517,8 +1053,12 @@
             "required": [
               "id",
               "records"
-            ]
+            ],
+            "additionalProperties": false
           }
+        },
+        "importReport": {
+          "$ref": "#/$defs/ImportReport"
         }
       },
       "required": [
@@ -533,7 +1073,9 @@
         "taxRules",
         "routes",
         "availabilityPolicies",
-        "provenance"
+        "provenance",
+        "legacySnapshots",
+        "importReport"
       ],
       "additionalProperties": false
     },
@@ -558,47 +1100,63 @@
               "properties": {
                 "menus": {
                   "type": "integer",
-                  "minimum": 0
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 },
                 "sections": {
                   "type": "integer",
-                  "minimum": 0
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 },
                 "offerings": {
                   "type": "integer",
-                  "minimum": 0
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 },
                 "products": {
                   "type": "integer",
-                  "minimum": 0
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 },
                 "orderingRules": {
                   "type": "integer",
-                  "minimum": 0
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 },
                 "modifierGroups": {
                   "type": "integer",
-                  "minimum": 0
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 },
                 "taxRules": {
                   "type": "integer",
-                  "minimum": 0
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 },
                 "routes": {
                   "type": "integer",
-                  "minimum": 0
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 },
                 "availabilityPolicies": {
                   "type": "integer",
-                  "minimum": 0
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 },
                 "provenance": {
                   "type": "integer",
-                  "minimum": 0
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 },
                 "legacySnapshots": {
                   "type": "integer",
-                  "minimum": 0
+                  "minimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "importReport": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 9007199254740991
                 }
               },
               "required": [
@@ -612,8 +1170,10 @@
                 "routes",
                 "availabilityPolicies",
                 "provenance",
-                "legacySnapshots"
-              ]
+                "legacySnapshots",
+                "importReport"
+              ],
+              "additionalProperties": false
             },
             "chunks": {
               "type": "array",
@@ -640,12 +1200,14 @@
                       "routes",
                       "availabilityPolicies",
                       "provenance",
-                      "legacySnapshots"
+                      "legacySnapshots",
+                      "importReport"
                     ]
                   },
                   "count": {
                     "type": "integer",
-                    "minimum": 0
+                    "minimum": 0,
+                    "maximum": 9007199254740991
                   }
                 },
                 "required": [
@@ -653,7 +1215,8 @@
                   "hash",
                   "collection",
                   "count"
-                ]
+                ],
+                "additionalProperties": false
               }
             }
           },
@@ -662,7 +1225,8 @@
             "currency",
             "recordCounts",
             "chunks"
-          ]
+          ],
+          "additionalProperties": false
         },
         "chunks": {
           "type": "array",
@@ -681,7 +1245,20 @@
                 "type": "object",
                 "properties": {
                   "collection": {
-                    "type": "string"
+                    "enum": [
+                      "menus",
+                      "sections",
+                      "offerings",
+                      "products",
+                      "orderingRules",
+                      "modifierGroups",
+                      "taxRules",
+                      "routes",
+                      "availabilityPolicies",
+                      "provenance",
+                      "legacySnapshots",
+                      "importReport"
+                    ]
                   },
                   "records": {
                     "type": "array",
@@ -691,14 +1268,16 @@
                 "required": [
                   "collection",
                   "records"
-                ]
+                ],
+                "additionalProperties": false
               }
             },
             "required": [
               "id",
               "hash",
               "data"
-            ]
+            ],
+            "additionalProperties": false
           }
         }
       },
@@ -706,7 +1285,8 @@
         "id",
         "manifest",
         "chunks"
-      ]
+      ],
+      "additionalProperties": false
     }
   }
 }

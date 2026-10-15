@@ -1,27 +1,112 @@
-import {emptyCatalog,copy,cents,addMenu,addSection,addOffering} from './contract.mjs';
-// Explicit import only. Never evaluates seed functions, reads Firebase or mutates source records.
+import {emptyCatalog,copy,cents,canonical,addMenu,addSection,addOffering} from './contract.mjs';
+import {exportBohState,sourceRecords,catalogKeys} from './state-exporter.mjs';
+export {exportBohState} from './state-exporter.mjs';
+const sid=(scope,id)=>scope+'/'+encodeURIComponent(String(id));
+const nonempty=x=>x!==undefined&&x!==null&&x!=='';
 export function importLegacy(source){
- const raw=copy(source),c=emptyCatalog();c.legacySnapshots=[{id:'legacy-source',records:raw}];c.provenance=copy(raw.provenance||[]);
- const scoped=(scope,id)=>scope+'/'+encodeURIComponent(String(id));
- const route=station=>{if(!station)return null;const id=scoped('route',station);if(!c.routes.some(r=>r.id===id))c.routes.push({id,name:station});return id;};
- function product(scope,record,fallbackId){const sourceId=record.id??record.dishId??fallbackId;if(sourceId==null)throw Error('Legacy product lacks stable source identity');const id=scoped(scope,sourceId);if(c.products.some(p=>p.id===id))return id;const p={id,sourceId:String(sourceId),name:record.name,description:record.description??record.desc??'',photos:[record.photoUrl||record.photo||raw.photos?.[sourceId]].filter(Boolean),allergens:copy(record.allergens||[]),allergenDataStatus:Array.isArray(record.allergens)?'declared':'unknown',modifierGroupIds:copy(record.modGroupIds||[]),temperatureGroupId:record.temperatureGroupId||null,routeId:route(record.station),displayMetadata:Object.fromEntries(['code','vin','lin','vintage','producer','region','country','varietal','grape','size','unit'].filter(k=>record[k]!=null).map(k=>[k,record[k]])),operationalAvailability:Object.fromEntries(['active','available','eightySixed','stock','ozOnHand'].filter(k=>record[k]!=null).map(k=>[k,record[k]])),translations:copy(record.i18n||{}),legacy:copy(record)};c.products.push(p);return id;}
- for(const g of raw.menu?.modGroups||[]){c.modifierGroups.push({id:g.id,name:g.name,min:g.required?1:0,max:g.multi?g.options.length:1,options:(g.options||[]).map((o,i)=>({id:String(o.id??g.id+'-option-'+i),name:o.name,priceDeltaCents:cents(o.up??0)})),legacy:copy(g)});}
- c.taxRules=(raw.menu?.taxRates||[]).map(t=>({id:t.id,name:t.name,ratePercent:t.rate,isDefault:!!t.isDefault,legacy:copy(t)}));
- function sectionRule(id,{min=0,max=null,automatic=false,deferred=false}={}){c.orderingRules.push({id,kind:'selection',min,max,automatic,deferred});return id;}
- // A regular book's owner-defined label is preserved. No book/type/name is inferred from a seed.
- for(const book of raw.menu?.books||[]){if(['prixfixe','tasting'].includes(book.kind))continue;const m=addMenu(c,{id:scoped('book',book.id),name:book.name,orderingRuleId:'individual',presentationGroup:book.presentationGroup||book.name});m.active=book.active!==false;
-  const cats=(raw.menu.cats||[]).filter(cat=>cat.bookId===book.id||(book.catIds||book.groupIds||[]).includes(cat.id));
-  for(const cat of cats){const sid=scoped(m.id,cat.id);addSection(c,m.id,{id:sid,name:cat.name});const records=(raw.menu.items||[]).filter(it=>(it.catIds||[]).includes(cat.id));for(const it of records){const pid=product('menu-product',it);const o=addOffering(c,sid,{id:scoped(sid,it.id),productId:pid,priceCents:cents(it.price),taxRuleIds:copy(it.taxIds||[])});o.active=it.active!==false&&it.visible!==false&&cat.visible!==false;}}
+ const isState=catalogKeys.some(k=>k.startsWith('menu')&&k in source);
+ const raw=isState?exportBohState(source):copy(source);
+ const allowed=new Set(['menu','photos','provenance','prixFixeMenus','tastingMenus','bar','wines','retail','wineFlights','ingredients','dailySpecials',...catalogKeys]);
+ const unknown=Object.keys(raw).filter(k=>!allowed.has(k));if(unknown.length)throw Error('Unclassified source fields: '+unknown.join(', '));
+ if(raw.menu&&Object.keys(raw.menu).some(k=>!['items','cats','books','modGroups','taxRates'].includes(k)))throw Error('Unclassified legacy menu fields');
+ const c=emptyCatalog();c.legacySnapshots=[{id:'legacy-source',records:raw}];c.provenance=copy(raw.provenance||[]);
+ const unresolved=c.importReport.unresolved,mark=new Map();
+ const mapped=(path,...ids)=>mark.set(path,{targetIds:ids,disposition:'mapped',reason:'Explicit source mapping'});
+ const menu=raw.menu||{items:raw.menuItems||[],cats:raw.menuCats||[],books:raw.menuBooks||[],modGroups:raw.modGroups||[],taxRates:raw.taxRates||[]};
+ for(const key of ['items','cats','books','modGroups','taxRates'])if(!Array.isArray(menu[key]||[]))throw Error('Invalid source array '+key);
+ const root=k=>raw.menu?'/menu/'+k:'/'+({items:'menuItems',cats:'menuCats',books:'menuBooks',modGroups:'modGroups',taxRates:'taxRates'}[k]);
+ const photos=raw.menuPhotos||raw.photos||{};
+ const route=station=>{if(!station)return null;if(typeof station!=='string')throw Error('Invalid station');const id=sid('route',station);if(!c.routes.some(r=>r.id===id))c.routes.push({id,name:station});return id;};
+ function product(record,path,fallbackId,scope='food'){
+  for(const key of ['active','available','visible','eightySixed','is86','soldOut','verified','allergenVerified'])if(key in record&&typeof record[key]!=='boolean')throw Error('Invalid source boolean '+path+'.'+key);
+  for(const key of ['allergens','modGroupIds','voiceAliases','diet','dietary','scoops'])if(record[key]!=null&&!Array.isArray(record[key]))throw Error('Invalid source array '+path+'.'+key);
+  for(const key of ['voiceKeyword','askTemp','cookNote','fireAfter'])if(record[key]!=null&&typeof record[key]!=='string')throw Error('Invalid source string '+path+'.'+key);
+  if(record.chooseCount!=null&&(!Number.isSafeInteger(record.chooseCount)||record.chooseCount<0))throw Error('Invalid chooseCount '+path);
+
+  const original=record.dishId||record.id||fallbackId;if(!original)throw Error('Product lacks stable identity '+path);
+  const id=sid('product/'+scope,original),verified=(record.verified===true||record.allergenVerified===true)&&Array.isArray(record.allergens)&&record.allergens.length>0;
+  const allergens=copy(record.allergens||[]);if(!Array.isArray(allergens))throw Error('Invalid allergens '+path);
+  const temperatureIds=(record.modGroupIds||[]).filter(id=>['mg_meat_temp','mg_fish_temp','mg_temp'].includes(id)||menu.modGroups?.find(g=>g.id===id)?.kind==='temperature');if(temperatureIds.length>1)unresolved.push(path+': ambiguous temperature groups');const group=record.temperatureGroupId||record.tempGroupId||temperatureIds[0]||null;
+  const av={active:record.active!==false&&record.visible!==false,available:record.available!==false,eightySixed:record.eightySixed===true||record.is86===true||record.soldOut===true,stock:record.stock??null,ozOnHand:record.ozOnHand??null,startDate:record.activeFrom||null,endDate:record.activeTo||null,timezone:record.timezone||null};
+  const photo=record.photoUrl||record.photo||record.labelUrl||photos[original]||photos['pfdish:'+original]||photos['tmcourse:'+original];
+  const p={id,sourceId:String(original),name:record.name,description:record.description??record.desc??'',photos:photo?[photo]:[],allergens,allergenVerified:verified,allergenDataStatus:verified?'verified':allergens.length?'declared':'unknown',modifierGroupIds:copy(record.modGroupIds||[]),temperatureGroupId:group,routeId:route(record.station),dietary:copy(record.diet??record.dietary??[]),voiceKeyword:record.voiceKeyword||'',voiceAliases:copy(record.voiceAliases||[]),temperature:{prompt:record.askTemp||'',groupId:group},chooseCount:record.chooseCount||0,choices:(record.scoops||[]).map(x=>({id:x.id,name:x.name,allergens:copy(x.allergens||[]),allergenVerified:(x.verified===true||x.allergenVerified===true)&&Array.isArray(x.allergens)&&x.allergens.length>0,description:x.desc||'',voiceKeyword:x.voiceKeyword||'',kind:x.kind||''})),wineComponents:scope==='flight'?(record.wines||[]).map(w=>({productId:sid('product/wine',typeof w==='string'?w:w.id||w.wineId),pourOz:(typeof w==='object'?w.pourOz:null)??record.pourOz??0})):[],cookNote:record.cookNote||'',cookMinutes:record.cookMin??record.cookTime??0,fireTiming:{fireEach:!!record.fireEach,fireAfter:record.fireAfter||''},displayMetadata:Object.fromEntries(['code','vin','lin','vintage','producer','region','country','varietal','grape','size','unit','group','kind','category'].filter(k=>record[k]!=null).map(k=>[k,record[k]])),translations:copy(record.i18n||{}),availability:av,legacy:copy(record)};
+  const prior=c.products.find(x=>x.id===id);
+  if(prior){
+   // Same BOH dish ID is one product in every menu. Preserve all source variants privately.
+   // Menu-specific labels are retained on offerings; source identity remains shared.
+   prior.allergens=[...new Set([...prior.allergens,...p.allergens])];prior.allergenVerified=prior.allergenVerified&&p.allergenVerified;prior.allergenDataStatus=prior.allergenVerified?'verified':prior.allergens.length?'declared':'unknown';
+   prior.availability.active&&=av.active;prior.availability.available&&=av.available;prior.availability.eightySixed||=av.eightySixed;
+   for(const k of ['stock','ozOnHand'])if(av[k]!==null)prior.availability[k]=prior.availability[k]===null?av[k]:Math.min(prior.availability[k],av[k]);
+   if(canonical(prior.modifierGroupIds)!==canonical(p.modifierGroupIds)||prior.temperatureGroupId!==p.temperatureGroupId||prior.chooseCount!==p.chooseCount||canonical(prior.choices)!==canonical(p.choices))unresolved.push(path+': conflicting ordering metadata '+id);
+   if(!prior.routeId)prior.routeId=p.routeId;else if(p.routeId&&prior.routeId!==p.routeId)unresolved.push(path+': conflicting route '+id);
+   prior.voiceAliases=[...new Set([...prior.voiceAliases,...p.voiceAliases])];if(p.voiceKeyword&&p.voiceKeyword!==prior.voiceKeyword)prior.voiceAliases=[...new Set([...prior.voiceAliases,p.voiceKeyword])];prior.photos=[...new Set([...prior.photos,...p.photos])];if(p.cookNote&&!prior.cookNote.includes(p.cookNote))prior.cookNote=[prior.cookNote,p.cookNote].filter(Boolean).join(' / ');
+   prior.legacy.variants=prior.legacy.variants||[];prior.legacy.variants.push(copy(record));
+  }else c.products.push(p);
+  mapped(path,id);return id;
  }
- // Unassigned regular categories remain explicit menus rather than being silently discarded.
- for(const cat of raw.menu?.cats||[]){if((raw.menu?.books||[]).some(b=>cat.bookId===b.id||(b.catIds||b.groupIds||[]).includes(cat.id)))continue;const m=addMenu(c,{id:scoped('category-menu',cat.id),name:cat.name});m.active=cat.visible!==false;const s=addSection(c,m.id,{id:scoped(m.id,'section'),name:cat.name});for(const it of raw.menu.items||[]){if(!(it.catIds||[]).includes(cat.id))continue;const o=addOffering(c,s.id,{id:scoped(s.id,it.id),productId:product('menu-product',it),priceCents:cents(it.price),taxRuleIds:copy(it.taxIds||[])});o.active=it.active!==false&&it.visible!==false;}}
- const unplaced=(raw.menu?.items||[]).filter(it=>!c.offerings.some(o=>o.productId===scoped('menu-product',it.id)));if(unplaced.length)throw Error('Legacy items need explicit category/menu placements: '+unplaced.map(it=>it.id).join(', '));
- for(const [kind,list] of [['pf',raw.prixFixeMenus||[]],['tasting',raw.tastingMenus||[]]])for(const menu of list){const m=addMenu(c,{id:scoped(kind,menu.id),name:menu.name,orderingRuleId:'fixed-price',basePriceCents:cents(menu.price),presentationGroup:menu.presentationGroup||'FOOD'});m.active=menu.active!==false;
-  const courses=menu.courses||menu.courseGroups||[];if((menu.dishes||[]).length&&!courses.length)throw Error('Legacy menu requires explicit course mapping; no inference allowed');
-  courses.forEach((course,index)=>{if(course.headingOnly)return;const sectionId=scoped(m.id,course.id??course.num??index);if(kind==='pf'&&!course.options&&!course.dishIds&&(menu.dishes||[]).length)throw Error('Legacy course needs explicit dish mapping');const options=kind==='pf'?(course.options||(course.dishIds||[]).map(id=>{const d=(menu.dishes||[]).find(d=>d.id===id);if(!d)throw Error('Missing course dish '+id);return d;})):[course];const automatic=kind==='tasting'||course.mode==='auto'||course.fireEach||course.mode==='entremets';const deferred=course.mode==='later'||course.mode==='entremets'||course.pending===true;
-   const ruleId=sectionRule(scoped(sectionId,'rule'),{min:automatic?options.length:0,max:automatic?options.length:1,automatic:!!automatic,deferred:!!deferred});addSection(c,m.id,{id:sectionId,name:course.label||course.group||course.course||course.name||String(course.num),orderingRuleId:ruleId});options.forEach((item,oi)=>addOffering(c,sectionId,{id:scoped(sectionId,item.id??item.dishId??oi),productId:product(m.id+'/product',item,course.num??index),priceCents:null,upchargeCents:cents(item.upcharge??0)}));
+ for(const [i,g]of (menu.modGroups||[]).entries()){for(const key of ['required','multi'])if(key in g&&typeof g[key]!=='boolean')throw Error('Invalid modifier boolean '+key);const options=(g.options||[]).map((o,j)=>({id:String(o.id??g.id+'-option-'+j),name:o.name,priceDeltaCents:cents(o.up??o.priceDelta??0,{signed:true}),allergens:copy(o.allergens||[]),allergenVerified:(o.verified===true||o.allergenVerified===true)&&Array.isArray(o.allergens)&&o.allergens.length>0}));c.modifierGroups.push({id:g.id,name:g.name,kind:g.kind||(['mg_meat_temp','mg_fish_temp','mg_temp'].includes(g.id)?'temperature':'unknown'),min:g.min??(g.required?1:0),max:g.max??(g.multi?options.length:1),options,legacy:copy(g)});mapped(root('modGroups')+'/'+i,g.id);}
+ c.taxRules=(menu.taxRates||[]).map((t,i)=>{mapped(root('taxRates')+'/'+i,t.id);return {id:t.id,name:t.name,ratePercent:t.rate,isDefault:!!t.isDefault,legacy:copy(t)};});
+ const books=menu.books||[],cats=menu.cats||[],items=menu.items||[];for(const cat of cats)if('visible'in cat&&typeof cat.visible!=='boolean')throw Error('Invalid category visibility');
+ for(const [i,b]of books.entries())for(const id of b.groupIds||b.catIds||[])if(!cats.some(c=>c.id===id))unresolved.push(root('books')+'/'+i+': missing category '+id);
+ for(const [i,cat]of cats.entries())if(cat.bookId&&!books.some(b=>b.id===cat.bookId))unresolved.push(root('cats')+'/'+i+': missing parent book');
+ for(const [i,it]of items.entries())for(const id of it.catIds||[])if(!cats.some(c=>c.id===id))unresolved.push(root('items')+'/'+i+': missing category '+id);
+ const itemIds=items.map((r,i)=>product(r,root('items')+'/'+i));
+ const selection=(id,{min=1,max=1,automatic=false,deferred=false}={})=>{c.orderingRules.push({id,kind:'selection',min,max,automatic,deferred});return id;};
+ function regular(book,index){if('active'in book&&typeof book.active!=='boolean')throw Error('Invalid book active flag');const m=addMenu(c,{id:sid('book',book.id),name:book.name,presentationGroup:book.presentationGroup||book.name});m.active=book.active!==false;m.metadata={kind:book.kind||''};mapped(root('books')+'/'+index,m.id);return m;}
+ for(const [bi,b]of books.entries()){
+  const m=regular(b,bi);
+  for(const [ci,cat]of cats.entries())if(cat.bookId===b.id||(b.groupIds||b.catIds||[]).includes(cat.id)){
+   const s=addSection(c,m.id,{id:sid(m.id,cat.id),name:cat.name});mapped(root('cats')+'/'+ci,s.id);
+   items.forEach((it,i)=>{if((it.catIds||[]).includes(cat.id)){const o=addOffering(c,s.id,{id:sid(s.id,it.id),productId:itemIds[i],priceCents:cents(it.price),taxRuleIds:copy(it.taxIds||[])});o.active=it.active!==false&&it.visible!==false&&cat.visible!==false;}});
+  }
+ }
+ for(const [ci,cat]of cats.entries())if(!mark.has(root('cats')+'/'+ci)){const m=addMenu(c,{id:sid('category-menu',cat.id),name:cat.name}),s=addSection(c,m.id,{id:sid(m.id,'section'),name:cat.name});m.active=cat.visible!==false;mapped(root('cats')+'/'+ci,s.id);items.forEach((it,i)=>{if((it.catIds||[]).includes(cat.id)){const o=addOffering(c,s.id,{id:sid(s.id,it.id),productId:itemIds[i],priceCents:cents(it.price),taxRuleIds:copy(it.taxIds||[])});o.active=it.active!==false&&it.visible!==false;}});}
+ items.forEach((it,i)=>{if(!c.offerings.some(o=>o.productId===itemIds[i]))unresolved.push(root('items')+'/'+i+': no menu placement');});
+ for(const [kind,key]of [['pf','prixFixeMenus'],['tasting','tastingMenus']])for(const [mi,src]of (raw[key]||[]).entries()){
+  for(const flag of ['active','visible'])if(flag in src&&typeof src[flag]!=='boolean')throw Error('Invalid menu visibility '+src.id);
+  const path='/'+key+'/'+mi,m=addMenu(c,{id:sid(kind,src.id),name:src.name,orderingRuleId:'fixed-price',basePriceCents:cents(src.price),presentationGroup:src.presentationGroup||'FOOD'});m.active=src.active!==false;m.metadata=copy(Object.fromEntries(['subtitle','desc','service','mealPeriod','dessertAfter','dessertMenuId','duration'].filter(k=>src[k]!=null).map(k=>[k,src[k]])));mapped(path,m.id);
+  (src.dishes||[]).forEach((dish,di)=>product(dish,path+'/dishes/'+di));
+  const courses=src.courses||src.courseGroups||[],courseKey=src.courses?'courses':'courseGroups';
+  if(!courses.length&&(src.dishes||[]).length)unresolved.push(path+': dishes without course mapping');
+  courses.forEach((course,ci)=>{
+   const cp=path+'/'+courseKey+'/'+ci;for(const flag of ['visible','fireEach','pending','headingOnly'])if(flag in course&&typeof course[flag]!=='boolean')throw Error('Invalid course boolean '+cp+'.'+flag);if(course.mode&&!['auto','choose','later','entremets'].includes(course.mode))unresolved.push(cp+': unknown course behavior '+course.mode);
+   let options=course.options;
+   if(!options&&course.dishIds)options=course.dishIds.map(id=>(src.dishes||[]).find(d=>d.id===id));
+   if(!options&&kind==='pf')options=(src.dishes||[]).filter(d=>d.course===(course.label||course.name));
+   if(course.headingOnly){const dessert=(raw.prixFixeMenus||[]).find(x=>x.id===src.dessertMenuId);const match=dessert?.courses?.find(x=>x.label===(course.group||course.name));options=match?.options;if(!options?.length)unresolved.push(cp+': deferred heading has no explicit dessert source');}
+   if(kind==='tasting'&&!course.headingOnly)options=course.options||[course];
+   options=options||[];if(options.some(x=>!x))throw Error('Missing course dish '+cp);
+   const auto=course.mode==='auto'||course.mode==='entremets'||!!course.fireEach||(kind==='tasting'&&!course.headingOnly&&!course.options&&course.mode!=='later');
+   const deferred=course.mode==='later'||course.mode==='entremets'||!!course.pending;
+   for(const field of ['choose','chooseCount'])if(course[field]!=null&&(!Number.isSafeInteger(course[field])||course[field]<0))throw Error('Invalid course selection count '+cp);if(!options.length&&src.active!==false)unresolved.push(cp+': required course has no offerings');
+   const count=auto?options.length:(course.chooseCount>0?course.chooseCount:course.choose>0?course.choose:1);
+   const s=addSection(c,m.id,{id:sid(m.id,course.id??course.num??ci),name:course.label||course.group||course.course||course.name||String(course.num),orderingRuleId:selection(sid(m.id,'rule-'+ci),{min:count,max:count,automatic:auto,deferred})});s.fireTiming={fireEach:!!course.fireEach,fireAfter:course.fireAfter||''};s.metadata={sourceMode:course.mode||'',headingOnly:!!course.headingOnly};mapped(cp,s.id);
+   options.forEach((it,oi)=>{const pid=product(it,cp+'/options/'+oi,it.dishId||sid(src.id,it.num??ci));const o=addOffering(c,s.id,{id:sid(s.id,it.id||it.dishId||oi),productId:pid,priceCents:null,upchargeCents:cents(it.upcharge??0),taxRuleIds:copy(it.taxIds||[])});o.displayName=it.name;o.description=it.desc||it.description||'';o.active=it.active!==false&&it.visible!==false&&course.visible!==false;});
   });
+  if(src.courses&&src.courseGroups)src.courseGroups.forEach((group,gi)=>{const target=c.sections.find(s=>s.menuId===m.id&&s.name===group.label);if(!target)unresolved.push(path+'/courseGroups/'+gi+': unmatched mirror course');else {mapped(path+'/courseGroups/'+gi,target.id);for(const [oi,o]of (group.options||[]).entries()){const pid=sid('product/food',o.dishId||o.id);if(!c.offerings.some(x=>x.sectionId===target.id&&x.productId===pid))unresolved.push(path+'/courseGroups/'+gi+'/options/'+oi+': unplaced mirror product');else product(o,path+'/courseGroups/'+gi+'/options/'+oi);}}});
+  (src.dishes||[]).forEach((d,di)=>{const pid=sid('product/food',d.id);if(!c.offerings.some(o=>o.productId===pid))unresolved.push(path+'/dishes/'+di+': unmapped dish');else mapped(path+'/dishes/'+di,pid);});
  }
- for(const [kind,list] of [['bar',raw.bar||[]],['wine',raw.wines||[]]]){if(!list.length)continue;const groups=new Map();for(const record of list){const label=record.kind||record.category||kind;if(!groups.has(label))groups.set(label,[]);groups.get(label).push(record);}for(const [label,items]of groups){const m=addMenu(c,{id:scoped(kind,label),name:label,presentationGroup:'DRINKS'}),s=addSection(c,m.id,{id:scoped(m.id,'section'),name:label});for(const item of items){const pid=product(kind+'/product',item);if(kind==='wine'){for(const [pour,value]of [['bottle',item.bottlePrice],['glass',item.glassPrice]]){if(value==null||Number(value)<=0)continue;const o=addOffering(c,s.id,{id:scoped(s.id,item.id+'/'+pour),productId:pid,priceCents:cents(value)});o.pour=pour;o.active=item.active!==false;}}else{const o=addOffering(c,s.id,{id:scoped(s.id,item.id),productId:pid,priceCents:cents(item.price)});o.active=item.active!==false;}}}}
+ function collection(key,scope,kind){
+  const groups=new Map();(raw[key]||[]).forEach((it,i)=>{const label=key==='wines'?(it.group||it.category||it.kind||'Wine'):(it.kind||it.category||kind);if(!groups.has(label))groups.set(label,[]);groups.get(label).push([it,i]);});
+  for(const [label,rows]of groups){const candidate=books.find(b=>b.kind===kind),m=candidate?c.menus.find(m=>m.id===sid('book',candidate.id)):addMenu(c,{id:sid(key,label),name:label,presentationGroup:kind==='retail'?'RETAIL':'DRINKS'});const s=addSection(c,m.id,{id:sid(m.id,key+'-'+label),name:label});for(const [it,i]of rows){const pid=product(it,'/'+key+'/'+i,null,scope);if(key==='wines'){let count=0;for(const [pour,v]of [['bottle',it.bottlePrice],['glass',it.glassPrice]])if(nonempty(v)&&Number(v)>0){const o=addOffering(c,s.id,{id:sid(s.id,it.id+'/'+pour),productId:pid,priceCents:cents(v),taxRuleIds:copy(it.taxIds||[])});o.pour=pour;count++;}if(!count)unresolved.push('/'+key+'/'+i+': no sale price');}else addOffering(c,s.id,{id:sid(s.id,it.id),productId:pid,priceCents:cents(it.price),taxRuleIds:copy(it.taxIds||[])});}}
+ }
+ collection('bar','bar','bar');collection('wines','wine','wine');collection('retail','retail','retail');collection('dailySpecials','food','special');collection('wineFlights','flight','wine');
+ for(const [i,f]of (raw.wineFlights||[]).entries())for(const id of f.wines||[])if(!(raw.wines||[]).some(w=>w.id===(typeof id==='string'?id:id.id||id.wineId)))unresolved.push('/wineFlights/'+i+': unresolved wine reference');
+ for(const [key,url]of Object.entries(photos)){let id=key.replace(/^(pfdish:|tmcourse:)/,'');if(id.includes('|')){const [menuId,recordId]=id.split('|');const tm=(raw.tastingMenus||[]).find(m=>m.id===menuId);const course=tm?.courses?.find(c=>String(c.id??c.num)===recordId);id=course?(course.dishId||course.id||sid(menuId,course.num)):recordId;}const matches=c.products.filter(p=>p.sourceId===id);const p=matches[0];if(matches.length>1){unresolved.push('/'+(raw.menuPhotos?'menuPhotos':'photos')+'/'+key+': ambiguous photo identity');continue;}if(!p)unresolved.push('/'+(raw.menuPhotos?'menuPhotos':'photos')+'/'+key+': orphan photo');else {if(!p.photos.includes(url))p.photos.push(url);mapped('/'+(raw.menuPhotos?'menuPhotos':'photos')+'/'+key,p.id);}}
+
+ for(const [key,profile]of Object.entries(raw.voiceProfiles?.profiles||{})){
+  const sourceId=String(profile.sourceId||'').split('|').at(-1),targets=c.products.filter(p=>p.sourceId===sourceId);
+  if(!targets.length){unresolved.push('/voiceProfiles/profiles/'+key+': unresolved voice identity');continue;}
+  if(profile.active!==false)for(const p of targets){if(profile.voiceKeyword)p.voiceKeyword=profile.voiceKeyword;if(profile.voiceAliases)p.voiceAliases=copy(profile.voiceAliases);}
+  mapped('/voiceProfiles/profiles/'+key,...targets.map(p=>p.id));
+ }
+ // Every source record has a disposition. Nested variants are retained intact under their mapped ancestor.
+ const paths=sourceRecords(raw);c.importReport.sourceRecords=paths.map(path=>{
+  let current=path;while(current&&!mark.has(current))current=current.slice(0,current.lastIndexOf('/'));
+  const mappedRecord=mark.get(current);
+  const internal=/^\/(ingredients|voiceProfiles|retiredVins|retiredLins)(\/|$)/.test(path);
+  if(!mappedRecord&&!internal){unresolved.push(path+': no classified mapping');return {path,targetIds:[],disposition:'unresolved',reason:'No explicit mapping'};}
+  return {path,...(mappedRecord||{targetIds:[],disposition:'preserved',reason:'Non-sale operational reference retained privately; not a menu offering'})};
+ });
  return c;
 }

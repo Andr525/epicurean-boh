@@ -1,0 +1,13 @@
+{
+  "commit": "8e85e56",
+  "result": "7 defects reproduced",
+  "findings": {
+    "emptyUnverifiedIsOrderable": true,
+    "actualStateFoodMissing": true,
+    "requiredChoicesHaveZeroMinimum": true,
+    "sharedDishDuplicated": true,
+    "signedModifierRejected": true,
+    "voiceLeaksInternalCost": true,
+    "unavailableProductStillOrderable": true
+  }
+}

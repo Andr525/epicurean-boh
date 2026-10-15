@@ -1,76 +1,99 @@
-# Unified BOH catalog — isolated Milestone 1
+# BOH Milestone 1 — corrective review candidate
 
-Review branch: `review/boh-unified-catalog-milestone1`. Base: `7bf4066c717d2b0aaf54731951ecf4ecd86738a8`.
+**Not integration ready.** This additive, isolated catalog prototype does not load in the existing BOH interface or any current consumer application. No production records, Firebase, kitchen/payment transports, floor geometry, POS branches or deployed settings are changed.
 
-This is a separate local editor, shared contract and simulated publication store. Existing BOH entry points, records, legacy publishing and floor geometry are unchanged. No Firebase SDK, credentials, backend adapter or kitchen/payment transport is added. The pilot has `connect-src 'none'`; it imports only files explicitly selected by its operator. It starts empty and never seeds restaurant data.
+Branch: `review/boh-catalog-milestone1-corrections`, based on reviewed commit `8e85e56`. This supersedes that commit's local proof; its original integration-readiness deficiencies are reproducible with `test/baseline.mjs`.
 
-## Contract
+## Reproduce locally
 
-`schema.json` describes `epicurean.catalog/v1` catalogs and complete release envelopes. `contract.mjs::validate` enforces semantic references, ownership, selection bounds, explicit prices and schedules. JSON Schema is provided for consumers; no external JSON Schema validator was installed or run. Currency v1 is USD, with nonnegative integer cents.
-
-| Collection | Meaning |
-|---|---|
-| menus | Arbitrary stable ID/name, presentation group, ordered section IDs, ordering rule, explicit fixed base price when applicable, channels and availability |
-| sections | One parent menu, arbitrary name, ordered offerings, reusable selection rule |
-| offerings | One section, existing product reference, explicit standalone price or included-course null price, explicit upcharge, tax references and availability |
-| products | Preserved BOH identity/name/description/photos/allergens, modifier/temperature references, route, translations and original source payload |
-| orderingRules | Individual sale, fixed-price package, or selection bounds with automatic/deferred flags; behaviors rather than hardcoded menu types |
-| modifierGroups | Existing choices, bounds and explicit price deltas, including preparation-temperature choices |
-| taxRules/routes/availabilityPolicies | Explicit source tax metadata, station identities and timezone-based schedule windows |
-| provenance/legacySnapshots | Import evidence and complete original payload preservation |
-
-Example menu (names are unrestricted):
-
-```json
-{"id":"owner-menu","name":"Moonlight Studio Collection","orderingRuleId":"fixed-price","basePriceCents":8900,"presentationGroup":"FOOD","active":true,"channels":["pos","digital","voice"],"availabilityPolicyId":null,"sectionIds":["owner-course"]}
-```
-
-The example base price comes from the tracked authentic fixture; it is not a new restaurant price. An offering points to an existing BOH product. Included courses have no fabricated standalone price. Unspecified allergens remain `unknown`, never implicitly safe; missing routes/unknown allergen data make the projection non-orderable.
-
-Each release has a SHA-256 ID, a manifest containing schema/currency, every collection's record count, and ordered chunk references with hashes/counts. Immutable chunks hold the complete records. Publication validates, stages, verifies all hashes/counts, then compares the expected active revision before changing the pointer. Validation, partial staging, corruption or concurrent revision conflict leaves the active release intact. This atomicity is tested **within the in-memory mock**, not a claim about Firestore transactions or durability.
-
-`project(release, channel)` is the same generic contract reader for `pos`, `voice` and `digital`. Digital projection omits internal legacy/operational payloads. This is not access control: complete manifests contain internal snapshots and must never be publicly exposed directly. Actual consuming applications are not modified in this milestone.
-
-`priceSnapshot` captures release/product/offering/menu IDs and price components. Publishing a newer price or rolling back never mutates that captured snapshot. Actual POS integration and durable open-check recovery remain future verification gates.
-
-## Reproduce
-
-From the BOH repository, using Node 24:
+From this BOH repository:
 
 ```sh
-node --test catalog/test/catalog.test.mjs
+node catalog/test/baseline.mjs
+node --test catalog/test/*.test.mjs
 PLAYWRIGHT_MODULE=/absolute/path/to/already-installed/playwright/index.mjs XDG_CONFIG_HOME=/tmp/epicurean-browser-config XDG_CACHE_HOME=/tmp/epicurean-browser-cache node catalog/test/browser.mjs
 ```
 
-Chromium defaults to `/usr/bin/chromium`; override with `CHROMIUM_PATH` if needed. No package installation is required. The browser runner fulfills local static assets in-process and blocks external requests; it does not start an HTTP listener, backend, emulator or physical owner session.
+Verified here with Node 24.19, Python 3 with already-installed `jsonschema` 4.26, existing Playwright at `/workspace/epicurean-pos/lab/node_modules/playwright/index.mjs`, and `/usr/bin/chromium`. Override `CHROMIUM_PATH` if needed. No installation, backend, emulator or HTTP listener is started by these commands. Browser requests are fulfilled from local files, with all external requests blocked. No owner/device session is started.
 
-Evidence in `evidence/`: **13/13 contract cases pass; six browser checks pass; zero browser errors/external requests**. The browser creates, organizes, renames and publishes an arbitrary owner menu and reads the same offering/base price through all three consumer projections. It verifies failed publication and reload retain the previous release. Tests cover empty menus, authenticity preservation, explicit legacy `groupIds`, fixed-price/tasting rules, immutable price snapshots, schedules, corruption, competing activation and rollback. These are automated local simulations, not deployed-app or iPhone acceptance.
+Results: **28/28 contract tests and 11/11 browser checks pass**, with zero skipped tests, browser errors or external requests.
 
-Authentic fixture: `scalini-dining.js` from the base commit, loaded in a VM without DOM/network. Uses existing prix-fixe, tasting and wine-by-glass records/prices. Adversarial internal-field markers and a simulated price revision are explicitly test data, not restaurant records. Live catalog exports were not obtained.
+Evidence: `evidence/baseline-defects.json` records seven reproduced defects against the immutable original commit. `evidence/contract-tests.tap` and `evidence/browser-tests.json` are current automated results. They are local simulations, not physical-device, live-data or production acceptance.
 
-## Compatibility and migration gates
+## Corrected contract and boundaries
 
-1. Keep existing BOH publishing and consuming applications on their current format. Nothing imports this pilot into the existing UI.
-2. Obtain separately authorized catalog exports if required. Explicitly import with `importLegacy`; preserve originals and review candidate mapping. Ordinary book kinds/names are not whitelisted. Recognized legacy fixed-course containers require explicit course mappings; unsupported/unplaced records fail rather than disappearing. An intentionally empty source remains empty.
-3. Reconcile IDs, prices, descriptions/photos, allergens, modifiers, temperatures, schedules, routes and menu completeness against authentic exports. Unknown metadata requires owner resolution, not invented defaults. Full live-data compatibility is not yet verified.
-4. Add compatible readers to POS/digital/voice only in separately approved milestones. Verify dual-read results and open-check pinned release/price snapshots before considering cutover. Ordering rules here are metadata, not a new ordering or kitchen engine.
-5. Design/review an authenticated backend publisher, immutable release storage, transaction/CAS activation, secure public projections and retention/recovery. Request authorization before backend tests, emulator use, deployed rules or real exports. Do not expose raw releases publicly.
-6. Only after compatible consumers, migration/recovery/security tests and explicit owner approval may production activate a v1 pointer. None of those production actions occurred here.
+`epicurean.catalog/v1` remains a **pre-integration candidate**; no production reader depends on it. This correction changes its candidate shape. It deliberately rejects older pilot releases lacking required safety/accounting fields. It does not silently upgrade them. Preserve/export old local data and re-import from its original source; existing BOH storage keys are never read or changed.
 
-## Rollback and recovery
+| Entity | Authoritative meaning |
+|---|---|
+| Menu | Arbitrary stable ID/name, ordered section IDs, individual/package price rule, explicit package base cents, visibility/channels, availability reference |
+| Section | One parent menu, ordered offerings, explicit `individual` or `included` price basis, selection bounds/automatic/deferred rule, structured fire timing |
+| Offering | One section and reusable product reference, explicit standalone cents or null for included items, nonnegative upcharge, taxes, availability, optional menu-specific display label/description or wine pour |
+| Product | Stable source identity, verified/declared/unknown allergen state, structured temperature reference/prompt, dietary claims, aliases, chooseCount/choices, wine components, photos, metadata and private original record |
+| Rules | Reusable price behavior or selection bounds; menu names/types are not an enum |
+| Import report | Per-source-record paths, mapped target IDs or explicit private-preservation reasons, and unresolved mappings that block publication |
+| Release | Complete immutable hashed chunks, manifest/counts and content-derived ID; active pointer changes only after complete verification and expected-revision comparison |
 
-Local simulation: retain old complete releases; `rollback(store, oldReleaseId, expectedRevision)` verifies the old release before changing the pointer. The pilot's rollback button restores its preceding local release. State uses only `epicurean.catalog.LOCAL-PILOT.v1`; it does not read or alter existing BOH local-storage keys. Export candidates before clearing pilot state. Reload checks the active release independently of a damaged draft.
+`schema.json` and runtime `schema.mjs` are generated together with:
 
-Code rollback: discontinue use of `catalog/pilot.html` or revert this additive commit. Existing BOH entry points are unchanged. No production migration or rollback is necessary or performed. Production rollback must later switch a verified active pointer while retaining old releases for open checks; that backend procedure remains unimplemented and requires review.
+```sh
+python catalog/tools/generate-schema.py
+```
 
-## Remaining blockers and limits
+Runtime `schema-validation.mjs` checks this same schema's structure; `contract.mjs` adds referential, ownership, pricing, availability and accounting invariants that JSON Schema alone cannot express. Tests check artifact equality and eight independent Draft 2020-12 shape cases. Consumers must enable the documented custom `media-url` format checker: absolute HTTPS, valid host/port, no embedded username/password. The runtime uses URL parsing; the independent Python test registers the equivalent checker. Embedded data, javascript, file and credential-bearing photo URLs block publication. Originals remain privately preserved; rejected URLs are not deleted from source records.
 
-- No production backend, authorization/rules, durable recovery or deployed atomic activation has been implemented/tested.
-- Actual POS, voice and customer-menu applications do not yet consume v1. Shared-reader proof is not end-to-end application acceptance.
-- Real live catalog exports and every historical source shape are unverified; unsupported mappings block import. Operational stock flags are preserved, not a live availability feed.
-- Existing legacy seed-fallback behavior outside this pilot is not changed. Production cutover must eliminate inappropriate fallback through compatible readers.
-- No physical-device test, kitchen workflow, payment action, voice implementation or production activation. No spending.
+### Allergen verification
 
-## Exact changed files
+A list is not verification. Nonempty unverified lists are `declared`, not orderable. Empty lists are `unknown` even if a legacy record has `verified:true`; there is no implicit allergen-free certification. Verification requires an explicit source boolean plus nonempty declared allergens. Empty verified assertions are rejected at the canonical boundary. The same rule applies to selectable flavors and ingredient modifiers. Modifier classes distinguish explicit temperature/preference/price behaviors from ingredient or unknown behaviors; unverified ingredient/unknown choices cannot be quoted. Legacy temperature IDs retain their explicit structured options. Unknown required modifier groups make a product non-orderable. Dietary labels never certify allergen safety. A future verified “no declared allergens” workflow requires a separate explicit contract/policy decision; it is intentionally blocked here.
 
-All additions, exclusively in this repository: `catalog/contract.mjs`, `catalog/publication.mjs`, `catalog/legacy-adapter.mjs`, `catalog/schema.json`, `catalog/pilot.html`, `catalog/pilot.mjs`, `catalog/test/fixture.mjs`, `catalog/test/catalog.test.mjs`, `catalog/test/browser.mjs`, `catalog/evidence/contract-tests.tap`, `catalog/evidence/browser-tests.json`, and this `catalog/README.md`.
+Public and voice views flag non-orderability, required-section satisfiability, verification status and missing choices. `calculatePrice` also rejects unverified products/choices, missing routes, and temperature prompts without structured choice groups. This is not a guest-allergy decision or authorized kitchen ordering engine. Existing application allergy policy remains untouched.
+
+### One price calculation
+
+`pricing.mjs::calculatePrice(release, request)` is the single authoritative catalog quote function. USD integer cents only; no transport or mutation.
+
+- Package base × package quantity is charged once, separately from component lines.
+- An included line has no standalone price: `(upcharge + selected signed modifier deltas) × quantity`.
+- An individual/additional line is `(explicit offering price + upcharge + selected signed modifier deltas) × quantity`.
+- Total is package base plus all component lines. Individual lines and aggregate package totals cannot be negative; included package components may carry a signed credit. Fractional cents, unsafe integer arithmetic, unknown/duplicate modifiers and invalid selection bounds are rejected.
+- Required sections are enforced per package quantity. Initial quotes may explicitly list deferred sections as pending; complete quotes must satisfy them. `chooseCount` requires exactly that many distinct valid, verified choice IDs.
+- Quotes retain release IDs. Existing `priceSnapshot` objects and immutable releases remain unchanged by later prices or rollback. This is not durable POS/open-check integration. Tax rates are preserved metadata; tax/tip/payment calculation is not added in this milestone.
+
+### Actual BOH STATE export and loss prevention
+
+`state-exporter.mjs::exportBohState(state)` is a pure explicitly invoked function. It copies the actual local STATE catalog fields: `menuItems`, `menuCats`, `menuBooks`, `modGroups`, `taxRates`, `menuPhotos`, `retail`, `wineFlights`, `bar`, `wines`, `prixFixeMenus`, `tastingMenus`, `dailySpecials`, `ingredients`, voice-profile metadata and related cellar revision/code metadata. It excludes staff, guests, punches, sales, rooms/floor geometry and service stations. Unknown top-level fields block export for classification. It never reads globals/storage or executes seed functions.
+
+`importLegacy` accepts that export or the earlier explicit `menu:{items,cats,books,...}` wrapper. It preserves the entire catalog-only source snapshot. Every source array record/entry and photo/profile-map entry gets a ledger disposition; missing ledger entries/targets or unresolved mappings block publication. Ingredients and retired-code references are explicitly retained privately, not invented as offerings. Missing categories, orphan photos, unplaced/mismatched course mirrors, missing flight wine references, unknown course behaviors and conflicting stable-product ordering metadata block publication.
+
+Menu books use actual `groupIds`; arbitrary kind/name values remain generic. Legacy bar/wine/retail containers populate from their corresponding records. Food source IDs remain stable across ordinary books and fixed-course menus, including tasting `dishId` references. Independently owned source collections retain namespaces; no name-based cross-inventory identity guesses are made. Menu-specific labels are preserved on offerings; original variants are private. Conflicting metadata requires reconciliation, never silent overwrite. Existing unpublished/unavailable products remain preserved but cannot be quoted for ordering.
+
+Fixed-price course choices default to required one-of selection; automatic courses require every included offering; deferred dessert remains required later. Dish `chooseCount` describes structured flavor selection separately. Explicit tasting `dessertMenuId`/course label resolves its deferred dessert source. Missing mappings block publication. No arbitrary dessert or standalone entremet price is invented.
+
+Temperatures use explicit source group IDs (including legacy temperature modifier IDs) and existing options. No dish-name-based temperature guessing occurs. Photos recognize qualified `pfdish:menu|dish` and `tmcourse:menu|course` keys. Wine group/pour/component identities, tax links, structured fire timing, dietary statements and voice aliases/profile overrides are retained. Unknown source date timezone blocks publication rather than guessing a schedule.
+
+### Projection privacy and availability
+
+All consumer projections use allowlists; voice/digital never receive raw legacy records, internal costs, provenance, stock quantities, arbitrary menu/section metadata or kitchen cook notes. POS receives only additional structured routing/cook fields, not the original raw records. Raw release storage remains private: client-side projection is not a substitute for backend access control.
+
+Inactive, unavailable, sold-out/86, zero-stock and zero-ounce products cannot be quoted and are omitted from offering lists. A static shortage that makes an active required section unsatisfiable blocks publication. Schedule-dependent/verification/choice shortages are explicitly reported with section/menu non-orderability; direct quote validation enforces the requested time. Flight components must also be verified and available. Null stock means the source did not supply a stock count, not an invented stock quantity.
+
+## Local pilot corrections
+
+`pilot.html`/`pilot.mjs` remain separate and opt-in by opening that file through a local static origin. They are not linked from actual BOH. CSP denies connections and images. First use stays empty. Explicit import validates before replacing a draft.
+
+Money inputs use dollars (e.g. `89.50` becomes 8950 cents). Existing menu name/base prices, section names, offering prices/upcharges, ordering and deletion are editable. Deletion affects only the candidate; original sources and published releases remain intact. Required-selection damage blocks publication. Rollback offers distinct historical releases, preserves the selected target across redraws, verifies it and resets the draft to it. Cross-tab storage comparison and Web Locks prevent stale drafts from overwriting another tab. Unsupported locking/persistence failures are reported rather than falling back to unsafe writes. This is a local editor, not multi-user backend concurrency control.
+
+## Migration, rollback and remaining gates
+
+1. Keep existing BOH publishing/readers and deployed applications unchanged. This candidate is not activated by them.
+2. Independently review this commit and repeat the local tests. Do not treat representative STATE fixtures as a verified live catalog export.
+3. Obtain separate authorization before real catalog exports, backend/emulator tests or deployed rules. Reconcile every source identity, menu, price, schedule, allergen verification, modifier, photo and route. Unsupported/inconsistent source shapes must remain blocked.
+4. Implement compatible POS/digital/voice readers in separately approved milestones; verify migration equivalence and durable open-check price/release pinning. No such reader integration occurred here.
+5. Review an authenticated publisher, immutable private storage, server-safe public projections, transactional activation, retention and recovery. The mock's in-process CAS and browser local-storage recovery are not Firestore atomicity/durability claims.
+6. Require explicit owner approval before any production activation/deployment. No live-data or integration-readiness claim is made.
+
+Local rollback selects a verified old release; old check snapshots remain untouched. Code rollback is to stop opening the pilot or revert this isolated corrective commit. Existing BOH has no migration to undo. Old candidate schemas may require explicit source re-import; originals are never silently normalized. Production rollback is not implemented or exercised.
+
+Remaining limitations: authentic **tracked** data plus representative STATE structures were tested, but complete actual restaurant STATE exports were not supplied/verified. Some authentic records have unverified/empty allergens, missing explicit temperature choices or routing and intentionally remain non-orderable. Media requiring data URLs or unresolved source mappings remain blocked. No actual-app integration, backend authorization/durability, physical iPhone acceptance, SEND/FIRE, payments, deployments or paid services were exercised.
+
+Exact changed paths are recorded in `evidence/changed-files.txt`; regression evidence is stored alongside it. Stop for independent review.
