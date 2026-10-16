@@ -3,3 +3,16 @@ export function authenticFixture(){const source=fs.readFileSync(new URL('../../s
 // Representative STATE shape using only tracked authentic products/prices.
 // Categories, menus and modifiers below are explicitly simulated contract structure.
 export function authenticStateFixture(){const f=authenticFixture(),dish=structuredClone(f.wines[0]),wine=structuredClone(f.wines[0]);return {menuItems:[{...dish,id:'fixture-menu-item',price:dish.glassPrice,catIds:['fixture-category'],modGroupIds:['fixture-mod'],taxIds:['fixture-tax'],verified:false}],menuCats:[{id:'fixture-category',name:'Fixture category',visible:true}],menuBooks:[{id:'fixture-book',name:'Arbitrary owner evening',kind:'owner-defined',groupIds:['fixture-category']}],modGroups:[{id:'fixture-mod',name:'Simulated signed adjustment',kind:'pricing',required:false,multi:false,options:[{id:'credit',name:'Simulated credit',up:-1.25}]}],taxRates:[{id:'fixture-tax',name:'NY Sales Tax',rate:8.875,isDefault:true}],menuPhotos:{'fixture-menu-item':'https://example.org/catalog-test.jpg'},retail:[{...wine,id:'fixture-retail',price:wine.glassPrice,category:'Fixture retail',verified:false}],wineFlights:[{id:'fixture-flight',name:'Simulated flight structure',price:wine.glassPrice,pourOz:2,wines:[wine.id],station:'Bar',allergens:['Sulfites'],verified:false}],bar:[{...wine,id:'fixture-bar',price:wine.glassPrice}],wines:[wine],prixFixeMenus:[],tastingMenus:[],dailySpecials:[],ingredients:[],voiceProfiles:{profiles:{}},provenance:f.provenance};}
+// Actual seed STATE functions and real Scalini configuration, evaluated in a VM
+// with no DOM, storage, Firebase, timers, network or application bootstrap.
+export function seedStateFixture({normalize=true}={}){
+ const html=fs.readFileSync(new URL('../../index.html',import.meta.url),'utf8'),manager=fs.readFileSync(new URL('../../menu-manager.js',import.meta.url),'utf8');
+ const box={};vm.createContext(box);
+ const names=['seedMenuItems','seedMenuCats','seedMenuBooks','seedModifierGroups','seedTaxRates','seedBar','seedWines','seedRetail','seedIngredients'];
+ for(const name of names){const match=html.match(new RegExp('function '+name+'\\(\\)\\{[\\s\\S]*?\\n\\}'));if(!match)throw Error('Missing actual seed '+name);vm.runInContext(match[0],box);}
+ const state=JSON.parse(vm.runInContext('JSON.stringify({menuItems:seedMenuItems(),menuCats:seedMenuCats(),menuBooks:seedMenuBooks(),modGroups:seedModifierGroups(),taxRates:seedTaxRates(),bar:seedBar(),wines:seedWines(),retail:seedRetail(),ingredients:seedIngredients()})',box));
+ const f=authenticFixture();state.prixFixeMenus=f.prixFixeMenus;state.tastingMenus=f.tastingMenus;state.wines.push(...f.wines);state.menuPhotos={};state.wineFlights=[];state.dailySpecials=[];
+ box.STATE=state;box.KITCHEN_STATIONS=JSON.parse(html.match(/var KITCHEN_STATIONS = (\[[^;]+\]);/)[1].replace(/'/g,'"'));box.uid=prefix=>prefix+'-fixture-'+(++counter);let counter=0;
+ vm.runInContext(manager,box);if(normalize)vm.runInContext('STATE.prixFixeMenus.forEach(mmRebuildPf); STATE.tastingMenus.forEach(mmNormTm);',box);
+ return JSON.parse(JSON.stringify(box.STATE));
+}

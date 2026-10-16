@@ -2,23 +2,23 @@
 
 **Not integration ready.** This additive, isolated catalog prototype does not load in the existing BOH interface or any current consumer application. No production records, Firebase, kitchen/payment transports, floor geometry, POS branches or deployed settings are changed.
 
-Branch: `review/boh-catalog-milestone1-corrections`, based on reviewed commit `8e85e56`. This supersedes that commit's local proof; its original integration-readiness deficiencies are reproducible with `test/baseline.mjs`.
+Current branch: `review/boh-catalog-required-courses-corrections`, based on reviewed commit `76b06ce`. See `REVIEW-76b06ce-CORRECTIONS.md` for this iteration. Earlier review notes and baseline probes remain historical evidence.
 
 ## Reproduce locally
 
 From this BOH repository:
 
 ```sh
-node catalog/test/baseline.mjs
+node catalog/test/baseline-76b06ce.mjs
 node --test catalog/test/*.test.mjs
 PLAYWRIGHT_MODULE=/absolute/path/to/already-installed/playwright/index.mjs XDG_CONFIG_HOME=/tmp/epicurean-browser-config XDG_CACHE_HOME=/tmp/epicurean-browser-cache node catalog/test/browser.mjs
 ```
 
 Verified here with Node 24.19, Python 3 with already-installed `jsonschema` 4.26, existing Playwright at `/workspace/epicurean-pos/lab/node_modules/playwright/index.mjs`, and `/usr/bin/chromium`. Override `CHROMIUM_PATH` if needed. No installation, backend, emulator or HTTP listener is started by these commands. Browser requests are fulfilled from local files, with all external requests blocked. No owner/device session is started.
 
-Results: **28/28 contract tests and 11/11 browser checks pass**, with zero skipped tests, browser errors or external requests.
+Results: **38/38 contract tests and 12/12 browser checks pass**, with zero skipped tests, browser errors or external requests.
 
-Evidence: `evidence/baseline-defects.json` records seven reproduced defects against the immutable original commit. `evidence/contract-tests.tap` and `evidence/browser-tests.json` are current automated results. They are local simulations, not physical-device, live-data or production acceptance.
+Evidence: `evidence/baseline-76b06ce.json` records six reproduced failure probes against the reviewed parent. `evidence/baseline-defects.json` remains the historical original-commit audit. `evidence/contract-tests.tap` and `evidence/browser-tests.json` are current automated results. They are local simulations, not physical-device, live-data or production acceptance.
 
 ## Corrected contract and boundaries
 
@@ -44,7 +44,7 @@ Runtime `schema-validation.mjs` checks this same schema's structure; `contract.m
 
 ### Allergen verification
 
-A list is not verification. Nonempty unverified lists are `declared`, not orderable. Empty lists are `unknown` even if a legacy record has `verified:true`; there is no implicit allergen-free certification. Verification requires an explicit source boolean plus nonempty declared allergens. Empty verified assertions are rejected at the canonical boundary. The same rule applies to selectable flavors and ingredient modifiers. Modifier classes distinguish explicit temperature/preference/price behaviors from ingredient or unknown behaviors; unverified ingredient/unknown choices cannot be quoted. Legacy temperature IDs retain their explicit structured options. Unknown required modifier groups make a product non-orderable. Dietary labels never certify allergen safety. A future verified “no declared allergens” workflow requires a separate explicit contract/policy decision; it is intentionally blocked here.
+A list is not verification. Nonempty unverified lists are `declared`, not orderable. Empty lists imported from legacy data are `unknown` even when `verified:true`; there is no implicit allergen-free certification. Nonempty declarations retain the existing explicit-verification flag. An empty declaration additionally requires an opaque approval from a trusted, configured local test authority, bound to the exact canonical recipe/subject and backed by its in-memory approval registry. A flag or imported proof JSON alone is rejected. The same rule applies to selectable flavors and ingredient modifiers. Any option declaring allergens requires verification regardless of modifier class. Ingredient/unknown options with empty declarations need explicit allergen-free approval. Explicit non-ingredient temperature/preference/price choices are not treated as ingredient safety assertions. Legacy temperature IDs retain their explicit structured options. Unknown required modifier groups make a product non-orderable. Dietary labels never certify allergen safety. The local approval API records verifier identity, reason, time and expiry, supports revocation, and rejects subject changes/replay. It is a mock workflow; real authorized recipe review, staff authentication, durable approval storage and cross-contact policy are not implemented. The browser pilot has no approval control and never silently approves empty data.
 
 Public and voice views flag non-orderability, required-section satisfiability, verification status and missing choices. `calculatePrice` also rejects unverified products/choices, missing routes, and temperature prompts without structured choice groups. This is not a guest-allergy decision or authorized kitchen ordering engine. Existing application allergy policy remains untouched.
 
@@ -56,20 +56,20 @@ Public and voice views flag non-orderability, required-section satisfiability, v
 - An included line has no standalone price: `(upcharge + selected signed modifier deltas) × quantity`.
 - An individual/additional line is `(explicit offering price + upcharge + selected signed modifier deltas) × quantity`.
 - Total is package base plus all component lines. Individual lines and aggregate package totals cannot be negative; included package components may carry a signed credit. Fractional cents, unsafe integer arithmetic, unknown/duplicate modifiers and invalid selection bounds are rejected.
-- Required sections are enforced per package quantity. Initial quotes may explicitly list deferred sections as pending; complete quotes must satisfy them. `chooseCount` requires exactly that many distinct valid, verified choice IDs.
-- Quotes retain release IDs. Existing `priceSnapshot` objects and immutable releases remain unchanged by later prices or rollback. This is not durable POS/open-check integration. Tax rates are preserved metadata; tax/tip/payment calculation is not added in this milestone.
+- Active packages must have at least one required included course. Automatic courses require each offering exactly once per package quantity; repeated dishes cannot replace missing offerings. Required sections are enforced per package quantity. Initial quotes may explicitly list deferred sections as pending; complete quotes must satisfy them. `chooseCount` requires exactly that many distinct valid, verified choice IDs.
+- Quotes retain release IDs. Existing `priceSnapshot` objects and immutable releases remain unchanged by later prices or rollback. This is not durable POS/open-check integration. Menu-level tax references and per-line tax references are retained separately in projections, snapshots and quotes. Tax rates are preserved metadata; tax/tip/payment calculation is not added in this milestone.
 
 ### Actual BOH STATE export and loss prevention
 
 `state-exporter.mjs::exportBohState(state)` is a pure explicitly invoked function. It copies the actual local STATE catalog fields: `menuItems`, `menuCats`, `menuBooks`, `modGroups`, `taxRates`, `menuPhotos`, `retail`, `wineFlights`, `bar`, `wines`, `prixFixeMenus`, `tastingMenus`, `dailySpecials`, `ingredients`, voice-profile metadata and related cellar revision/code metadata. It excludes staff, guests, punches, sales, rooms/floor geometry and service stations. Unknown top-level fields block export for classification. It never reads globals/storage or executes seed functions.
 
-`importLegacy` accepts that export or the earlier explicit `menu:{items,cats,books,...}` wrapper. It preserves the entire catalog-only source snapshot. Every source array record/entry and photo/profile-map entry gets a ledger disposition; missing ledger entries/targets or unresolved mappings block publication. Ingredients and retired-code references are explicitly retained privately, not invented as offerings. Missing categories, orphan photos, unplaced/mismatched course mirrors, missing flight wine references, unknown course behaviors and conflicting stable-product ordering metadata block publication.
+`importLegacy` accepts that export or the earlier explicit `menu:{items,cats,books,...}` wrapper. It preserves the entire catalog-only source snapshot. Every source node/field gets an explicit ledger disposition under a typed policy; no unknown child inherits its parent's mapped status. Known private fields are explicitly reported as preserved; unknown fields are unresolved. missing ledger entries/targets or unresolved mappings block publication. Ingredients and retired-code references are explicitly retained privately, not invented as offerings. Missing categories, orphan photos, unplaced/mismatched course mirrors, missing flight wine references, unknown course behaviors and conflicting stable-product ordering metadata block publication.
 
 Menu books use actual `groupIds`; arbitrary kind/name values remain generic. Legacy bar/wine/retail containers populate from their corresponding records. Food source IDs remain stable across ordinary books and fixed-course menus, including tasting `dishId` references. Independently owned source collections retain namespaces; no name-based cross-inventory identity guesses are made. Menu-specific labels are preserved on offerings; original variants are private. Conflicting metadata requires reconciliation, never silent overwrite. Existing unpublished/unavailable products remain preserved but cannot be quoted for ordering.
 
 Fixed-price course choices default to required one-of selection; automatic courses require every included offering; deferred dessert remains required later. Dish `chooseCount` describes structured flavor selection separately. Explicit tasting `dessertMenuId`/course label resolves its deferred dessert source. Missing mappings block publication. No arbitrary dessert or standalone entremet price is invented.
 
-Temperatures use explicit source group IDs (including legacy temperature modifier IDs) and existing options. No dish-name-based temperature guessing occurs. Photos recognize qualified `pfdish:menu|dish` and `tmcourse:menu|course` keys. Wine group/pour/component identities, tax links, structured fire timing, dietary statements and voice aliases/profile overrides are retained. Unknown source date timezone blocks publication rather than guessing a schedule.
+Temperatures use explicit source group IDs (including legacy temperature modifier IDs) and existing options. No dish-name-based temperature guessing occurs. Photos recognize qualified `pfdish:menu|dish` and `tmcourse:menu|course` keys. Priced wine pairings become optional individually priced offerings under their source package; unresolved wine identities/pour quantities cannot be ordered. Free-text pairing suggestions remain labels and are never parsed into invented identities or prices. Wine group/pour/component identities, tax links, structured fire timing, dietary statements and voice aliases/profile overrides are retained. Unknown source date timezone blocks publication rather than guessing a schedule.
 
 ### Projection privacy and availability
 
@@ -97,3 +97,5 @@ Local rollback selects a verified old release; old check snapshots remain untouc
 Remaining limitations: authentic **tracked** data plus representative STATE structures were tested, but complete actual restaurant STATE exports were not supplied/verified. Some authentic records have unverified/empty allergens, missing explicit temperature choices or routing and intentionally remain non-orderable. Media requiring data URLs or unresolved source mappings remain blocked. No actual-app integration, backend authorization/durability, physical iPhone acceptance, SEND/FIRE, payments, deployments or paid services were exercised.
 
 Exact changed paths are recorded in `evidence/changed-files.txt`; regression evidence is stored alongside it. Stop for independent review.
+
+Actual normalized seed-STATE blocker: `mmAttachTemps` assigns meat and fish groups to the salmon “Forrestiere” prix-fixe dish while its tasting variant has only fish. This fixture is explicitly BLOCKED. The test asserting refusal passes; that is not a successful catalog migration. No source repair was made.

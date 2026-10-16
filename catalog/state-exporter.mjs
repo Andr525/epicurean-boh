@@ -10,9 +10,4 @@ export function exportBohState(state){
  if(state.provenance)out.provenance=copy(state.provenance);
  return out;
 }
-export function sourceRecords(raw){
- const rows=[];
- const walk=(value,path)=>{if(Array.isArray(value)){value.forEach((v,i)=>{const p=path+'/'+i;rows.push(p);if(v&&typeof v==='object')walk(v,p);});}else if(value&&typeof value==='object')for(const [k,v]of Object.entries(value))if(v&&typeof v==='object')walk(v,path+'/'+k);};
- for(const [k,v]of Object.entries(raw)){if(k==='provenance')continue;if(k==='menuPhotos'||k==='photos'){for(const id of Object.keys(v||{}))rows.push('/'+k+'/'+id);}else {if(k==='voiceProfiles')for(const id of Object.keys(v?.profiles||{}))rows.push('/voiceProfiles/profiles/'+id);walk(v,'/'+k);}}
- return rows.sort();
-}
+export function sourceRecords(raw){const paths=[];const visit=(v,path)=>{paths.push(path);if(v&&typeof v==='object')for(const [k,value]of Object.entries(v))visit(value,path+'/'+k);};for(const [k,v]of Object.entries(raw))if(k!=='provenance')visit(v,'/'+k);return paths.sort();}

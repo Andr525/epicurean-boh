@@ -1,0 +1,11 @@
+{
+  "fixture": "Actual normalized BOH seed STATE and Scalini configurations",
+  "functionalResult": "BLOCKED",
+  "sourceUnchanged": true,
+  "blockers": [
+    "/prixFixeMenus/0/dishes/17: ambiguous temperature groups",
+    "/prixFixeMenus/0/courses/2/options/2: ambiguous temperature groups",
+    "/prixFixeMenus/0/courseGroups/2/options/2: ambiguous temperature groups",
+    "/tastingMenus/0/courses/4: conflicting ordering metadata product/food/sf_m_forestiere"
+  ]
+}

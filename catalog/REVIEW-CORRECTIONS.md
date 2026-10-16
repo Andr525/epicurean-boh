@@ -1,3 +1,5 @@
+> Historical verification map for 76b06ce. Current iteration: [REVIEW-76b06ce-CORRECTIONS.md](REVIEW-76b06ce-CORRECTIONS.md).
+
 # Corrective verification map
 
 Reviewed baseline: `8e85e56`. Candidate: `review/boh-catalog-milestone1-corrections`.

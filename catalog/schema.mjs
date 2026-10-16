@@ -87,6 +87,44 @@ export const schema = {
         }
       ]
     },
+    "AllergenFreeVerification": {
+      "type": "object",
+      "properties": {
+        "issuerId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verificationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verifierId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "verifiedAt": {
+          "type": "string",
+          "minLength": 1
+        },
+        "expiresAt": {
+          "type": "string",
+          "minLength": 1
+        }
+      },
+      "required": [
+        "issuerId",
+        "verificationId",
+        "verifierId",
+        "reason",
+        "verifiedAt",
+        "expiresAt"
+      ],
+      "additionalProperties": false
+    },
     "Menu": {
       "type": "object",
       "properties": {
@@ -148,6 +186,13 @@ export const schema = {
             "minLength": 1
           }
         },
+        "taxRuleIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
         "metadata": {
           "type": "object"
         }
@@ -162,6 +207,7 @@ export const schema = {
         "channels",
         "availabilityPolicyId",
         "sectionIds",
+        "taxRuleIds",
         "metadata"
       ],
       "additionalProperties": false
@@ -326,6 +372,9 @@ export const schema = {
         "allergenVerified": {
           "type": "boolean"
         },
+        "allergenFreeVerification": {
+          "$ref": "#/$defs/AllergenFreeVerification"
+        },
         "description": {
           "type": "string"
         },
@@ -388,6 +437,9 @@ export const schema = {
         },
         "allergenVerified": {
           "type": "boolean"
+        },
+        "allergenFreeVerification": {
+          "$ref": "#/$defs/AllergenFreeVerification"
         },
         "modifierGroupIds": {
           "type": "array",
@@ -469,6 +521,37 @@ export const schema = {
           "items": {
             "$ref": "#/$defs/Scoop"
           }
+        },
+        "ingredients": {
+          "type": "string"
+        },
+        "pairingSuggestions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "pairing",
+                  "white",
+                  "red",
+                  "dessert"
+                ]
+              },
+              "label": {
+                "type": "string",
+                "minLength": 1
+              }
+            },
+            "required": [
+              "kind",
+              "label"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "requiresWineComponents": {
+          "type": "boolean"
         },
         "wineComponents": {
           "type": "array",
@@ -724,6 +807,9 @@ export const schema = {
         "temperature",
         "chooseCount",
         "choices",
+        "ingredients",
+        "pairingSuggestions",
+        "requiresWineComponents",
         "wineComponents",
         "cookNote",
         "cookMinutes",
@@ -792,6 +878,9 @@ export const schema = {
               },
               "allergenVerified": {
                 "type": "boolean"
+              },
+              "allergenFreeVerification": {
+                "$ref": "#/$defs/AllergenFreeVerification"
               }
             },
             "required": [

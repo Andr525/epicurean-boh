@@ -1,0 +1,13 @@
+{
+  "commit": "76b06ce",
+  "result": "6 failing baseline probes reproduced",
+  "findings": {
+    "repeatedAutomaticDishAccepted": true,
+    "emptyPackagePublishedAndQuoted": true,
+    "unmodeledNestedPairingMarkedMapped": true,
+    "pairingOfferingMissing": true,
+    "menuTaxReferenceLost": true,
+    "unverifiedDeclaredModifierAccepted": true
+  },
+  "fixture": "Actual BOH seed STATE + actual Scalini; simulated verification confined to price probes"
+}
