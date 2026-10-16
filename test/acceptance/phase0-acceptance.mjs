@@ -12,8 +12,8 @@ const label = process.env.LABEL || 'unlabelled';
 const rev = () => { try { return execFileSync('git', ['-C', BOH_ROOT, 'rev-parse', '--short', 'HEAD'], {encoding: 'utf8'}).trim() + (execFileSync('git', ['-C', BOH_ROOT, 'status', '--porcelain', '--', 'index.html', 'menu-manager.js'], {encoding: 'utf8'}).trim() ? '+wip' : ''); } catch { return 'n/a'; } };
 const browser = await launch(); let port = 9800; const results = [];
 
-async function boh({seed = {}, failReads = false, login = 'EPICUREAN2024'} = {}) {
-  const extra = failReads ? '<script>window.__MOCK_FAIL_READS__=true;</script>' : '';
+async function boh({seed = {}, failReads = false, login = 'EPICUREAN2024', extraHead = ''} = {}) {
+  const extra = (failReads ? '<script>window.__MOCK_FAIL_READS__=true;</script>' : '') + extraHead;
   const html = transform(fs.readFileSync(BOH_ROOT + '/index.html', 'utf8'), {seed, extraHead: extra});
   const o = await openPage(browser, {root: BOH_ROOT, html, origin: 'http://127.0.0.1:' + (port++)});
   const p = o.page;
@@ -63,6 +63,58 @@ await T('D7c', 7, 'Empty (new) cloud: seeds stay local until the owner explicitl
   await o.ev(() => publishMenusToFrontOfHouse()); await p.waitForTimeout(500); const d = await o.db();
   return {pass: before.length === 0 && d.boh_shared && d.boh_shared.menu && d.boh_shared.menu.items.length > 0, evidence: `menu writes during boot=${JSON.stringify(before)}; cellar migration writes (empty cloud only)=${JSON.stringify(cellar)}; after explicit Publish menu items=${d.boh_shared && d.boh_shared.menu && d.boh_shared.menu.items.length}`};
 }, {seed: {}});
+// ---- 7 (conditions). Fail closed, keep local edits separately, reconcile safely ----
+const keptOnDevice = (o) => o.ev(() => { const out = {}; for (const k of ['eh_pending_cloud_edits', 'eh_pending_cloud_writes', 'eh_archived_local_edits']) { try { out[k] = JSON.parse(localStorage.getItem(k) || 'null'); } catch (e) { out[k] = 'unreadable'; } } return out; });
+const menuEditKept = (kept, id, price) => { let hit = false; const walk = v => { if (hit || !v || typeof v !== 'object') return; if (!Array.isArray(v) && v.id === id && v.price === price) { hit = true; return; } Object.values(v).forEach(walk); }; walk(kept); return hit; };
+async function editItemPrice(p, o, id, price) { await o.ev(() => go('menu')); await p.waitForTimeout(400); await o.ev(i => mmSelect('item', i), id); await p.waitForTimeout(300); await p.locator('#ie-price').fill(String(price)); await o.ev(i => mmSaveItemFromForm(i, true), id); await p.waitForTimeout(300); await p.getByRole('button', {name: 'Publish all changes'}).first().click(); await p.waitForTimeout(900); }
+async function banner(p, label) { const b = p.locator('#cloud-sync-banner button', {hasText: label}); if (!(await b.count())) return false; await b.first().click(); await p.waitForTimeout(900); return true; }
+await T('D7d', 7, 'Cloud unreachable: every local edit is kept on the device (no 50-entry cap), nothing is written', async (p, o) => {
+  await editItemPrice(p, o, 'm2', 15);
+  const rid = await o.ev(() => (STATE.retail || [])[0] && STATE.retail[0].id);
+  for (let i = 0; i < 55; i++) { await o.ev(([r, v]) => { mmSelect('retail', r); document.getElementById('r-price').value = String(v); mmSaveRetailFromForm(r, false); }, [rid, 10 + i]); }
+  const kept = await keptOnDevice(o); const w = (await o.writes()).filter(x => !/raw-other-device/.test(x));
+  return {pass: w.length === 0 && menuEditKept(kept, 'm2', 15) && JSON.stringify(kept).includes('"price":64'), evidence: `cloud writes=${w.length}; menu edit (torte $15) still kept=${menuEditKept(kept, 'm2', 15)}; last retail edit kept=${JSON.stringify(kept).includes('"price":64')}; stored entries=${JSON.stringify(Object.fromEntries(Object.entries(kept).map(([k, v]) => [k, v ? (Array.isArray(v) ? v.length : Object.keys(v).length) : 0])))}`};
+}, {seed: cloud, failReads: true});
+await T('D7e', 7, 'Edit kept while the cloud was unreachable; another device then changed the cloud → review offers only Keep cloud (archived)', async (p, o) => {
+  await o.ev(() => { window.__MOCK_FAIL_READS__ = true; }); await editItemPrice(p, o, 'm1', 21);
+  await o.ev(c => { const m = JSON.parse(JSON.stringify(__MOCK_DB__.__dump().boh_shared.menu)); m.items.find(i => i.id === 'm2').price = 77; m.updatedAt = Date.now(); __MOCK_DB__.__rawSet('boh_shared', 'menu', m); }, null);
+  await o.ev(() => { window.__MOCK_FAIL_READS__ = false; });
+  const opened = await banner(p, 'Review changes'); const row = p.locator('.cloud-edit-row', {hasText: /menu/i}).first();
+  const canPublish = await row.getByRole('button', {name: 'Publish my change'}).count(); const text = (await row.innerText().catch(() => '')).replace(/\s+/g, ' ');
+  await row.getByRole('button', {name: 'Keep cloud version'}).click().catch(() => {}); await p.waitForTimeout(700);
+  const d = await o.db(); const kept = await keptOnDevice(o);
+  return {pass: opened && canPublish === 0 && /changed/i.test(text) && d.boh_shared.menu.items.find(i => i.id === 'm2').price === 77 && d.boh_shared.menu.items.find(i => i.id === 'm1').price === 18 && menuEditKept({a: kept.eh_archived_local_edits}, 'm1', 21) && !JSON.stringify(kept.eh_pending_cloud_edits || {}).includes('boh_shared/menu"'), evidence: `review opened=${opened}; publish offered=${canPublish}; row="${text.slice(0, 120)}"; cloud torte=$${d.boh_shared.menu.items.find(i => i.id === 'm2').price} ceviche=$${d.boh_shared.menu.items.find(i => i.id === 'm1').price}; my $21 archived=${menuEditKept({a: kept.eh_archived_local_edits}, 'm1', 21)}`};
+}, {seed: cloud});
+await T('D7f', 7, 'Edit kept while the cloud was unreachable; cloud unchanged → Publish my change (confirmed) publishes it', async (p, o) => {
+  await o.ev(() => { window.__MOCK_FAIL_READS__ = true; }); await editItemPrice(p, o, 'm1', 21); const mid = (await o.db()).boh_shared.menu.items.find(i => i.id === 'm1').price;
+  await o.ev(() => { window.__MOCK_FAIL_READS__ = false; });
+  const opened = await banner(p, 'Review changes'); const row = p.locator('.cloud-edit-row', {hasText: /menu/i}).first();
+  const btn = row.getByRole('button', {name: 'Publish my change'}); const had = await btn.count(); if (had) { await btn.click(); await p.waitForTimeout(1500); }
+  const d = await o.db(); const kept = await keptOnDevice(o);
+  const asked = (o.dialogs || []).filter(x => /^confirm/.test(x)); return {pass: mid === 18 && opened && had === 1 && asked.length === 1 && d.boh_shared.menu.items.find(i => i.id === 'm1').price === 21 && d.boh_shared.menu.items.find(i => i.id === 'm2').price === 99 && !JSON.stringify(kept.eh_pending_cloud_edits || {}).includes('boh_shared/menu"'), evidence: `cloud ceviche while offline=$${mid}; review opened=${opened}; publish offered=${had}; confirmation asked="${asked.join('|').slice(0, 90)}"; after publish ceviche=$${d.boh_shared.menu.items.find(i => i.id === 'm1').price} torte=$${d.boh_shared.menu.items.find(i => i.id === 'm2').price}`};
+}, {seed: cloud});
+await T('D7g', 7, 'Another device changed the menu after this device loaded it → this device\'s publish is refused, nothing overwritten', async (p, o) => {
+  await o.ev(() => { const m = JSON.parse(JSON.stringify(__MOCK_DB__.__dump().boh_shared.menu)); m.items.find(i => i.id === 'm2').price = 77; m.updatedAt = Date.now(); __MOCK_DB__.__rawSet('boh_shared', 'menu', m); });
+  await editItemPrice(p, o, 'm1', 21); const t = await o.toast();
+  const d = await o.db(); const kept = await keptOnDevice(o);
+  // Resolve: keep the cloud version, then edit again — the new edit is based on the cloud copy and publishes.
+  await banner(p, 'Review changes'); await p.locator('.cloud-edit-row', {hasText: /menu/i}).first().getByRole('button', {name: 'Keep cloud version'}).click().catch(() => {}); await p.waitForTimeout(1200);
+  await o.ev(() => closeModal()); const shown = await o.ev(() => STATE.menuItems.find(i => i.id === 'm2').price);
+  await editItemPrice(p, o, 'm1', 22); const d2 = await o.db();
+  return {pass: d.boh_shared.menu.items.find(i => i.id === 'm2').price === 77 && d.boh_shared.menu.items.find(i => i.id === 'm1').price === 18 && menuEditKept(kept, 'm1', 21) && shown === 77 && d2.boh_shared.menu.items.find(i => i.id === 'm1').price === 22 && d2.boh_shared.menu.items.find(i => i.id === 'm2').price === 77, evidence: `cloud torte=$${d.boh_shared.menu.items.find(i => i.id === 'm2').price} (other device set 77); cloud ceviche=$${d.boh_shared.menu.items.find(i => i.id === 'm1').price}; my edit kept=${menuEditKept(kept, 'm1', 21)}; toast="${t.replace(/\s+/g, ' ').slice(0, 90)}"; after Keep cloud device torte=$${shown}; next edit published ceviche=$${d2.boh_shared.menu.items.find(i => i.id === 'm1').price} torte still $${d2.boh_shared.menu.items.find(i => i.id === 'm2').price}`};
+}, {seed: cloud});
+await T('D7h', 7, 'Photos that exist only on this device do not override cloud photos (kept for review)', async (p, o) => {
+  const d = await o.db(); const local = await o.ev(() => STATE.menuPhotos); const kept = await keptOnDevice(o); const w = (await o.writes()).filter(x => /menu_photos/.test(x));
+  const cloudUrl = Object.values(cloud.boh_shared.menu_photos.urls)[0]; const k0 = Object.keys(cloud.boh_shared.menu_photos.urls)[0];
+  return {pass: d.boh_shared.menu_photos.urls[k0] === cloudUrl && !d.boh_shared.menu_photos.urls.m3 && local[k0] === cloudUrl && w.length === 0 && JSON.stringify(kept.eh_pending_cloud_edits || {}).includes('https://local.example/m3.jpg'), evidence: `cloud ${k0}=${d.boh_shared.menu_photos.urls[k0] === cloudUrl ? 'kept' : 'CHANGED'}; device ${k0}=${local[k0] === cloudUrl ? 'cloud photo' : local[k0]}; local-only m3 kept for review=${JSON.stringify(kept.eh_pending_cloud_edits || {}).includes('https://local.example/m3.jpg')}; photo writes=${w.length}`};
+}, {seed: cloud, login: 'EPICUREAN2024', extraHead: `<script>localStorage.setItem('eh_menu_photos', JSON.stringify({${JSON.stringify(Object.keys(cloud.boh_shared.menu_photos.urls)[0])}: 'https://local.example/stale.jpg', m3: 'https://local.example/m3.jpg'}));</script>`});
+await T('D7i', 7, 'Boot with the cloud down, edit, then Retry cloud sync → the edit needs review and is never auto-published', async (p, o) => {
+  await editItemPrice(p, o, 'm1', 21);
+  await o.ev(() => { window.__MOCK_FAIL_READS__ = false; }); const retried = await banner(p, 'Retry cloud sync'); await p.waitForTimeout(600);
+  const row = p.locator('.cloud-edit-row', {hasText: /menu/i}).first(); const shown = await row.count(); const canPublish = shown ? await row.getByRole('button', {name: 'Publish my change'}).count() : -1;
+  const d = await o.db(); const local = await o.ev(() => STATE.menuItems.find(i => i.id === 'm2').price); const w = (await o.writes()).filter(x => /boh_shared\/menu$/.test(x));
+  return {pass: retried && shown === 1 && canPublish === 0 && d.boh_shared.menu.items.find(i => i.id === 'm1').price === 18 && local === 99 && w.length === 0, evidence: `retry tapped=${retried}; review row=${shown}; publish offered=${canPublish} (base unknown, cloud exists); cloud ceviche=$${d.boh_shared.menu.items.find(i => i.id === 'm1').price}; device now shows cloud torte=$${local}; menu writes=${w.length}`};
+}, {seed: cloud, failReads: true});
 // ---- 8. Modifier editor ----
 await T('D8a', 8, 'Delete option ✕ removes it; other ids, prices and allergens stay attached', async (p, o) => {
   await o.ev(() => { const g = STATE.modGroups.find(x => x.id === 'mg_add'); g.options[0].allergens = ['Dairy']; g.options[1].allergens = ['Pork']; g.options[2].allergens = ['Avocado']; });
@@ -92,6 +144,16 @@ await T('D8d', 8, 'Opening the Voice tab does not modify saved modifier data or 
   const after = await o.ev(() => JSON.stringify(STATE.modGroups)); const w = (await o.writes()).slice(w0);
   return {pass: before === after && w.length === 0, evidence: `modGroups unchanged=${before === after}; writes caused by opening Voice=${JSON.stringify(w)}`};
 });
+const verifiedCheeseCloud = (() => { const c = JSON.parse(JSON.stringify(cloud)); const g = c.boh_shared.menu.modGroups.find(x => x.id === 'mg_add'); g.options[0].verified = true; g.options[0].allergens = ['Dairy']; return c; })();
+await T('D8e', 8, 'Corrupt modifier records (duplicate id; renamed option still verified) are refused at publish', async (p, o) => {
+  await o.ev(() => { const g = STATE.modGroups.find(x => x.id === 'mg_add'); g.options[1].id = g.options[0].id; }); // what the old ✕ delete produced: ids shifted onto other options
+  await o.ev(() => go('menu')); await p.waitForTimeout(400); await p.getByRole('button', {name: 'Publish all changes'}).first().click(); await p.waitForTimeout(800);
+  const t1 = await o.toast(); const d1 = await o.db();
+  await o.ev(() => { const g = STATE.modGroups.find(x => x.id === 'mg_add'); g.options[1].id = 'mo_bac'; g.options[0].name = 'Aged Cheddar'; g.options[0].verified = true; });
+  await p.getByRole('button', {name: 'Publish all changes'}).first().click(); await p.waitForTimeout(800);
+  const t2 = await o.toast(); const d2 = await o.db(); const opt = d2.boh_shared.menu.modGroups.find(g => g.id === 'mg_add').options;
+  return {pass: JSON.stringify(d1.boh_shared.menu) === JSON.stringify(verifiedCheeseCloud.boh_shared.menu) && JSON.stringify(d2.boh_shared.menu) === JSON.stringify(verifiedCheeseCloud.boh_shared.menu) && /used twice/.test(t1) && /still marked verified/.test(t2), evidence: `dup id: cloud menu unchanged=${JSON.stringify(d1.boh_shared.menu) === JSON.stringify(verifiedCheeseCloud.boh_shared.menu)} toast="${t1.replace(/\s+/g, ' ').slice(0, 110)}"; renamed+verified: cloud unchanged=${JSON.stringify(d2.boh_shared.menu) === JSON.stringify(verifiedCheeseCloud.boh_shared.menu)} options=${opt.map(x => x.id + '=' + x.name).join(',')} toast="${t2.replace(/\s+/g, ' ').slice(0, 110)}"`};
+}, {seed: verifiedCheeseCloud});
 // ---- Regression on existing working BOH functions ----
 await T('R1', 'reg', 'Item price edit → Publish all changes reaches boh_shared/menu', async (p, o) => {
   await o.ev(() => go('menu')); await p.waitForTimeout(400); await o.ev(() => mmSelect('item', 'm2')); await p.waitForTimeout(300);

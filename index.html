@@ -1051,19 +1051,67 @@ function showPhotoPreview(input, url){
 function lsGet(k, fb){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):fb; }catch(e){ return fb; } }
 function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function fbGetDoc(col,id){ if(!fbReady)return Promise.resolve(null); return fbDb.collection(col).doc(id).get().then(function(s){return s.exists?s.data():null;}).catch(function(e){console.warn('read',e);return null;}); }
-/* Phase 0: cloud data is authoritative. Until every startup read has succeeded, this
-   device must not write to the cloud (a fresh or offline device would otherwise push
-   seed or stale data over established records). A failed read is never treated as an
-   empty cloud. Refused writes are kept on this device in eh_pending_cloud_writes. */
+/* Phase 0: cloud data is authoritative and synchronization fails closed.
+   - Until every startup read has succeeded this device writes nothing to the cloud; a failed
+     read is never treated as an empty cloud.
+   - Every write first re-reads the document. If the cloud changed since this device loaded it
+     (another device, the POS, the clock app) or the read fails, the write is refused.
+   - Refused changes are kept per document in eh_pending_cloud_edits (never truncated) and are
+     only published from the owner's review screen when that is safe (the cloud copy is still
+     the one the change was based on, or the document does not exist). Otherwise the owner can
+     only keep the cloud version (the local copy is archived in eh_archived_local_edits) or
+     download the local copy. Nothing is discarded silently. */
 var CLOUD_SYNC_STATE='pending'; // pending | ok | failed
-function fbGetDocStrict(col,id){ if(!fbReady)return Promise.resolve(null); return fbDb.collection(col).doc(id).get().then(function(s){return s.exists?s.data():null;}); }
-function keepRefusedCloudWrite(col,id,data){
-  try{
-    var key='eh_pending_cloud_writes', list=lsGet(key,[]); if(!Array.isArray(list)) list=[];
-    list.push({col:col,id:id,at:Date.now(),data:JSON.parse(JSON.stringify(data||null))});
-    lsSet(key,list.slice(-50));
-  }catch(e){ console.warn('pending cloud write not kept',e); }
+var CLOUD_BASE={};        // 'col/id' -> hash of the cloud document as this device last read or wrote it
+var CLOUD_BASE_CONTENT={}; // 'col/id' -> hash of the same document without updatedAt
+var CLOUD_MENU_BASE=null; // the last cloud boh_shared/menu (modifier publish validation)
+var BOOT_AUTOMATION=false; // seeds/migrations run before the first sync: refused, and re-run after it
+var DOC_WRITE_CHAIN={};
+var PENDING_EDITS_KEY='eh_pending_cloud_edits', ARCHIVED_EDITS_KEY='eh_archived_local_edits';
+function stableStringify(v){
+  if(v===null||v===undefined||typeof v!=='object') return JSON.stringify(v===undefined?null:v);
+  if(Array.isArray(v)) return '['+v.map(stableStringify).join(',')+']';
+  return '{'+Object.keys(v).filter(function(k){ return v[k]!==undefined; }).sort().map(function(k){ return JSON.stringify(k)+':'+stableStringify(v[k]); }).join(',')+'}';
 }
+function cloudHash(d){
+  if(d===null||d===undefined) return 'absent';
+  var str=stableStringify(d), h=5381;
+  for(var i=0;i<str.length;i++){ h=((h<<5)+h+str.charCodeAt(i))|0; }
+  return (h>>>0).toString(36)+':'+str.length;
+}
+function withoutUpdatedAt(d){ if(!d||typeof d!=='object'||Array.isArray(d)) return d; var c=Object.assign({}, d); delete c.updatedAt; return c; }
+function recordCloudBase(col,id,d){
+  CLOUD_BASE[col+'/'+id]=cloudHash(d);
+  CLOUD_BASE_CONTENT[col+'/'+id]=cloudHash(withoutUpdatedAt(d));
+  if(col==='boh_shared' && id==='menu') CLOUD_MENU_BASE=d?JSON.parse(JSON.stringify(d)):null;
+}
+function fbGetDocStrict(col,id){ if(!fbReady)return Promise.resolve(null); return fbDb.collection(col).doc(id).get().then(function(s){ var d=s.exists?s.data():null; recordCloudBase(col,id,d); return d; }); }
+function pendingEdits(){
+  var m=lsGet(PENDING_EDITS_KEY,{}); if(!m||typeof m!=='object'||Array.isArray(m)) m={};
+  var old=lsGet('eh_pending_cloud_writes',null); // earlier Phase 0 list format: carried over, never dropped
+  if(Array.isArray(old)&&old.length){
+    old.forEach(function(e){ if(!e||!e.col) return; var k=e.col+'/'+e.id; m[k]={col:e.col,id:e.id,data:e.data,merge:true,baseHash:null,at:e.at,by:'',reason:'sync-failed',edits:1}; });
+    if(writePendingEdits(m)) { try{ localStorage.removeItem('eh_pending_cloud_writes'); }catch(e){} }
+  }
+  return m;
+}
+function writePendingEdits(m){
+  try{ localStorage.setItem(PENDING_EDITS_KEY, JSON.stringify(m)); return true; }
+  catch(e){ console.error('pending cloud edits not saved',e); if(typeof toast==='function') toast('This device could not store your unpublished change (storage full). Do not close BOH — download it from Review changes.','error'); return false; }
+}
+function keepPendingEdit(col,id,data,opts,reason){
+  var m=pendingEdits(), k=col+'/'+id, prev=m[k], merge=!(opts&&opts.merge===false);
+  var next=JSON.parse(JSON.stringify(data===undefined?null:data));
+  if(prev && merge && prev.data && next && typeof next==='object' && !Array.isArray(next)) next=Object.assign({}, prev.data, next);
+  // Identical to the cloud copy this device loaded: there is nothing of ours to keep.
+  if(!prev && CLOUD_BASE_CONTENT[k] && cloudHash(withoutUpdatedAt(next))===CLOUD_BASE_CONTENT[k]) return;
+  m[k]={col:col, id:id, data:next, merge:prev?(prev.merge&&merge):merge,
+    baseHash:prev?prev.baseHash:(Object.prototype.hasOwnProperty.call(CLOUD_BASE,k)?CLOUD_BASE[k]:null),
+    at:Date.now(), by:(typeof SESSION!=='undefined'&&SESSION.user&&SESSION.user.name)||'', reason:reason, edits:(prev?prev.edits||1:0)+1};
+  writePendingEdits(m);
+  updateCloudBanner();
+}
+function cloudEditLabel(e){ return e.col==='boh_shared' ? String(e.id).replace(/_/g,' ') : e.col+'/'+e.id; }
 function fbSetDoc(col,id,data,opts){
   if(!fbReady){
     console.warn('Firebase is not initialized');
@@ -1071,28 +1119,162 @@ function fbSetDoc(col,id,data,opts){
     return Promise.resolve(false);
   }
   if(CLOUD_SYNC_STATE!=='ok'){
-    keepRefusedCloudWrite(col,id,data);
+    if(BOOT_AUTOMATION) return Promise.resolve(false); // re-run after the sync against the real cloud data
+    keepPendingEdit(col,id,data,opts,CLOUD_SYNC_STATE==='failed'?'sync-failed':'before-sync');
     if(CLOUD_SYNC_STATE==='failed' && typeof toast==='function') toast('Cloud not loaded — this change is kept on this device only and has NOT been published','error');
     return Promise.resolve(false);
   }
-  function write(){
-    var merge = !(opts && opts.merge === false);
-    return fbDb.collection(col).doc(id).set(data,{merge:merge}).then(function(){return true;}).catch(function(e){
-      console.error('Firebase write failed',e);
-      if(typeof toast==='function') toast('Cloud save failed: '+(e.code||e.message||'unknown error'),'error');
-      return false;
-    });
-  }
-  if(fbAuth && !fbAuth.currentUser){
-    return fbAuth.signInAnonymously().then(write).catch(function(e){
-      console.error('Firebase anonymous sign-in failed',e);
-      if(typeof toast==='function') toast('Firebase sign-in failed: '+(e.code||e.message||'unknown error'),'error');
-      return false;
-    });
-  }
-  return write();
+  var key=col+'/'+id;
+  var job=(DOC_WRITE_CHAIN[key]||Promise.resolve()).then(function(){ return guardedCloudWrite(col,id,data,opts); });
+  DOC_WRITE_CHAIN[key]=job.catch(function(){});
+  return job;
 }
-
+function ensureCloudAuth(){
+  if(fbAuth && !fbAuth.currentUser) return fbAuth.signInAnonymously();
+  return Promise.resolve();
+}
+function guardedCloudWrite(col,id,data,opts){
+  var key=col+'/'+id, merge=!(opts&&opts.merge===false);
+  return ensureCloudAuth().then(function(){
+    return fbDb.collection(col).doc(id).get().then(function(s){ return {ok:true,d:s.exists?s.data():null}; }, function(e){ return {ok:false,e:e}; });
+  }, function(e){ return {ok:false,e:e}; }).then(function(r){
+    if(!r.ok){
+      keepPendingEdit(col,id,data,opts,'read-failed');
+      if(typeof toast==='function') toast('Cloud not reachable — this change is kept on this device and has NOT been published','error');
+      return false;
+    }
+    var known=Object.prototype.hasOwnProperty.call(CLOUD_BASE,key);
+    var changed=known ? cloudHash(r.d)!==CLOUD_BASE[key] : r.d!==null;
+    if(changed){
+      keepPendingEdit(col,id,data,opts,'conflict');
+      if(typeof toast==='function') toast('"'+cloudEditLabel({col:col,id:id})+'" was changed on another device — your change is kept here for review and was NOT published','error');
+      return false;
+    }
+    return fbDb.collection(col).doc(id).set(data,{merge:merge}).then(function(){
+      return fbDb.collection(col).doc(id).get().then(function(s){ recordCloudBase(col,id,s.exists?s.data():null); return true; }, function(){ delete CLOUD_BASE[key]; delete CLOUD_BASE_CONTENT[key]; return true; });
+    }, function(e){
+      console.error('Firebase write failed',e);
+      keepPendingEdit(col,id,data,opts,'write-failed');
+      if(typeof toast==='function') toast('Cloud save failed ('+(e.code||e.message||'unknown error')+') — this change is kept on this device','error');
+      return false;
+    });
+  });
+}
+function updateCloudBanner(){
+  if(typeof document==='undefined' || !document.body) return;
+  var n=Object.keys(pendingEdits()).length, b=document.getElementById('cloud-sync-banner');
+  if(!(CLOUD_SYNC_STATE==='failed' || n>0)){ if(b) b.remove(); return; }
+  if(!b){ b=document.createElement('div'); b.id='cloud-sync-banner'; b.style.cssText='position:fixed;bottom:12px;left:12px;z-index:9000;background:#3a1d1d;color:#fff;border:1px solid #c66;border-radius:10px;padding:8px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;font-size:13px;max-width:calc(100% - 16px);box-sizing:border-box;'; document.body.appendChild(b); }
+  b.innerHTML='<span>'+(CLOUD_SYNC_STATE==='failed'?'Cloud not loaded — nothing is being published. ':'')+(n?n+' unpublished change'+(n===1?'':'s')+' kept on this device.':'')+'</span>'+
+    (CLOUD_SYNC_STATE!=='ok'?'<button class="btn btn-sm btn-ghost" onclick="retryCloudSync()">Retry cloud sync</button>':'')+
+    (n?'<button class="btn btn-sm btn-gold" onclick="openCloudReconcile()">Review changes</button>':'');
+}
+function retryCloudSync(){
+  if(CLOUD_SYNC_STATE==='ok') return Promise.resolve(true);
+  CLOUD_SYNC_STATE='pending'; updateCloudBanner();
+  if(typeof toast==='function') toast('Retrying cloud sync…','');
+  return syncFromCloud().then(function(ok){
+    updateCloudBanner();
+    if(ok===false) return false;
+    runPostSyncSteps();
+    toast('Cloud loaded — this device now shows the cloud data','success');
+    if(SESSION.user) render();
+    if(Object.keys(pendingEdits()).length) openCloudReconcile();
+    return true;
+  });
+}
+function canReconcileCloud(){ return !!(SESSION.user && (SESSION.user.isOwner || can('settings') || can('menu'))); }
+function openCloudReconcile(){
+  if(!canReconcileCloud()){ toast('Sign in as the owner or a manager to review unpublished changes','error'); return; }
+  var m=pendingEdits(), keys=Object.keys(m);
+  if(!keys.length){ closeModal(); updateCloudBanner(); toast('No unpublished changes on this device','success'); return; }
+  var reads=keys.map(function(k){
+    if(CLOUD_SYNC_STATE!=='ok') return Promise.resolve({k:k,state:'offline'});
+    var e=m[k];
+    return fbDb.collection(e.col).doc(e.id).get().then(function(s){
+      var h=cloudHash(s.exists?s.data():null);
+      return {k:k, state:(h==='absent' || (e.baseHash && h===e.baseHash)) ? 'safe' : 'changed'};
+    }, function(){ return {k:k,state:'offline'}; });
+  });
+  Promise.all(reads).then(function(rows){
+    var why={'sync-failed':'made while the cloud could not be loaded','before-sync':'made before the cloud finished loading','read-failed':'cloud unreachable at save time','conflict':'the cloud was changed on another device','write-failed':'the cloud refused the save','local-photos':'photos only on this device'};
+    var html='<p class="mini-note">These changes were never published. A change can be published only if the cloud copy is still the one it was based on. Otherwise keep the cloud version — your copy is archived on this device, and you can download it to re-enter what is needed.</p>';
+    rows.forEach(function(r){
+      var e=m[r.k], kq=JSON.stringify(r.k).replace(/"/g,'&quot;');
+      html+='<div class="cloud-edit-row" data-key="'+esc(r.k)+'" style="border:1px solid var(--line,#444);border-radius:8px;padding:8px;margin:8px 0;">'+
+        '<b>'+esc(cloudEditLabel(e))+'</b> <span class="mini-note">'+esc(why[e.reason]||e.reason||'')+' · '+esc(new Date(e.at).toLocaleString())+(e.by?' · '+esc(e.by):'')+'</span><div class="mini-note" style="margin:4px 0;">'+
+        (r.state==='safe'?'The cloud copy has not changed since this edit — it can be published.':r.state==='changed'?'The cloud copy changed since this edit (or this device never loaded it). Publishing it would overwrite newer data, so it cannot be published from here.':'Cloud unreachable — retry the sync first.')+'</div>'+
+        (r.state==='safe'?'<button class="btn btn-sm btn-gold" onclick="publishPendingEdit('+kq+')">Publish my change</button> ':'')+
+        (r.state!=='offline'?'<button class="btn btn-sm btn-ghost" onclick="keepCloudVersion('+kq+')">Keep cloud version</button> ':'')+
+        '<button class="btn btn-sm btn-ghost" onclick="downloadPendingEdit('+kq+')">Download my copy</button></div>';
+    });
+    openModal('Unpublished changes on this device', html, 'Close', function(){ return true; });
+  });
+}
+function publishPendingEdit(k){
+  var m=pendingEdits(), e=m[k];
+  if(!e || CLOUD_SYNC_STATE!=='ok' || !canReconcileCloud()) return;
+  if(e.col==='boh_shared' && e.id==='menu' && e.data){
+    var probs=validateModGroupsForPublish(e.data.modGroups||[], CLOUD_MENU_BASE&&CLOUD_MENU_BASE.modGroups);
+    if(probs.length){ toast('Not published — modifier records need fixing first: '+probs.slice(0,3).join('; '),'error'); return; }
+  }
+  if(!window.confirm('Publish your saved change to "'+cloudEditLabel(e)+'"? The cloud copy has not changed since you made it.')) return;
+  var job=(DOC_WRITE_CHAIN[k]||Promise.resolve()).then(function(){
+    return fbDb.collection(e.col).doc(e.id).get().then(function(s){
+      var h=cloudHash(s.exists?s.data():null);
+      if(!(h==='absent' || (e.baseHash && h===e.baseHash))) throw new Error('the cloud copy changed a moment ago — nothing was published');
+      return fbDb.collection(e.col).doc(e.id).set(e.data,{merge:e.merge!==false});
+    }).then(function(){ return fbGetDocStrict(e.col,e.id); });
+  });
+  DOC_WRITE_CHAIN[k]=job.catch(function(){});
+  return job.then(function(){
+    var mm=pendingEdits(); delete mm[k]; writePendingEdits(mm);
+    toast('Published "'+cloudEditLabel(e)+'"','success');
+    return syncFromCloud().then(function(){ if(SESSION.user) render(); updateCloudBanner(); openCloudReconcile(); });
+  }, function(err){ toast('Not published: '+(err&&err.message||err),'error'); openCloudReconcile(); });
+}
+function keepCloudVersion(k){
+  var m=pendingEdits(), e=m[k]; if(!e || !canReconcileCloud()) return;
+  var arch=lsGet(ARCHIVED_EDITS_KEY,[]); if(!Array.isArray(arch)) arch=[];
+  arch.push(Object.assign({}, e, {archivedAt:Date.now(), resolution:'kept-cloud', resolvedBy:(SESSION.user&&SESSION.user.name)||''}));
+  try{ localStorage.setItem(ARCHIVED_EDITS_KEY, JSON.stringify(arch)); }
+  catch(err){ toast('Could not archive your copy (storage full) — download it first; nothing was changed','error'); return; }
+  delete m[k]; writePendingEdits(m);
+  toast('Kept the cloud version of "'+cloudEditLabel(e)+'" — your copy is archived on this device','success');
+  // Reload the cloud data so this device's screens and base copies match the cloud again.
+  return syncFromCloud().then(function(){ if(SESSION.user) render(); updateCloudBanner(); openCloudReconcile(); });
+}
+function downloadPendingEdit(k){
+  var e=pendingEdits()[k]; if(!e) return;
+  try{
+    var blob=new Blob([JSON.stringify(e,null,2)],{type:'application/json'}), a=document.createElement('a');
+    a.href=URL.createObjectURL(blob); a.download='boh-unpublished-'+String(e.id).replace(/[^a-z0-9_-]/gi,'_')+'-'+e.at+'.json';
+    document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); },500);
+  }catch(err){ toast('Download failed: '+err.message,'error'); }
+}
+/* Phase 0 (#4): modifier records are checked before they can be published. */
+function validateModGroupsForPublish(groups, cloudGroups){
+  var problems=[], cloudOpt={};
+  (Array.isArray(cloudGroups)?cloudGroups:[]).forEach(function(g){ (g&&Array.isArray(g.options)?g.options:[]).forEach(function(o){ if(o&&o.id) cloudOpt[g.id+'|'+o.id]=o; }); });
+  (Array.isArray(groups)?groups:[]).forEach(function(g){
+    if(!g) return;
+    var gname=g.name||g.id||'group', seen={};
+    (Array.isArray(g.options)?g.options:[]).forEach(function(o, i){
+      if(!o || typeof o!=='object'){ problems.push(gname+': option '+(i+1)+' is not a record'); return; }
+      var id=String(o.id||'').trim();
+      if(!id) problems.push(gname+': "'+(o.name||('option '+(i+1)))+'" has no id');
+      else if(seen[id]) problems.push(gname+': option id '+id+' is used twice ("'+seen[id]+'" and "'+(o.name||'')+'")');
+      else seen[id]=o.name||'(unnamed)';
+      if(!String(o.name||'').trim()) problems.push(gname+': option '+(id||i+1)+' has no name');
+      if(o.allergens!==undefined && !Array.isArray(o.allergens)) problems.push(gname+': '+(o.name||id)+' allergens are not a list');
+      if(o.itemRef!==undefined && o.itemRef!==null && !(typeof o.itemRef==='object' && String(o.itemRef.sourceType||'').trim() && String(o.itemRef.sourceId||'').trim())) problems.push(gname+': '+(o.name||id)+' has an incomplete item reference');
+      var prev=id && cloudOpt[g.id+'|'+id];
+      if(prev && String(prev.name||'').trim().toLowerCase()!==String(o.name||'').trim().toLowerCase() && (o.verified===true || o.allergenVerified===true))
+        problems.push(gname+': option '+id+' was renamed from "'+prev.name+'" to "'+o.name+'" but is still marked verified — re-verify its allergens');
+    });
+  });
+  return problems;
+}
 /* ---------------- Role system (first digit of code) ---------------- */
 var ROLES = {
   '1':{key:'kitchen',    label:'Kitchen',        color:'#E0A36B', pos:false},
@@ -1642,6 +1824,11 @@ function saveMenu(){
   lsSet('eh_tax_rates',STATE.taxRates||[]); lsSet('eh_menu_books',STATE.menuBooks||[]);
   applyMenuPhotos();
   saveMenuPhotos();
+  var modProblems=validateModGroupsForPublish(STATE.modGroups, CLOUD_MENU_BASE&&CLOUD_MENU_BASE.modGroups);
+  if(modProblems.length){
+    if(typeof toast==='function') toast('Menu NOT published — fix these modifier options first (saved on this device): '+modProblems.slice(0,3).join('; ')+(modProblems.length>3?' (+'+(modProblems.length-3)+' more)':''),'error');
+    return Promise.resolve(false);
+  }
   return fbSetDoc('boh_shared','menu',{
     cats:STATE.menuCats,
     items:withoutEmbeddedPhotos(STATE.menuItems),
@@ -1804,7 +1991,7 @@ function loadWineChunks(firstDoc){
   if(n<=1){ STATE.wines=first; return Promise.resolve(first); }
   var jobs=[];
   for(var i=1;i<n;i++){
-    (function(idx){ jobs.push(fbGetDoc('boh_shared','wines_'+idx).then(function(d){ return (d&&d.list)||[]; })); })(i);
+    (function(idx){ jobs.push(fbGetDocStrict('boh_shared','wines_'+idx).then(function(d){ return (d&&d.list)||[]; })); })(i);
   }
   return Promise.all(jobs).then(function(rest){
     STATE.wines=first.concat.apply(first, rest);
@@ -1863,14 +2050,20 @@ function saveSales(){ lsSet('eh_sales',STATE.sales); fbSetDoc('boh_shared','sale
 
 function syncFromCloud(){
   if(!fbReady)return Promise.resolve();
-  var fbGetDoc=fbGetDocStrict; // a read failure must abort the sync, not look like an empty cloud
+  var fbGetDoc=fbGetDocStrict; // a read failure must abort the sync, not look like an empty cloud (records CLOUD_BASE)
   return Promise.all([
     fbGetDoc('boh_shared','staff_clock').then(function(d){ if(d&&d.list&&d.list.length){ STATE.staff=mergeStaff(STATE.staff,d.list); lsSet('eh_staff',STATE.staff); } }),
     fbGetDoc('boh_shared','punches').then(function(d){ if(d&&d.list){ STATE.punches=d.list; lsSet('eh_punches',STATE.punches); } }),
     fbGetDoc('boh_shared','tables').then(function(d){ if(d){ if(d.rooms&&d.rooms.length){STATE.rooms=d.rooms;lsSet('eh_rooms',STATE.rooms);} if(d.roomObjs){STATE.roomObjs=normalizeRoomObjs(d.roomObjs);} if(d.stations){STATE.stations=d.stations;lsSet('eh_stations',STATE.stations);} hydrateStationOverlays(); lsSet('eh_rooms_objs',STATE.roomObjs); lsSet('eh_stations',STATE.stations); if(STATE.rooms.length && !STATE.rooms.filter(function(r){return r.id===FLOOR.room;})[0]) FLOOR.room=STATE.rooms[0].id; } }),
     fbGetDoc('boh_shared','guests').then(function(d){ if(d&&d.list){ STATE.guests=d.list; lsSet('eh_guests',STATE.guests); } }),
     fbGetDoc('boh_shared','menu').then(function(d){ if(d){ if(d.cats)STATE.menuCats=d.cats; if(d.items)STATE.menuItems=d.items; if(d.modGroups)STATE.modGroups=d.modGroups; if(d.taxRates)STATE.taxRates=d.taxRates; if(d.books)STATE.menuBooks=d.books; lsSet('eh_menu_cats',STATE.menuCats); lsSet('eh_menu_items',STATE.menuItems); lsSet('eh_mod_groups',STATE.modGroups); lsSet('eh_tax_rates',STATE.taxRates||[]); lsSet('eh_menu_books',STATE.menuBooks||[]); applyMenuPhotos(); if(typeof ensureMenuManager==='function')ensureMenuManager(); } }),
-    fbGetDoc('boh_shared','menu_photos').then(function(d){ if(d&&d.urls){ STATE.menuPhotos=Object.assign({}, d.urls, STATE.menuPhotos||{}); lsSet('eh_menu_photos', STATE.menuPhotos); applyMenuPhotos(); } }),
+    fbGetDoc('boh_shared','menu_photos').then(function(d){ if(d&&d.urls){
+      // Phase 0: cloud photos win. Photos that exist only on this device are kept for review, not pushed over the cloud.
+      var local=STATE.menuPhotos||{}, extra={};
+      Object.keys(local).forEach(function(k){ var u=local[k]; if(u && d.urls[k]!==u && (String(u).indexOf('http')===0 || (String(u).indexOf('data:image/')===0 && u.length<180000))) extra[k]=u; });
+      STATE.menuPhotos=Object.assign({}, d.urls); lsSet('eh_menu_photos', STATE.menuPhotos); applyMenuPhotos();
+      if(Object.keys(extra).length) keepPendingEdit('boh_shared','menu_photos',{urls:Object.assign({}, d.urls, extra)},{merge:true},'local-photos');
+    } }),
     fbGetDoc('boh_shared','bar').then(function(d){ if(d&&d.list){ STATE.bar=d.list; lsSet('eh_bar',STATE.bar); } }),
     fbGetDoc('boh_shared','wines').then(function(d){
       if(!d) return;
@@ -1888,10 +2081,11 @@ function syncFromCloud(){
     fbGetDoc('boh_shared','daily_specials').then(function(d){ if(d&&d.list){ STATE.dailySpecials=d.list; lsSet('eh_daily_specials',STATE.dailySpecials); } }),
     fbGetDoc('boh_shared','voice_profiles').then(function(d){ if(d&&d.profiles){ STATE.voiceProfiles=d; voiceProfileStore(); lsSet('eh_voice_profiles',STATE.voiceProfiles); } }),
     fbGetDoc('boh_shared','voice_vocab_active').then(function(d){ if(d&&d.activeRevision){ STATE.voiceActiveRevision=d.activeRevision; lsSet('eh_voice_active_rev',d.activeRevision); } })
-  ]).then(function(){ CLOUD_SYNC_STATE='ok'; return true; }).catch(function(e){
+  ]).then(function(){ return true; }).catch(function(e){
     CLOUD_SYNC_STATE='failed';
     console.warn('Cloud sync failed; cloud writes are paused on this device',e);
-    if(typeof toast==='function') toast('Cloud not reachable — showing this device\'s saved data. Changes will not be published until the cloud loads (reload to retry).','error');
+    if(typeof toast==='function') toast('Cloud not reachable — showing this device\'s saved data. Nothing will be published until the cloud loads (Retry cloud sync).','error');
+    updateCloudBanner();
     return false;
   });
 }
@@ -3664,16 +3858,20 @@ function closeModal(){ $('modal-root').innerHTML=''; MODAL_OK=null; }
 /* ============================================================
    BOOT
    ============================================================ */
+function runPostSyncSteps(){ ensureBinwiseCellar(); persistBundledSkuVins(); publishOperationalIds(); ensureVoiceProfiles(); }
 function boot(){
   hydrateStationOverlays();
-  if(typeof ensureMenuManager==='function')ensureMenuManager();
-  ensureBinwiseCellar();
-  persistBundledSkuVins();
-  publishOperationalIds();
+  BOOT_AUTOMATION=true; // seeds/migrations: never written before the cloud has loaded; they re-run after it
+  try{
+    if(typeof ensureMenuManager==='function')ensureMenuManager();
+    ensureBinwiseCellar();
+    persistBundledSkuVins();
+    publishOperationalIds();
+  } finally { BOOT_AUTOMATION=false; }
   var saved=sessionStorage.getItem('eh_boh_user'); if(saved){ try{ SESSION.user=JSON.parse(saved); }catch(e){} }
   render();
   if(!fbReady) CLOUD_SYNC_STATE='ok'; // local-only mode: there is no cloud to protect
-  syncFromCloud().then(function(ok){ if(ok===false){ if(SESSION.user)render(); return; } ensureBinwiseCellar(); persistBundledSkuVins(); publishOperationalIds(); ensureVoiceProfiles(); if(SESSION.user)render(); });
+  syncFromCloud().then(function(ok){ updateCloudBanner(); if(ok===false){ if(SESSION.user)render(); return; } runPostSyncSteps(); if(SESSION.user)render(); });
 }
 /* ============================================================
    PRODUCT MODULE — Menu / Bar / Wine / Retail / Inventory / Reports
@@ -4557,16 +4755,28 @@ function normalizePrixFixeList(list){
 }
 var _origSync = syncFromCloud;
 syncFromCloud = function(){
-  return _origSync().then(function(){
-    if(!fbReady) return;
+  return _origSync().then(function(ok){
+    if(!fbReady) return ok;
+    if(ok===false) return false;
     return Promise.all([
-      fbGetDoc('boh_shared','tasting_menus').then(function(d){ if(d&&d.list){ STATE.tastingMenus=normalizeTastingList(d.list); lsSet('eh_tasting_menus',STATE.tastingMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); } }),
-      fbGetDoc('boh_shared','prix_fixe_menus').then(function(d){ if(d&&d.list){ STATE.prixFixeMenus=normalizePrixFixeList(d.list); lsSet('eh_prix_fixe_menus',STATE.prixFixeMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); if(typeof mmRebuildPf==='function') (STATE.prixFixeMenus||[]).forEach(mmRebuildPf); } })
+      fbGetDocStrict('boh_shared','payroll_settings'), // base only: this device must not overwrite settings it never loaded
+      fbGetDocStrict('boh_shared','wine_flights'),
+      fbGetDocStrict('boh_shared','tasting_menus').then(function(d){ if(d&&d.list){ STATE.tastingMenus=normalizeTastingList(d.list); lsSet('eh_tasting_menus',STATE.tastingMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); } }),
+      fbGetDocStrict('boh_shared','prix_fixe_menus').then(function(d){ if(d&&d.list){ STATE.prixFixeMenus=normalizePrixFixeList(d.list); lsSet('eh_prix_fixe_menus',STATE.prixFixeMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); if(typeof mmRebuildPf==='function') (STATE.prixFixeMenus||[]).forEach(mmRebuildPf); } })
     ]).then(function(){
+      CLOUD_SYNC_STATE='ok';
+      updateCloudBanner();
       if(ensureScaliniDiningMenus()){
         saveTastingMenus();
         savePrixFixeMenus();
       }
+      return true;
+    }, function(e){
+      CLOUD_SYNC_STATE='failed';
+      console.warn('Cloud sync failed; cloud writes are paused on this device',e);
+      if(typeof toast==='function') toast('Cloud not reachable — showing this device\'s saved data. Nothing will be published until the cloud loads (Retry cloud sync).','error');
+      updateCloudBanner();
+      return false;
     });
   });
 };
