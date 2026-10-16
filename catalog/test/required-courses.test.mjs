@@ -52,8 +52,8 @@ test('C5 allergen-free workflow requires an explicit trusted local approval, bou
  const resumed=MemoryPublicationStore.restoreLocal(store.exportLocal(),{verificationAuthority:authority});assert(calculatePrice(await readRelease(resumed,resumed.pointer().releaseId),request).totalCents>0);
  authority.revoke(c.products[i].allergenFreeVerification.verificationId,session);assert.throws(()=>calculatePrice(release,request),/Empty allergen/);await assert.rejects(readRelease(store,store.pointer().releaseId),/Empty allergen/);
 });
-test('Actual normalized seed STATE: existing conflicting salmon temperatures remain BLOCKED',async()=>{
- const state=seedStateFixture(),before=copy(state),c=importLegacy(state);assert(c.importReport.unresolved.some(s=>s.includes('ambiguous temperature')));assert(c.importReport.unresolved.some(s=>s.includes('conflicting ordering metadata')));const store=new MemoryPublicationStore();await assert.rejects(publish(c,store),/Unresolved source mappings/);assert.equal(store.pointer().releaseId,null);assert.deepEqual(state,before);
+test('Actual normalized seed STATE: temperature reconciliation imports and publishes without changing source',async()=>{
+ const state=seedStateFixture(),before=copy(state),c=importLegacy(state);assert.deepEqual(c.importReport.unresolved,[]);validate(c);const {release}=await released(c);assert.equal(release.catalog.products.find(p=>p.sourceId==='sf_m_forestiere').temperatureGroupId,'mg_fish_temp');assert.deepEqual(state,before);assert.deepEqual(c.legacySnapshots[0].records,state);
 });
 test('C5 explicit approvals also support empty ingredient modifiers and flavors; expiration fails closed',async()=>{
  const c=seedPriceCatalog(api),authority=new LocalAllergenVerificationAuthority({authorizedVerifierIds:['fixture-reviewer']}),session=authority.openSimulatedSession('fixture-reviewer');

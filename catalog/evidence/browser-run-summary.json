@@ -1,0 +1,180 @@
+{
+  "contractTests": {
+    "passed": 41,
+    "failed": 0
+  },
+  "fullSuiteCohorts": [
+    {
+      "label": "baseline",
+      "runs": 3,
+      "passed": 3,
+      "failed": 0,
+      "results": [
+        {
+          "run": 1,
+          "result": "PASS",
+          "durationMs": 12436,
+          "exitCode": 0
+        },
+        {
+          "run": 2,
+          "result": "PASS",
+          "durationMs": 12903,
+          "exitCode": 0
+        },
+        {
+          "run": 3,
+          "result": "PASS",
+          "durationMs": 16797,
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "label": "corrected",
+      "runs": 10,
+      "passed": 9,
+      "failed": 1,
+      "results": [
+        {
+          "run": 1,
+          "result": "PASS",
+          "durationMs": 12035,
+          "exitCode": 0
+        },
+        {
+          "run": 2,
+          "result": "PASS",
+          "durationMs": 11559,
+          "exitCode": 0
+        },
+        {
+          "run": 3,
+          "result": "PASS",
+          "durationMs": 11438,
+          "exitCode": 0
+        },
+        {
+          "run": 4,
+          "result": "PASS",
+          "durationMs": 11415,
+          "exitCode": 0
+        },
+        {
+          "run": 5,
+          "result": "PASS",
+          "durationMs": 10428,
+          "exitCode": 0
+        },
+        {
+          "run": 6,
+          "result": "PASS",
+          "durationMs": 12873,
+          "exitCode": 0
+        },
+        {
+          "run": 7,
+          "result": "FAIL",
+          "durationMs": 35448,
+          "exitCode": 1
+        },
+        {
+          "run": 8,
+          "result": "PASS",
+          "durationMs": 10649,
+          "exitCode": 0
+        },
+        {
+          "run": 9,
+          "result": "PASS",
+          "durationMs": 9832,
+          "exitCode": 0
+        },
+        {
+          "run": 10,
+          "result": "PASS",
+          "durationMs": 11057,
+          "exitCode": 0
+        }
+      ]
+    },
+    {
+      "label": "final",
+      "runs": 10,
+      "passed": 10,
+      "failed": 0,
+      "results": [
+        {
+          "run": 1,
+          "result": "PASS",
+          "durationMs": 15209,
+          "exitCode": 0
+        },
+        {
+          "run": 2,
+          "result": "PASS",
+          "durationMs": 12453,
+          "exitCode": 0
+        },
+        {
+          "run": 3,
+          "result": "PASS",
+          "durationMs": 12252,
+          "exitCode": 0
+        },
+        {
+          "run": 4,
+          "result": "PASS",
+          "durationMs": 11895,
+          "exitCode": 0
+        },
+        {
+          "run": 5,
+          "result": "PASS",
+          "durationMs": 10148,
+          "exitCode": 0
+        },
+        {
+          "run": 6,
+          "result": "PASS",
+          "durationMs": 10382,
+          "exitCode": 0
+        },
+        {
+          "run": 7,
+          "result": "PASS",
+          "durationMs": 10852,
+          "exitCode": 0
+        },
+        {
+          "run": 8,
+          "result": "PASS",
+          "durationMs": 10908,
+          "exitCode": 0
+        },
+        {
+          "run": 9,
+          "result": "PASS",
+          "durationMs": 10246,
+          "exitCode": 0
+        },
+        {
+          "run": 10,
+          "result": "PASS",
+          "durationMs": 12543,
+          "exitCode": 0
+        }
+      ]
+    }
+  ],
+  "retainedFailure": "corrected run 7: disabled menu timeout after reload",
+  "controlledProbes": [
+    "publish-race-baseline.json",
+    "publish-race-corrected.json",
+    "publish-race-baseline-with-storage.json",
+    "publish-race-corrected-with-storage.json"
+  ],
+  "finalScreenChecksPerRun": 13,
+  "physicalDeviceTested": false,
+  "backendTested": false
+}

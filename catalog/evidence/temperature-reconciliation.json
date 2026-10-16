@@ -1,0 +1,361 @@
+{
+  "baselineCommit": "af275ce",
+  "baselineResult": "BLOCKED",
+  "baselineIssues": [
+    "/prixFixeMenus/0/dishes/17: ambiguous temperature groups",
+    "/prixFixeMenus/0/courses/2/options/2: ambiguous temperature groups",
+    "/prixFixeMenus/0/courseGroups/2/options/2: ambiguous temperature groups",
+    "/tastingMenus/0/courses/4: conflicting ordering metadata product/food/sf_m_forestiere"
+  ],
+  "normalizedSeedImport": "PASS",
+  "localPublication": "PASS",
+  "unresolvedMappings": [],
+  "products": 73,
+  "menus": 9,
+  "sourceUnchanged": true,
+  "nonTemperatureFieldsUnchanged": true,
+  "temperatures": [
+    {
+      "sourceId": "sf_m_forestiere",
+      "before": [
+        "mg_meat_temp",
+        "mg_fish_temp"
+      ],
+      "after": [
+        "mg_fish_temp"
+      ],
+      "groupId": "mg_fish_temp"
+    },
+    {
+      "sourceId": "sf_m_sole",
+      "before": [
+        "mg_meat_temp"
+      ],
+      "after": [],
+      "groupId": null
+    },
+    {
+      "sourceId": "sf_m_genovese",
+      "before": [
+        "mg_meat_temp"
+      ],
+      "after": [],
+      "groupId": null
+    },
+    {
+      "sourceId": "sf_w_salmon",
+      "before": [
+        "mg_fish_temp"
+      ],
+      "after": [],
+      "groupId": null
+    }
+  ],
+  "reconciliations": [
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/menuItems/2",
+      "sourceId": "m3",
+      "basis": "explicit modifier-group metadata",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": "mg_meat_temp",
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/menuItems/3",
+      "sourceId": "m4",
+      "basis": "explicit modifier-group metadata",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": "mg_meat_temp",
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/menuItems/4",
+      "sourceId": "m5",
+      "basis": "explicit modifier-group metadata",
+      "originalGroupIds": [
+        "mg_fish_temp"
+      ],
+      "resolvedGroupId": "mg_fish_temp",
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/menuItems/5",
+      "sourceId": "m6",
+      "basis": "explicit modifier-group metadata",
+      "originalGroupIds": [
+        "mg_fish_temp"
+      ],
+      "resolvedGroupId": "mg_fish_temp",
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/dishes/0",
+      "sourceId": "sf_w_salmon",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_fish_temp"
+      ],
+      "resolvedGroupId": null,
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/dishes/15",
+      "sourceId": "sf_m_sole",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": null,
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/dishes/17",
+      "sourceId": "sf_m_forestiere",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_meat_temp",
+        "mg_fish_temp"
+      ],
+      "resolvedGroupId": "mg_fish_temp",
+      "askTemp": "salmon"
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/dishes/19",
+      "sourceId": "sf_m_genovese",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": null,
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/dishes/20",
+      "sourceId": "sf_m_pork",
+      "basis": "explicit askTemp token",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": "mg_meat_temp",
+      "askTemp": "pork"
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/dishes/24",
+      "sourceId": "sf_m_giambotta",
+      "basis": "explicit askTemp token",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": "mg_meat_temp",
+      "askTemp": "steak"
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/dishes/25",
+      "sourceId": "sf_m_reggiano",
+      "basis": "explicit askTemp token",
+      "originalGroupIds": [],
+      "resolvedGroupId": "mg_meat_temp",
+      "askTemp": "pork"
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courses/0/options/0",
+      "sourceId": "sf_w_salmon",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_fish_temp"
+      ],
+      "resolvedGroupId": null,
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courses/2/options/0",
+      "sourceId": "sf_m_sole",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": null,
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courses/2/options/2",
+      "sourceId": "sf_m_forestiere",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_meat_temp",
+        "mg_fish_temp"
+      ],
+      "resolvedGroupId": "mg_fish_temp",
+      "askTemp": "salmon"
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courses/2/options/4",
+      "sourceId": "sf_m_genovese",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": null,
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courses/2/options/5",
+      "sourceId": "sf_m_pork",
+      "basis": "explicit askTemp token",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": "mg_meat_temp",
+      "askTemp": "pork"
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courses/2/options/9",
+      "sourceId": "sf_m_giambotta",
+      "basis": "explicit askTemp token",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": "mg_meat_temp",
+      "askTemp": "steak"
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courses/2/options/10",
+      "sourceId": "sf_m_reggiano",
+      "basis": "explicit askTemp token",
+      "originalGroupIds": [],
+      "resolvedGroupId": "mg_meat_temp",
+      "askTemp": "pork"
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courseGroups/0/options/0",
+      "sourceId": "sf_w_salmon",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_fish_temp"
+      ],
+      "resolvedGroupId": null,
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courseGroups/2/options/0",
+      "sourceId": "sf_m_sole",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": null,
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courseGroups/2/options/2",
+      "sourceId": "sf_m_forestiere",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_meat_temp",
+        "mg_fish_temp"
+      ],
+      "resolvedGroupId": "mg_fish_temp",
+      "askTemp": "salmon"
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courseGroups/2/options/4",
+      "sourceId": "sf_m_genovese",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": null,
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courseGroups/2/options/5",
+      "sourceId": "sf_m_pork",
+      "basis": "explicit askTemp token",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": "mg_meat_temp",
+      "askTemp": "pork"
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courseGroups/2/options/9",
+      "sourceId": "sf_m_giambotta",
+      "basis": "explicit askTemp token",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": "mg_meat_temp",
+      "askTemp": "steak"
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/prixFixeMenus/0/courseGroups/2/options/10",
+      "sourceId": "sf_m_reggiano",
+      "basis": "explicit askTemp token",
+      "originalGroupIds": [],
+      "resolvedGroupId": "mg_meat_temp",
+      "askTemp": "pork"
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/tastingMenus/0/courses/0",
+      "sourceId": "sf_w_salmon",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_fish_temp"
+      ],
+      "resolvedGroupId": null,
+      "askTemp": ""
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/tastingMenus/0/courses/4",
+      "sourceId": "sf_m_forestiere",
+      "basis": "reviewed stable product identity",
+      "originalGroupIds": [
+        "mg_fish_temp"
+      ],
+      "resolvedGroupId": "mg_fish_temp",
+      "askTemp": "salmon"
+    },
+    {
+      "kind": "temperature-reconciliation",
+      "path": "/tastingMenus/0/courses/5",
+      "sourceId": "sf_m_giambotta",
+      "basis": "explicit askTemp token",
+      "originalGroupIds": [
+        "mg_meat_temp"
+      ],
+      "resolvedGroupId": "mg_meat_temp",
+      "askTemp": "steak"
+    }
+  ]
+}

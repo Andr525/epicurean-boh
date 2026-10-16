@@ -1,3 +1,5 @@
+> Historical af275ce delivery. The temperature blocker and browser prerequisites are addressed separately in [PREINTEGRATION-REVIEW.md](PREINTEGRATION-REVIEW.md); original source snapshots remain unchanged.
+
 # Narrow corrective iteration based on 76b06ce
 
 Branch: `review/boh-catalog-required-courses-corrections`. **Not production or integration ready.** Only the isolated `catalog/` implementation, its schema, tests and documentation changed.

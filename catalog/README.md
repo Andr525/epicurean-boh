@@ -2,7 +2,7 @@
 
 **Not integration ready.** This additive, isolated catalog prototype does not load in the existing BOH interface or any current consumer application. No production records, Firebase, kitchen/payment transports, floor geometry, POS branches or deployed settings are changed.
 
-Current branch: `review/boh-catalog-required-courses-corrections`, based on reviewed commit `76b06ce`. See `REVIEW-76b06ce-CORRECTIONS.md` for this iteration. Earlier review notes and baseline probes remain historical evidence.
+Current branch: `review/boh-preintegration-temperature-browser`, based on conditionally approved `af275ce`. See `PREINTEGRATION-REVIEW.md` for this iteration. Earlier review notes and baseline probes remain historical evidence.
 
 ## Reproduce locally
 
@@ -16,7 +16,7 @@ PLAYWRIGHT_MODULE=/absolute/path/to/already-installed/playwright/index.mjs XDG_C
 
 Verified here with Node 24.19, Python 3 with already-installed `jsonschema` 4.26, existing Playwright at `/workspace/epicurean-pos/lab/node_modules/playwright/index.mjs`, and `/usr/bin/chromium`. Override `CHROMIUM_PATH` if needed. No installation, backend, emulator or HTTP listener is started by these commands. Browser requests are fulfilled from local files, with all external requests blocked. No owner/device session is started.
 
-Results: **38/38 contract tests and 12/12 browser checks pass**, with zero skipped tests, browser errors or external requests.
+Results: **41/41 contract tests pass**; final repeated browser outcomes are fully recorded in `evidence/browser-run-summary.json` and `evidence/browser-runs.jsonl`, including the failed first-correction run, with zero skipped tests, browser errors or external requests.
 
 Evidence: `evidence/baseline-76b06ce.json` records six reproduced failure probes against the reviewed parent. `evidence/baseline-defects.json` remains the historical original-commit audit. `evidence/contract-tests.tap` and `evidence/browser-tests.json` are current automated results. They are local simulations, not physical-device, live-data or production acceptance.
 
@@ -98,4 +98,4 @@ Remaining limitations: authentic **tracked** data plus representative STATE stru
 
 Exact changed paths are recorded in `evidence/changed-files.txt`; regression evidence is stored alongside it. Stop for independent review.
 
-Actual normalized seed-STATE blocker: `mmAttachTemps` assigns meat and fish groups to the salmon “Forrestiere” prix-fixe dish while its tasting variant has only fish. This fixture is explicitly BLOCKED. The test asserting refusal passes; that is not a successful catalog migration. No source repair was made.
+Actual normalized seed STATE now imports/publishes locally with 73 products, 9 menus and zero unresolved mappings after isolated stable-ID/askTemp reconciliation. Recipes, allergens, prices, photos, routing and original source snapshots are unchanged. The original application normalizer is not modified or integrated; independent review, live-export migration and real application/backend testing remain required. See `evidence/temperature-reconciliation.json`; the prior blocker artifact remains historical evidence.
