@@ -1,0 +1,23 @@
+{
+  "result": "PASS",
+  "checks": [
+    "actual section rename, reordering and source-preserving removal controls",
+    "actual login/menu manager: arbitrary menu, section, authentic wine source and all three projections",
+    "actual publication validation, two releases and explicit historical rollback",
+    "verified release and fixture draft survive browser reload",
+    "real item editor does not infer cooking temperature from names",
+    "ambiguous temperature edit is rejected without changing item",
+    "actual Add item path uses explicit metadata, with no name-based temperature assignment",
+    "existing prix-fixe, tasting, wine, bar and retail editors render",
+    "real floor map and staff navigation preserve geometry",
+    "menu deletion preserves source products and archives unshared sections",
+    "publication storage failure preserves active release",
+    "second-tab writes block stale publication",
+    "intentionally empty actual BOH menu stays empty and publishes without fallback",
+    "no Firebase SDK/config, no external requests, no browser errors"
+  ],
+  "physicalDeviceTested": false,
+  "backendTested": false,
+  "externalRequests": 0,
+  "browserErrors": 0
+}

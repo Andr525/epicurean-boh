@@ -1,0 +1,132 @@
+STATE {
+  status: 'Publication rejected: Unresolved source mappings: /voiceProfiles/profiles/food:mmvag2689840: unresolved voice identity, /voiceProfiles/profiles/food:mmvag2689840: record is not directly modeled',
+  body: 'abbiata”\n' +
+    'ITEM\n' +
+    'Tagliatelle “Bolognese”\n' +
+    'ITEM\n' +
+    'Pappardelle\n' +
+    'ITEM\n' +
+    'Linguini in spicy pescatore sauce\n' +
+    'ITEM\n' +
+    'Calabrian fusilli alla vodka\n' +
+    'ITEM\n' +
+    'Rigatoni “Amatriciana”\n' +
+    'ITEM\n' +
+    '+ Add item\n' +
+    '▸\n' +
+    'Piatti Principale\n' +
+    'GROUP\n' +
+    'Filet of sole “Francese”\n' +
+    'ITEM\n' +
+    'Dayboat sea scallops “Bianco - Nero”\n' +
+    'ITEM\n' +
+    'Filet of Faroe Island salmon “Forrestiere”\n' +
+    'ITEM\n' +
+    'Butter and thyme braised Ecuadorian shrimp “Zafferano”\n' +
+    'ITEM\n' +
+    'Toasted pignoli crusted filet of sole “Genovese”\n' +
+    'ITEM\n' +
+    '14 oz. roasted pork chop “San Domenico”\n' +
+    'ITEM\n' +
+    'Boneless breast of chicken strips “Scarpariello”\n' +
+    'ITEM\n' +
+    'Veal scallopini “Valdostana”\n' +
+    'ITEM\n' +
+    'Slowly braised lamb “Osso Bucco”\n' +
+    'ITEM\n' +
+    'Split 10 oz. filet mignon “Giambotta”\n' +
+    'ITEM\n' +
+    'Medallions of pork “Reggiano”\n' +
+    'ITEM\n' +
+    'Duck legs “Murphy”\n' +
+    'ITEM\n' +
+    '+ Add item\n' +
+    '▸\n' +
+    'Entremet\n' +
+    'GROUP\n' +
+    'Coconut–lime sorbet with rum glazed pineapple\n' +
+    'ITEM\n' +
+    '+ Add item\n' +
+    '▸\n' +
+    'Dolce\n' +
+    'GROUP\n' +
+    'Napoleon of chocolate painted fillo\n' +
+    'ITEM\n' +
+    'Warm flourless chocolate cake\n' +
+    'ITEM\n' +
+    'Chocolate–raspberry–caramel tart\n' +
+    'ITEM\n' +
+    'Basque cheesecake\n' +
+    'ITEM\n' +
+    'Pistachio crème brûlée tart\n' +
+    'ITEM\n' +
+    '“Panino”\n' +
+    'ITEM\n' +
+    'Warm pineapple tart\n' +
+    'ITEM\n' +
+    'Thinly sliced bananas\n' +
+    'ITEM\n' +
+    'Sorbetti e gelati — three scoops\n' +
+    'ITEM\n' +
+    'Formaggio\n' +
+    'ITEM\n' +
+    '+ Add item+ Add group to Scalini Fedeli+ Add prix fixe menu\n' +
+    '▾\n' +
+    'Tasting\n' +
+    'MENU\n' +
+    '▾\n' +
+    'Scalini Fedeli Regional Tasting\n' +
+    'MENU\n' +
+    '▸\n' +
+    'Welcome\n' +
+    'GROUP\n' +
+    'Smoked Salmon\n' +
+    'ITEM\n' +
+    'Breaded zucchini Milanese\n' +
+    'ITEM\n' +
+    '+ Add item\n' +
+    '▸\n' +
+    'Courses\n' +
+    'GROUP\n' +
+    'Porcini ravioli — Piemonte\n' +
+    'ITEM\n' +
+    'Butternut agnolotti with sage — Emilia Romagna\n' +
+    'ITEM\n' +
+    'Salmon topped with wild mushroom & black truffle — Umbria\n' +
+    'ITEM\n' +
+    'Pan roasted filet mignon “Giambotta” — Toscana\n' +
+    'ITEM\n' +
+    '+ Add item\n' +
+    '▸\n' +
+    'Entremet\n' +
+    'GROUP\n' +
+    'Lime & coconut sorbet with rum pineapple\n' +
+    'ITEM\n' +
+    '+ Add item\n' +
+    '▸\n' +
+    'Dolce\n' +
+    'GROUP\n' +
+    'Dolce\n' +
+    'ITEM\n' +
+    '+ Add item\n' +
+    '▸\n' +
+    'Wine pairings\n' +
+    'GROUP\n' +
+    '+ Add pairing+ Add group to Scalini Fedeli Regional Tasting+ Add tasting menu\n' +
+    '▸\n' +
+    'Unpublished owner archive\n' +
+    'MENU\n' +
+    'Select a menu, group, or item on the left.',
+  errors: 'object'
+} []
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+page.waitForFunction: Timeout 30000ms exceeded.
+    at /workspace/epicurean-boh/catalog/test/boh-interface-browser.mjs:59:60 {
+  log: [],
+  name: 'TimeoutError'
+}
+
+Node.js v24.19.0

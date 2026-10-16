@@ -1,0 +1,35 @@
+{
+  "source": "tracked actual BOH normalized seed STATE, not live restaurant export",
+  "products": 73,
+  "menus": 9,
+  "unresolved": [],
+  "sourceUnchanged": true,
+  "temperatures": [
+    {
+      "sourceId": "sf_m_forestiere",
+      "groups": [
+        "mg_fish_temp"
+      ]
+    },
+    {
+      "sourceId": "sf_m_sole",
+      "groups": [
+        null
+      ]
+    },
+    {
+      "sourceId": "sf_m_genovese",
+      "groups": [
+        null
+      ]
+    },
+    {
+      "sourceId": "sf_w_salmon",
+      "groups": [
+        null
+      ]
+    }
+  ],
+  "physicalTested": false,
+  "backendTested": false
+}

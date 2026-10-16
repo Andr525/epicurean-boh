@@ -12,8 +12,8 @@ export function importLegacy(source){
  const unknown=Object.keys(raw).filter(k=>!allowed.has(k));if(unknown.length)throw Error('Unclassified source fields: '+unknown.join(', '));
  if(raw.menu&&Object.keys(raw.menu).some(k=>!['items','cats','books','modGroups','taxRates'].includes(k)))throw Error('Unclassified legacy menu fields');
  const c=emptyCatalog();c.legacySnapshots=[{id:'legacy-source',records:raw}];c.provenance=copy(raw.provenance||[]);
- const unresolved=c.importReport.unresolved,mark=new Map();
- const mapped=(path,...ids)=>mark.set(path,{targetIds:ids,disposition:'mapped',reason:'Explicit source mapping'});
+ const unresolved=c.importReport.unresolved,mark=new Map(),categorySections=new Map();
+ const mapped=(path,...ids)=>mark.set(path,{targetIds:[...new Set([...(mark.get(path)?.targetIds||[]),...ids])],disposition:'mapped',reason:'Explicit source mapping'});
  const menu=raw.menu||{items:raw.menuItems||[],cats:raw.menuCats||[],books:raw.menuBooks||[],modGroups:raw.modGroups||[],taxRates:raw.taxRates||[]};
  for(const key of ['items','cats','books','modGroups','taxRates'])if(!Array.isArray(menu[key]||[]))throw Error('Invalid source array '+key);
  const root=k=>raw.menu?'/menu/'+k:'/'+({items:'menuItems',cats:'menuCats',books:'menuBooks',modGroups:'modGroups',taxRates:'taxRates'}[k]);
@@ -51,7 +51,7 @@ export function importLegacy(source){
  }
  for(const [i,g]of (menu.modGroups||[]).entries()){for(const key of ['required','multi'])if(key in g&&typeof g[key]!=='boolean')throw Error('Invalid modifier boolean '+key);const options=(g.options||[]).map((o,j)=>({id:String(o.id??g.id+'-option-'+j),name:o.name,priceDeltaCents:cents(o.up??o.priceDelta??0,{signed:true}),allergens:copy(o.allergens||[]),allergenVerified:(o.verified===true||o.allergenVerified===true)&&Array.isArray(o.allergens)&&o.allergens.length>0}));c.modifierGroups.push({id:g.id,name:g.name,kind:g.kind||(['mg_meat_temp','mg_fish_temp','mg_temp'].includes(g.id)?'temperature':'unknown'),min:g.min??(g.required?1:0),max:g.max??(g.multi?options.length:1),options,legacy:copy(g)});mapped(root('modGroups')+'/'+i,g.id);}
  c.taxRules=(menu.taxRates||[]).map((t,i)=>{mapped(root('taxRates')+'/'+i,t.id);return {id:t.id,name:t.name,ratePercent:t.rate,isDefault:!!t.isDefault,legacy:copy(t)};});
- const books=menu.books||[],cats=menu.cats||[],items=menu.items||[];for(const cat of cats)if('visible'in cat&&typeof cat.visible!=='boolean')throw Error('Invalid category visibility');
+ const books=menu.books||[],cats=menu.cats||[],items=menu.items||[];for(const cat of cats){if('visible'in cat&&typeof cat.visible!=='boolean')throw Error('Invalid category visibility');if('posName'in cat&&typeof cat.posName!=='string')throw Error('Invalid category display label');}
  for(const [i,b]of books.entries())for(const id of b.groupIds||b.catIds||[])if(!cats.some(c=>c.id===id))unresolved.push(root('books')+'/'+i+': missing category '+id);
  for(const [i,cat]of cats.entries())if(cat.bookId&&!books.some(b=>b.id===cat.bookId))unresolved.push(root('cats')+'/'+i+': missing parent book');
  for(const [i,it]of items.entries())for(const id of it.catIds||[])if(!cats.some(c=>c.id===id))unresolved.push(root('items')+'/'+i+': missing category '+id);
@@ -61,11 +61,11 @@ export function importLegacy(source){
  for(const [bi,b]of books.entries()){
   const m=regular(b,bi);
   for(const [ci,cat]of cats.entries())if(cat.bookId===b.id||(b.groupIds||b.catIds||[]).includes(cat.id)){
-   const s=addSection(c,m.id,{id:sid(m.id,cat.id),name:cat.name});mapped(root('cats')+'/'+ci,s.id);
+   const s=addSection(c,m.id,{id:sid(m.id,cat.id),name:cat.name});s.metadata={posName:cat.posName||''};mapped(root('cats')+'/'+ci,s.id);categorySections.set(ci,[...(categorySections.get(ci)||[]),s.id]);
    items.forEach((it,i)=>{if((it.catIds||[]).includes(cat.id)){const o=addOffering(c,s.id,{id:sid(s.id,it.id),productId:itemIds[i],priceCents:cents(it.price),taxRuleIds:copy(it.taxIds||[])});o.active=it.active!==false&&it.visible!==false&&cat.visible!==false;}});
   }
  }
- for(const [ci,cat]of cats.entries())if(!mark.has(root('cats')+'/'+ci)){const m=addMenu(c,{id:sid('category-menu',cat.id),name:cat.name}),s=addSection(c,m.id,{id:sid(m.id,'section'),name:cat.name});m.active=cat.visible!==false;mapped(root('cats')+'/'+ci,s.id);items.forEach((it,i)=>{if((it.catIds||[]).includes(cat.id)){const o=addOffering(c,s.id,{id:sid(s.id,it.id),productId:itemIds[i],priceCents:cents(it.price),taxRuleIds:copy(it.taxIds||[])});o.active=it.active!==false&&it.visible!==false;}});}
+ for(const [ci,cat]of cats.entries())if(!mark.has(root('cats')+'/'+ci)){const m=addMenu(c,{id:sid('category-menu',cat.id),name:cat.name}),s=addSection(c,m.id,{id:sid(m.id,'section'),name:cat.name});s.metadata={posName:cat.posName||''};m.active=cat.visible!==false;mapped(root('cats')+'/'+ci,s.id);categorySections.set(ci,[...(categorySections.get(ci)||[]),s.id]);items.forEach((it,i)=>{if((it.catIds||[]).includes(cat.id)){const o=addOffering(c,s.id,{id:sid(s.id,it.id),productId:itemIds[i],priceCents:cents(it.price),taxRuleIds:copy(it.taxIds||[])});o.active=it.active!==false&&it.visible!==false;}});}
  items.forEach((it,i)=>{if(!c.offerings.some(o=>o.productId===itemIds[i]))unresolved.push(root('items')+'/'+i+': no menu placement');});
  for(const [kind,key]of [['pf','prixFixeMenus'],['tasting','tastingMenus']])for(const [mi,src]of (raw[key]||[]).entries()){
   for(const flag of ['active','visible'])if(flag in src&&typeof src[flag]!=='boolean')throw Error('Invalid menu visibility '+src.id);
@@ -98,6 +98,19 @@ export function importLegacy(source){
   for(const [label,rows]of groups){const candidate=books.find(b=>b.kind===kind),m=candidate?c.menus.find(m=>m.id===sid('book',candidate.id)):addMenu(c,{id:sid(key,label),name:label,presentationGroup:kind==='retail'?'RETAIL':'DRINKS'});const s=addSection(c,m.id,{id:sid(m.id,key+'-'+label),name:label});for(const [it,i]of rows){const pid=product(it,'/'+key+'/'+i,null,scope);if(key==='wines'){let count=0;for(const [pour,v]of [['bottle',it.bottlePrice],['glass',it.glassPrice]])if(nonempty(v)&&Number(v)>0){const o=addOffering(c,s.id,{id:sid(s.id,it.id+'/'+pour),productId:pid,priceCents:cents(v),taxRuleIds:copy(it.taxIds||[])});o.pour=pour;count++;}if(!count)unresolved.push('/'+key+'/'+i+': no sale price');}else addOffering(c,s.id,{id:sid(s.id,it.id),productId:pid,priceCents:cents(it.price),taxRuleIds:copy(it.taxIds||[])});}}
  }
  collection('bar','bar','bar');collection('wines','wine','wine');collection('retail','retail','retail');collection('dailySpecials','food','special');collection('wineFlights','flight','wine');
+ // Explicit reusable cross-collection offerings: no cloning and no alternate prices.
+ for(const [ci,cat]of cats.entries())for(const [ri,ref]of (cat.offeringRefs||[]).entries()){
+  const path=root('cats')+'/'+ci+'/offeringRefs/'+ri,scope={wines:'wine',bar:'bar',retail:'retail'}[ref.sourceType];
+  const src=scope&&(raw[ref.sourceType]||[]).find(p=>p.id===ref.sourceId),pid=scope&&sid('product/'+scope,ref.sourceId);
+  const price=ref.sourceType==='wines'&&['glass','bottle'].includes(ref.pour)?src?.[ref.pour+'Price']:ref.sourceType!=='wines'&&!ref.pour?src?.price:undefined;
+  if(!src||!c.products.some(p=>p.id===pid)||!nonempty(price)||Number(price)<0||ref.sourceType==='wines'&&Number(price)===0){unresolved.push(path+': unresolved source or sale price');continue;}
+  const sections=(categorySections.get(ci)||[]).map(id=>c.sections.find(s=>s.id===id));
+  if(!sections.length){unresolved.push(path+': no section placement');continue;}
+  const ids=[];for(const s of sections){const o=addOffering(c,s.id,{id:sid(s.id,ref.sourceType+'/'+ref.sourceId+'/'+ref.pour),productId:pid,priceCents:cents(price),taxRuleIds:copy(src.taxIds||[])});o.active=cat.visible!==false;if(ref.pour)o.pour=ref.pour;ids.push(o.id);}
+  mapped(path,...ids);
+ }
+ // Follow explicit owner section order, rather than source collection insertion order.
+ for(const b of books){const m=c.menus.find(m=>m.id===sid('book',b.id));if(m)m.sectionIds.sort((a,z)=>{const index=id=>(b.groupIds||b.catIds||[]).findIndex(g=>id===sid(m.id,g));const x=index(a),y=index(z);return (x<0?1e9:x)-(y<0?1e9:y);});}
  for(const [i,f]of (raw.wineFlights||[]).entries())for(const id of f.wines||[])if(!(raw.wines||[]).some(w=>w.id===(typeof id==='string'?id:id.id||id.wineId)))unresolved.push('/wineFlights/'+i+': unresolved wine reference');
  for(const [key,url]of Object.entries(photos)){let id=key.replace(/^(pfdish:|tmcourse:)/,'');if(id.includes('|')){const [menuId,recordId]=id.split('|');const tm=(raw.tastingMenus||[]).find(m=>m.id===menuId);const course=tm?.courses?.find(c=>String(c.id??c.num)===recordId);id=course?(course.dishId||course.id||sid(menuId,course.num)):recordId;}const matches=c.products.filter(p=>p.sourceId===id);const p=matches[0];if(matches.length>1){unresolved.push('/'+(raw.menuPhotos?'menuPhotos':'photos')+'/'+key+': ambiguous photo identity');continue;}if(!p)unresolved.push('/'+(raw.menuPhotos?'menuPhotos':'photos')+'/'+key+': orphan photo');else {if(!p.photos.includes(url))p.photos.push(url);mapped('/'+(raw.menuPhotos?'menuPhotos':'photos')+'/'+key,p.id);}}
 

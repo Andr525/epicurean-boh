@@ -1,0 +1,141 @@
+STATE {
+  status: 'Item edit rejected: dish/m1: askTemp has no explicit supported temperature group',
+  body: '· 890c60976ead\n' +
+    ' Restore selected release\n' +
+    '\n' +
+    'Local revision 3. Existing legacy publications are untouched. Unknown allergens remain non-orderable.\n' +
+    '\n' +
+    'Consumer \n' +
+    'pos\n' +
+    'voice\n' +
+    'digital\n' +
+    'Preview shared contract\n' +
+    'New menu name Create menu\n' +
+    '← Back\n' +
+    'Home / Menu manager / Filet salmon name must not assign heat\n' +
+    'Menu manager\n' +
+    'AI\n' +
+    'Save\n' +
+    'Publish all changes\n' +
+    'Full menu\n' +
+    'Items\n' +
+    'Modifiers\n' +
+    'Voice\n' +
+    'Taxes\n' +
+    '▸\n' +
+    'Dinner\n' +
+    'MENU\n' +
+    '▸\n' +
+    'Brunch\n' +
+    'MENU\n' +
+    '▸\n' +
+    'Bar\n' +
+    'MENU\n' +
+    '▸\n' +
+    'Wine\n' +
+    'MENU\n' +
+    '▸\n' +
+    'Retail\n' +
+    'MENU\n' +
+    '▸\n' +
+    'Prix Fixe\n' +
+    'MENU\n' +
+    '▸\n' +
+    'Tasting\n' +
+    'MENU\n' +
+    '▸\n' +
+    'Chocolate Studio Moonlight 2030\n' +
+    'MENU\n' +
+    '▸\n' +
+    'Unpublished owner archive\n' +
+    'MENU\n' +
+    'ITEM Filet salmon name must not assign heat\n' +
+    'Name\n' +
+    'Voice Keyword\n' +
+    'Voice Aliases\n' +
+    'Photo\n' +
+    '📷 Upload\n' +
+    'Description (POS & iPad)\n' +
+    'Story for iPad (origin, farm, family — guests see this when they tap Learn more)\n' +
+    'Farm / producer / locale link (opens on the iPad)\n' +
+    'Price ($)\n' +
+    'Cost ($)\n' +
+    'Item code\n' +
+    'Taxes\n' +
+    ' NY Sales Tax (8.875%)\n' +
+    ' Liquor Tax (0%)\n' +
+    'Cook time (min)\n' +
+    'Kitchen station\n' +
+    'Grill\n' +
+    'Sauté\n' +
+    'Fry\n' +
+    'Cold / Garde Manger\n' +
+    'Pastry\n' +
+    'Expo\n' +
+    'Groups\n' +
+    'Menu groups\n' +
+    ' Small Plates\n' +
+    ' Ceviche\n' +
+    ' Soups & Salads\n' +
+    ' Entrées\n' +
+    ' Sides\n' +
+    ' Desserts\n' +
+    ' Kids\n' +
+    ' Brunch\n' +
+    ' Owner aperitif selection\n' +
+    ' Owner second section\n' +
+    'Modifier groups\n' +
+    '\n' +
+    'Steaks, hamburgers, salmon, and tuna should include a temperature group.\n' +
+    '\n' +
+    'Attach modifiers\n' +
+    ' Meat Temperature required\n' +
+    ' Fish Temperature required\n' +
+    ' Temperature\n' +
+    ' Side Options\n' +
+    ' Add-ons\n' +
+    ' Dressing\n' +
+    ' Prep Notes\n' +
+    'Manage modifier options\n' +
+    'Allergens & kitchen\n' +
+    'Ingredients\n' +
+    '✨ Analyze Allergens & Dietary\n' +
+    'ALLERGENS PRESENT\n' +
+    'No common allergens detected\n' +
+    'DIETARY SUITABILITY\n' +
+    '—\n' +
+    'Chef verified\n' +
+    '— I confirm these allergen/dietary calls against actual prep and cross-contact.\n' +
+    'Save item\n' +
+    '← Back\n' +
+    'Delete item\n' +
+    'Explicit cooking-temperature prompt \n' +
+    'No temperature request\n' +
+    'steak\n' +
+    'pork\n' +
+    'salmon\n' +
+    'Ambiguous — review required\n' +
+    '\n' +
+    'Dish names never determine temperatures. Existing conflicting metadata blocks publication.\n' +
+    '\n' +
+    '✓\n' +
+    'Welcome back',
+  errors: 'object'
+} []
+node:internal/modules/run_main:107
+    triggerUncaughtException(
+    ^
+
+page.evaluate: Error: dish/m1: askTemp has no explicit supported temperature group
+    at w.mmSaveItemFromForm (http://127.0.0.1:9451/catalog/boh-integration.mjs:40:33)
+    at mmFlush (http://127.0.0.1:9451/menu-manager.js?v=menu-ai-maps-20260913:121:24)
+    at mmSelect (http://127.0.0.1:9451/menu-manager.js?v=menu-ai-maps-20260913:66:3)
+    at mmAddItem (http://127.0.0.1:9451/menu-manager.js?v=menu-ai-maps-20260913:1074:3)
+    at eval (eval at evaluate (:311:30), <anonymous>:1:18)
+    at UtilityScript.evaluate (<anonymous>:313:16)
+    at UtilityScript.<anonymous> (<anonymous>:1:44)
+    at /workspace/epicurean-boh/catalog/test/boh-interface-browser.mjs:46:13 {
+  log: []
+}
+
+Node.js v24.19.0
