@@ -1051,10 +1051,28 @@ function showPhotoPreview(input, url){
 function lsGet(k, fb){ try{ var v=localStorage.getItem(k); return v?JSON.parse(v):fb; }catch(e){ return fb; } }
 function lsSet(k, v){ try{ localStorage.setItem(k, JSON.stringify(v)); }catch(e){} }
 function fbGetDoc(col,id){ if(!fbReady)return Promise.resolve(null); return fbDb.collection(col).doc(id).get().then(function(s){return s.exists?s.data():null;}).catch(function(e){console.warn('read',e);return null;}); }
+/* Phase 0: cloud data is authoritative. Until every startup read has succeeded, this
+   device must not write to the cloud (a fresh or offline device would otherwise push
+   seed or stale data over established records). A failed read is never treated as an
+   empty cloud. Refused writes are kept on this device in eh_pending_cloud_writes. */
+var CLOUD_SYNC_STATE='pending'; // pending | ok | failed
+function fbGetDocStrict(col,id){ if(!fbReady)return Promise.resolve(null); return fbDb.collection(col).doc(id).get().then(function(s){return s.exists?s.data():null;}); }
+function keepRefusedCloudWrite(col,id,data){
+  try{
+    var key='eh_pending_cloud_writes', list=lsGet(key,[]); if(!Array.isArray(list)) list=[];
+    list.push({col:col,id:id,at:Date.now(),data:JSON.parse(JSON.stringify(data||null))});
+    lsSet(key,list.slice(-50));
+  }catch(e){ console.warn('pending cloud write not kept',e); }
+}
 function fbSetDoc(col,id,data,opts){
   if(!fbReady){
     console.warn('Firebase is not initialized');
     if(typeof toast==='function') toast('Cloud save unavailable — check Firebase setup','error');
+    return Promise.resolve(false);
+  }
+  if(CLOUD_SYNC_STATE!=='ok'){
+    keepRefusedCloudWrite(col,id,data);
+    if(CLOUD_SYNC_STATE==='failed' && typeof toast==='function') toast('Cloud not loaded — this change is kept on this device only and has NOT been published','error');
     return Promise.resolve(false);
   }
   function write(){
@@ -1674,7 +1692,8 @@ function ensureVoiceProfiles(){
 function voiceSnapshot(){
   var api=voiceProfilesApi();
   if(!api) return null;
-  return api.buildVoiceSnapshot({ store:voiceProfileStore(), sources:voiceSources(), modGroups:STATE.modGroups||[] });
+  // Clone: building a snapshot (also done just by viewing the Voice tab) must not modify saved modifier groups.
+  return api.buildVoiceSnapshot({ store:voiceProfileStore(), sources:voiceSources(), modGroups:JSON.parse(JSON.stringify(STATE.modGroups||[])) });
 }
 function publishVoiceVocabulary(){
   var api=voiceProfilesApi();
@@ -1844,6 +1863,7 @@ function saveSales(){ lsSet('eh_sales',STATE.sales); fbSetDoc('boh_shared','sale
 
 function syncFromCloud(){
   if(!fbReady)return Promise.resolve();
+  var fbGetDoc=fbGetDocStrict; // a read failure must abort the sync, not look like an empty cloud
   return Promise.all([
     fbGetDoc('boh_shared','staff_clock').then(function(d){ if(d&&d.list&&d.list.length){ STATE.staff=mergeStaff(STATE.staff,d.list); lsSet('eh_staff',STATE.staff); } }),
     fbGetDoc('boh_shared','punches').then(function(d){ if(d&&d.list){ STATE.punches=d.list; lsSet('eh_punches',STATE.punches); } }),
@@ -1868,7 +1888,12 @@ function syncFromCloud(){
     fbGetDoc('boh_shared','daily_specials').then(function(d){ if(d&&d.list){ STATE.dailySpecials=d.list; lsSet('eh_daily_specials',STATE.dailySpecials); } }),
     fbGetDoc('boh_shared','voice_profiles').then(function(d){ if(d&&d.profiles){ STATE.voiceProfiles=d; voiceProfileStore(); lsSet('eh_voice_profiles',STATE.voiceProfiles); } }),
     fbGetDoc('boh_shared','voice_vocab_active').then(function(d){ if(d&&d.activeRevision){ STATE.voiceActiveRevision=d.activeRevision; lsSet('eh_voice_active_rev',d.activeRevision); } })
-  ]).catch(function(){});
+  ]).then(function(){ CLOUD_SYNC_STATE='ok'; return true; }).catch(function(e){
+    CLOUD_SYNC_STATE='failed';
+    console.warn('Cloud sync failed; cloud writes are paused on this device',e);
+    if(typeof toast==='function') toast('Cloud not reachable — showing this device\'s saved data. Changes will not be published until the cloud loads (reload to retry).','error');
+    return false;
+  });
 }
 /* preserve local faceprints (clock app writes them) while taking cloud's roster */
 function mergeStaff(local, cloud){
@@ -3647,7 +3672,8 @@ function boot(){
   publishOperationalIds();
   var saved=sessionStorage.getItem('eh_boh_user'); if(saved){ try{ SESSION.user=JSON.parse(saved); }catch(e){} }
   render();
-  syncFromCloud().then(function(){ ensureBinwiseCellar(); persistBundledSkuVins(); publishOperationalIds(); ensureVoiceProfiles(); if(SESSION.user)render(); });
+  if(!fbReady) CLOUD_SYNC_STATE='ok'; // local-only mode: there is no cloud to protect
+  syncFromCloud().then(function(ok){ if(ok===false){ if(SESSION.user)render(); return; } ensureBinwiseCellar(); persistBundledSkuVins(); publishOperationalIds(); ensureVoiceProfiles(); if(SESSION.user)render(); });
 }
 /* ============================================================
    PRODUCT MODULE — Menu / Bar / Wine / Retail / Inventory / Reports

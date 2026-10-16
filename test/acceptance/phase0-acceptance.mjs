@@ -56,9 +56,12 @@ await T('D7b', 7, 'Cloud unreachable at boot: no cloud writes at all; an edit is
   return {pass: w.length === 0 && local === 15, evidence: `cloud writes=${JSON.stringify(w)}; saved locally=$${local}; toast="${toast.slice(0, 80)}"`};
 }, {seed: cloud, failReads: true});
 await T('D7c', 7, 'Empty (new) cloud: seeds stay local until the owner explicitly publishes', async (p, o) => {
-  const before = o.bootWrites.filter(w => /boh_shared\/(menu|menu_photos|wines|bar)$/.test(w.replace(/^\S+ /, '')));
+  // Menus/photos are owner data: never auto-published. (The pre-existing bundled Binwise cellar
+  // migration may still publish wines/bar to a cloud that has NO cellar at all; recorded below.)
+  const before = o.bootWrites.filter(w => /boh_shared\/(menu|menu_photos|tasting_menus|prix_fixe_menus|daily_specials)$/.test(w.replace(/^\S+ /, '')));
+  const cellar = o.bootWrites.filter(w => /boh_shared\/(wines|bar)$/.test(w.replace(/^\S+ /, '')));
   await o.ev(() => publishMenusToFrontOfHouse()); await p.waitForTimeout(500); const d = await o.db();
-  return {pass: before.length === 0 && d.boh_shared && d.boh_shared.menu && d.boh_shared.menu.items.length > 0, evidence: `catalog writes during boot=${JSON.stringify(before)}; after explicit Publish menu items=${d.boh_shared && d.boh_shared.menu && d.boh_shared.menu.items.length}`};
+  return {pass: before.length === 0 && d.boh_shared && d.boh_shared.menu && d.boh_shared.menu.items.length > 0, evidence: `menu writes during boot=${JSON.stringify(before)}; cellar migration writes (empty cloud only)=${JSON.stringify(cellar)}; after explicit Publish menu items=${d.boh_shared && d.boh_shared.menu && d.boh_shared.menu.items.length}`};
 }, {seed: {}});
 // ---- 8. Modifier editor ----
 await T('D8a', 8, 'Delete option ✕ removes it; other ids, prices and allergens stay attached', async (p, o) => {

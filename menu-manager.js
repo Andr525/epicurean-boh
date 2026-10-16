@@ -57,7 +57,8 @@ function ensureMenuManager() {
     lsSet('eh_mod_groups', STATE.modGroups);
     lsSet('eh_tax_rates', STATE.taxRates || []);
     lsSet('eh_menu_books', STATE.menuBooks || []);
-    if (typeof fbReady !== 'undefined' && fbReady) saveMenu();
+    // Phase 0: seeds and normalisation stay on this device. Publishing is an explicit
+    // owner action (Publish all changes); a fresh device never pushes seeds to the cloud.
   }
 }
 
@@ -851,11 +852,11 @@ function mmModEditor(id) {
   if (!g) return '<div class="mm-empty">Pick a modifier group.</div>';
   var optRows = (g.options || []).map(function (o, i) {
     var ref = o.itemRef ? (o.itemRef.sourceType + ':' + o.itemRef.sourceId) : '';
-    return '<div class="mm-mod-opt"><input class="input mopt-name" data-i="' + i + '" value="' + esc(o.name) + '" placeholder="Option" oninput="mmModRefreshVoiceWarn()">' +
+    return '<div class="mm-mod-opt" data-oid="' + esc(o.id) + '"><input class="input mopt-name" data-i="' + i + '" value="' + esc(o.name) + '" placeholder="Option" oninput="mmModRefreshVoiceWarn()">' +
       '<input class="input mopt-up" data-i="' + i + '" type="number" step="0.01" value="' + (o.up || 0) + '" style="width:100px" placeholder="$">' +
       '<input class="input mopt-alias" data-i="' + i + '" value="' + esc((o.voiceAliases || []).join(', ')) + '" placeholder="Voice aliases" style="width:170px" oninput="mmModRefreshVoiceWarn()">' +
       '<input class="input mopt-ref" data-i="' + i + '" value="' + esc(ref) + '" placeholder="item ref e.g. bar:spirit-id" style="width:170px">' +
-      '<button type="button" class="btn btn-ghost btn-sm" onclick="mmDropModOpt(\'' + g.id + '\',' + i + ')">✕</button></div>';
+      '<button type="button" class="btn btn-ghost btn-sm" onclick="mmDropModOpt(\'' + g.id + '\',\'' + esc(o.id) + '\')">✕</button></div>';
   }).join('');
   var roleOpts = (mmVoiceApi() ? mmVoiceApi().MODIFIER_VOICE_ROLES : ['']).map(function (r) {
     var label = { '': '— none —', spirit: 'Spirit / brand', preparation: 'Preparation', service: 'Service', garnish: 'Garnish', mixer: 'Mixer' }[r] || r;
@@ -1009,7 +1010,7 @@ function mmVoiceRow(api, store, src, suggestions) {
 function mmVoiceView() {
   var api = mmVoiceApi();
   if (!api) return '<div class="mm-detail" style="grid-column:1/-1"><div class="mm-empty">Voice vocabulary module not loaded.</div></div>';
-  if (!MM.voiceSeeded && typeof ensureVoiceProfiles === 'function') { ensureVoiceProfiles(); MM.voiceSeeded = true; }
+  // Phase 0: viewing the Voice tab never writes data; profiles are seeded at boot after the cloud sync.
   var store = mmVoiceStore();
   var sources = mmVoiceSources();
   var fam = mmVoiceFamily();
@@ -1085,14 +1086,16 @@ function mmAddModOpt(id) {
   if (!g) return;
   g.options = g.options || [];
   g.options.push({ id: uid('mo'), name: '', up: 0 });
-  mmSelect('mod', id);
+  mmPaint(); // repaint from state; mmSelect would re-save the old form and drop the new row
 }
-function mmDropModOpt(id, i) {
+function mmDropModOpt(id, optionId) {
   mmSaveModFromForm(id, false);
   var g = mmFindMod(id);
   if (!g) return;
-  g.options.splice(i, 1);
-  mmSelect('mod', id);
+  // Remove by stable option id (never by screen position), then repaint without re-saving the old form.
+  g.options = (g.options || []).filter(function (o, i) { return typeof optionId === 'number' ? i !== optionId : String(o.id) !== String(optionId); });
+  saveMenu();
+  mmPaint();
 }
 function mmAddTax() {
   mmSaveTaxesFromForm(false);
@@ -1209,32 +1212,44 @@ function mmSaveModFromForm(id, toastOk) {
   g.name = $('mg-name').value.trim() || g.name;
   g.required = $('mg-req') ? $('mg-req').checked : !!g.required;
   g.multi = $('mg-multi') ? $('mg-multi').checked : !!g.multi;
-  var names = document.querySelectorAll('.mopt-name'), ups = document.querySelectorAll('.mopt-up');
-  var aliases = document.querySelectorAll('.mopt-alias'), refs = document.querySelectorAll('.mopt-ref');
   var api = mmVoiceApi();
   var sourceKeys = {};
   if (api) mmVoiceSources().forEach(function (s) { sourceKeys[s.key] = 1; });
+  var prior = {};
+  (g.options || []).forEach(function (o) { if (o && o.id != null) prior[String(o.id)] = o; });
   var unresolved = [];
   var next = [];
-  for (var i = 0; i < names.length; i++) {
-    var nm = names[i].value.trim();
-    if (!nm) continue;
-    var opt = { id: (g.options[i] && g.options[i].id) || uid('mo'), name: nm, up: parseFloat(ups[i].value) || 0 };
-    if (aliases[i] && aliases[i].value.trim() && api) opt.voiceAliases = api.aliasList(aliases[i].value);
-    var raw = refs[i] ? refs[i].value.trim() : '';
-    if (raw) {
+  // Each row carries its option's id, so identity, allergens and references never shift to another option.
+  document.querySelectorAll('#mm-editor .mm-mod-opt').forEach(function (row) {
+    var nameEl = row.querySelector('.mopt-name'); if (!nameEl) return;
+    var nm = nameEl.value.trim();
+    if (!nm) return;
+    var oid = row.getAttribute('data-oid') || '';
+    var was = prior[oid];
+    var opt = was ? JSON.parse(JSON.stringify(was)) : {};
+    opt.id = was ? was.id : (oid || uid('mo'));
+    if (was && was.name !== nm && (opt.verified || opt.allergenVerified)) { opt.verified = false; if ('allergenVerified' in opt) opt.allergenVerified = false; }
+    opt.name = nm;
+    var upEl = row.querySelector('.mopt-up');
+    opt.up = parseFloat(upEl ? upEl.value : opt.up) || 0;
+    var aliasEl = row.querySelector('.mopt-alias');
+    if (aliasEl && api) { if (aliasEl.value.trim()) opt.voiceAliases = api.aliasList(aliasEl.value); else delete opt.voiceAliases; }
+    var refEl = row.querySelector('.mopt-ref');
+    var raw = refEl ? refEl.value.trim() : '';
+    if (!raw) delete opt.itemRef;
+    else {
       var cut = raw.indexOf(':');
       var ref = cut > 0 ? { sourceType: raw.slice(0, cut).trim(), sourceId: raw.slice(cut + 1).trim() } : null;
       if (ref && sourceKeys[ref.sourceType + ':' + ref.sourceId]) opt.itemRef = ref;
-      else unresolved.push(nm);
+      else unresolved.push(nm); // keep any previous reference rather than silently clearing it
     }
     next.push(opt);
-  }
+  });
   g.options = next;
   if ($('mg-voice-role')) g.voiceRole = $('mg-voice-role').value;
   if (api) api.normalizeModifierVoice(g);
   saveMenu();
-  if (unresolved.length) toast('Item ref not found for ' + unresolved.join(', ') + ' — left blank', 'error');
+  if (unresolved.length) toast('Item ref not found for ' + unresolved.join(', ') + ' — previous reference kept', 'error');
   if (toastOk) { toast('Modifiers saved', 'success'); mmPaint(); }
 }
 function mmSaveTaxesFromForm(toastOk) {
