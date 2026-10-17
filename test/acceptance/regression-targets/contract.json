@@ -1,0 +1,222 @@
+{
+  "schemaVersion": "epicurean.phase0.regression-targets/v1",
+  "purpose": "Correct-business-behavior acceptance targets; failures on the pinned source are required evidence, never converted into application passes.",
+  "baselines": {
+    "boh": "0cb055830ca6551f4e435d93bfe597af9150fc1d",
+    "pos": "4d3aabedf2b6fc4e45ae293dd8dcbf7b5dae7b7e"
+  },
+  "cases": [
+    {
+      "id": "B01",
+      "repo": "boh",
+      "severity": "BLOCKER",
+      "behavior": "Cloud flights and payroll settings must be loaded, not merely hashed, before editing. Retry must retain offline work for review.",
+      "normal": "Existing menu price and requested payroll edit remain intact.",
+      "recovery": "A failed startup cannot write flights; retry loads cloud flights and retains the pending draft.",
+      "crossDevice": "A second browser loads both old and newly added flights.",
+      "requiredAssertions": [
+        "startup loads every existing flight",
+        "startup loads cloud payroll fields",
+        "adding a flight retains existing cloud flight",
+        "editing State percentage retains untouched Federal percentage",
+        "retry applies the existing cloud flight to STATE",
+        "offline draft remains available for reconciliation",
+        "second device loads the complete published flight list"
+      ]
+    },
+    {
+      "id": "B02",
+      "repo": "boh",
+      "severity": "BLOCKER",
+      "behavior": "Explicit empty published lists mean empty; they never mean seed missing restaurant menus.",
+      "normal": "Existing nonempty published menus survive.",
+      "recovery": "Failure and retry preserve explicit emptiness, as does explicit Publish.",
+      "crossDevice": "A new browser sees empty lists too.",
+      "requiredAssertions": [
+        "startup: cloud lists remain intentionally empty",
+        "startup: UI state does not resurrect bundled dishes",
+        "startup: no automatic publication of these documents",
+        "startup: explicit Publish preserves empty owner intent",
+        "retry: cloud lists remain intentionally empty",
+        "retry: explicit Publish preserves empty owner intent",
+        "a second device also sees empty menus"
+      ]
+    },
+    {
+      "id": "B03",
+      "repo": "boh",
+      "severity": "BLOCKER",
+      "behavior": "Invalid names, prices or allergen shapes must be rejected without destroying valid records or converting a price to zero. Signed whole-cent deltas and explicit deletion remain valid.",
+      "normal": "Signed -$1.50 and explicit identity-based deletion preserve unrelated options/allergens.",
+      "recovery": "Each invalid edit retains the last valid cloud menu.",
+      "crossDevice": "A second browser sees the legitimate explicit deletion.",
+      "requiredAssertions": [
+        "blanking a name does not delete its option identity",
+        "blank name edit cannot change the published group",
+        "blank price edit cannot turn the published $1.50 delta into zero",
+        "nonnumeric price: publish must report rejection",
+        "fractional cent: publish must report rejection",
+        "non-string allergen: publish must report rejection",
+        "empty allergen label: publish must report rejection",
+        "control: explicit signed dollar delta preserves exact cents",
+        "control: explicit Delete removes only the chosen identity"
+      ]
+    },
+    {
+      "id": "B04",
+      "repo": "pos",
+      "severity": "BLOCKER",
+      "behavior": "A move must preserve freshly read check data and unpaid line identities/owners/prices/positions, including nested destination table references.",
+      "normal": "Ordinary move retargets the known ticket.",
+      "recovery": "A rejected ticket write reports incomplete move; retry cannot erase remote check data or duplicate a draft.",
+      "crossDevice": "An unpolled remote check edit survives; another browser restores its draft once at the destination.",
+      "requiredAssertions": [
+        "move: authoritative allergies survive",
+        "move: authoritative kitchen note survives",
+        "move: authoritative guest count survives",
+        "move: unpaid line retains identity/position/owner/price and follows the table",
+        "partial failure cannot erase another owner draft",
+        "retry: authoritative allergies survive",
+        "retry: new device restores the draft exactly once on the destination"
+      ]
+    },
+    {
+      "id": "B05",
+      "repo": "pos",
+      "severity": "BLOCKER",
+      "behavior": "A durable payment receipt is replayable settlement state, not a permanent retry dead end. Recovery must not tokenize or create a second receipt.",
+      "normal": "A full payment creates one receipt and finalizes only its check/line; stale Charge is harmless.",
+      "recovery": "Finalization failure, lost receipt acknowledgment, and first even-share failure all recover from persisted receipts.",
+      "crossDevice": "A fresh browser with only persisted documents resumes finalization without process-local locks or another tokenization.",
+      "requiredAssertions": [
+        "finalization writes fail: receipt recovery finishes the check",
+        "finalization writes fail: receipt recovery finishes its exact line",
+        "finalization writes fail: receipt recovery never tokenizes another card",
+        "payment acknowledgment lost: receipt recovery finishes the check",
+        "payment acknowledgment lost: retry never creates a second receipt",
+        "first even share finalization fails: persisted split progress is recovered",
+        "first even share finalization fails: unfinished split does not prematurely pay its line"
+      ]
+    },
+    {
+      "id": "B06",
+      "repo": "pos",
+      "severity": "BLOCKER",
+      "behavior": "Apply the existing Phase 0 send/remove-before-charge rule to all owners' unsent drafts: no receipt/tokenization/closure while another owner has unresolved parked work.",
+      "normal": "Legitimate removal of the draft allows normal payment.",
+      "recovery": "The unpaid draft stays on an open check and is recoverable by its owner.",
+      "crossDevice": "Another employee cannot inherit or settle away the draft; original owner restores exact 2A/price/identity on another browser.",
+      "requiredAssertions": [
+        "unresolved parked draft prevents a payment receipt",
+        "unresolved parked draft prevents card tokenization",
+        "check remains open for every owner’s unpaid work",
+        "parked line remains durably recoverable",
+        "owner returns on a new device and receives the exact unpaid draft",
+        "control: legitimate draft removal permits normal settlement"
+      ]
+    },
+    {
+      "id": "B07",
+      "repo": "pos",
+      "severity": "BLOCKER",
+      "behavior": "A clean stale local view must apply new cloud restrictions/notes, preserve exact guests, warn before conflicting add, and not erase those restrictions on save.",
+      "normal": "Original position 2 Dairy remains intact and a compatible request is allowed.",
+      "recovery": "Save, subsequent ticket creation and restart retain latest restrictions and kitchen note.",
+      "crossDevice": "Unpolled additions at 2A and 3 update the existing nonempty local allergy map.",
+      "requiredAssertions": [
+        "fresh position 2A restriction is applied",
+        "fresh position 3 restriction is applied",
+        "fresh kitchen note replaces a clean stale local note",
+        "newly flagged guest cannot silently receive a conflicting item",
+        "later save cannot erase fresh cloud restrictions",
+        "new kitchen line carries the exact guest restriction",
+        "new ticket carries the latest kitchen note",
+        "new device restores both distinct positions"
+      ]
+    },
+    {
+      "id": "B08",
+      "repo": "pos",
+      "severity": "BLOCKER",
+      "behavior": "The composed selected dish must include modifier allergen provenance. Broad Nuts covers tree nuts/peanuts; specific Tree Nut and Peanut remain distinct. Named/annotated tree nuts warn conservatively; Nutmeg/Donut do not become nut allergens.",
+      "normal": "Compatible verified base and guest 2 remain allowed; selected modifier adds exactly $1.",
+      "recovery": "Not a persistence finding; blocked add leaves the order unchanged and visibly warns.",
+      "crossDevice": "Not a transport finding; exact 2 and 2A guest separation is asserted.",
+      "requiredAssertions": [
+        "label Nuts vs Almond",
+        "label Tree Nut vs Almond",
+        "label Peanut vs Tree Nut",
+        "label Tree Nut vs Peanut",
+        "label Nuts vs Nutmeg",
+        "label Nuts vs Donut",
+        "Tree Nut garnish cannot silently commit at flagged 2A",
+        "selected allergen is visibly warned before commit",
+        "compatible guest 2 remains independent and retains modifier price"
+      ]
+    },
+    {
+      "id": "I01",
+      "repo": "boh",
+      "severity": "IMPORTANT",
+      "behavior": "An observed post-write cloud version cannot become the editing base until it is applied to STATE. A later stale save must not erase it.",
+      "normal": "An ordinary guarded write commits; a normal stale edit is refused.",
+      "recovery": "Refused copies remain available and Keep Cloud archives/adopts them safely.",
+      "crossDevice": "Deterministic mock writer changes a real menu field after local commit, before post-write read; no concurrent writer runs during the second edit.",
+      "requiredAssertions": [
+        "control: deterministic other-device write was injected once",
+        "second edit cannot erase the observed remote $77 price",
+        "control: reconciliation adopts the current cloud value",
+        "control: superseded local copy is archived"
+      ]
+    },
+    {
+      "id": "I02",
+      "repo": "pos",
+      "severity": "IMPORTANT",
+      "behavior": "Split -> EVEN -> /3 remains /3 on first Payment screen; principal shares for $10 are 333/333/334 cents and displayed amount uses the selected tip.",
+      "normal": "Separate Payment /3 selector still settles exact shares.",
+      "recovery": "Split progress recovery is covered by B05, not duplicated here.",
+      "crossDevice": "No claim of atomic multi-device payment; deferred backend work remains separate.",
+      "requiredAssertions": [
+        "Split /3 survives opening Payment",
+        "first /3 share has the correct principal cents",
+        "Charge label uses requested share plus the selected tip",
+        "control: Payment selector still yields exact 333/333/334 principals",
+        "control: exact shares settle the check"
+      ]
+    },
+    {
+      "id": "I03",
+      "repo": "pos",
+      "severity": "IMPORTANT",
+      "behavior": "Modifier selections are keyed by stable group/option identities, never by display name. One selection cannot satisfy another required group.",
+      "normal": "Two differently named required groups still work.",
+      "recovery": "No transport failure is implicated; premature commit is asserted directly.",
+      "crossDevice": "Not a transport finding; both stable IDs are retained in the line for persistence.",
+      "requiredAssertions": [
+        "same names: first choice cannot satisfy both required groups",
+        "same names: both stable group/option IDs are retained",
+        "same names: both deltas contribute exactly once",
+        "different names: both stable group/option IDs are retained"
+      ]
+    },
+    {
+      "id": "I04",
+      "repo": "pos",
+      "severity": "IMPORTANT",
+      "behavior": "Before durable ticket acknowledgment, a failed SEND remains an unpaid owner-recoverable draft and cannot claim success. After restart, retry creates one ticket with the original line identity and amount.",
+      "normal": "Normal SEND publishes one ticket.",
+      "recovery": "Rejected orders write preserves the line locally and durably; retry succeeds once and repeated retry is harmless.",
+      "crossDevice": "A new browser, with only persisted documents, can restore and send the draft.",
+      "requiredAssertions": [
+        "rejected SEND cannot display a sent-success message",
+        "unacknowledged line remains in the active recoverable draft",
+        "unacknowledged line is durably preserved for its owner",
+        "new device restores the unpaid item before retry",
+        "retry after restart publishes the original identity once",
+        "retry keeps the original unpaid $10 line billable",
+        "second retry cannot duplicate the ticket"
+      ]
+    }
+  ]
+}
