@@ -1085,6 +1085,13 @@ function recordCloudBase(col,id,d){
   CLOUD_BASE_CONTENT[col+'/'+id]=cloudHash(withoutUpdatedAt(d));
   if(col==='boh_shared' && id==='menu') CLOUD_MENU_BASE=d?JSON.parse(JSON.stringify(d)):null;
 }
+/* Phase 0 (I01): after a write, the cloud copy becomes this device's base only if it is exactly what
+   this device wrote. Anything else is another device's newer version that this device has NOT applied:
+   the base stays at what we wrote, so the next save is refused as a conflict instead of overwriting it. */
+function adoptWrittenBase(col,id,expected,observed){
+  if(cloudHash(observed)===cloudHash(expected)) recordCloudBase(col,id,observed);
+  else { recordCloudBase(col,id,expected); console.warn('Cloud changed right after this device saved '+col+'/'+id+' — the next save will need review'); }
+}
 function fbGetDocStrict(col,id){ if(!fbReady)return Promise.resolve(null); return fbDb.collection(col).doc(id).get().then(function(s){ var d=s.exists?s.data():null; recordCloudBase(col,id,d); return d; }); }
 function pendingEdits(){
   var m=lsGet(PENDING_EDITS_KEY,{}); if(!m||typeof m!=='object'||Array.isArray(m)) m={};
@@ -1150,8 +1157,9 @@ function guardedCloudWrite(col,id,data,opts){
       if(typeof toast==='function') toast('"'+cloudEditLabel({col:col,id:id})+'" was changed on another device — your change is kept here for review and was NOT published','error');
       return false;
     }
+    var expected=merge && r.d && typeof r.d==='object' ? Object.assign(JSON.parse(JSON.stringify(r.d)), JSON.parse(JSON.stringify(data))) : JSON.parse(JSON.stringify(data));
     return fbDb.collection(col).doc(id).set(data,{merge:merge}).then(function(){
-      return fbDb.collection(col).doc(id).get().then(function(s){ recordCloudBase(col,id,s.exists?s.data():null); return true; }, function(){ delete CLOUD_BASE[key]; delete CLOUD_BASE_CONTENT[key]; return true; });
+      return fbDb.collection(col).doc(id).get().then(function(s){ adoptWrittenBase(col,id,expected,s.exists?s.data():null); return true; }, function(){ recordCloudBase(col,id,expected); return true; });
     }, function(e){
       console.error('Firebase write failed',e);
       keepPendingEdit(col,id,data,opts,'write-failed');
@@ -1223,8 +1231,11 @@ function publishPendingEdit(k){
     return fbDb.collection(e.col).doc(e.id).get().then(function(s){
       var h=cloudHash(s.exists?s.data():null);
       if(!(h==='absent' || (e.baseHash && h===e.baseHash))) throw new Error('the cloud copy changed a moment ago — nothing was published');
-      return fbDb.collection(e.col).doc(e.id).set(e.data,{merge:e.merge!==false});
-    }).then(function(){ return fbGetDocStrict(e.col,e.id); });
+      var cur=s.exists?s.data():null, expected=(e.merge!==false && cur) ? Object.assign(JSON.parse(JSON.stringify(cur)), JSON.parse(JSON.stringify(e.data))) : JSON.parse(JSON.stringify(e.data));
+      return fbDb.collection(e.col).doc(e.id).set(e.data,{merge:e.merge!==false}).then(function(){
+        return fbDb.collection(e.col).doc(e.id).get().then(function(s2){ adoptWrittenBase(e.col,e.id,expected,s2.exists?s2.data():null); });
+      });
+    });
   });
   DOC_WRITE_CHAIN[k]=job.catch(function(){});
   return job.then(function(){
@@ -1267,6 +1278,8 @@ function validateModGroupsForPublish(groups, cloudGroups){
       else seen[id]=o.name||'(unnamed)';
       if(!String(o.name||'').trim()) problems.push(gname+': option '+(id||i+1)+' has no name');
       if(o.allergens!==undefined && !Array.isArray(o.allergens)) problems.push(gname+': '+(o.name||id)+' allergens are not a list');
+      else if(Array.isArray(o.allergens) && o.allergens.some(function(a){ return typeof a!=='string' || !a.trim(); })) problems.push(gname+': '+(o.name||id)+' has an empty or non-text allergen');
+      if(o.up!==undefined && (typeof o.up!=='number' || !isFinite(o.up) || Math.abs(Math.round(o.up*100)-o.up*100)>1e-6)) problems.push(gname+': '+(o.name||id)+' price change must be a dollar amount in whole cents');
       if(o.itemRef!==undefined && o.itemRef!==null && !(typeof o.itemRef==='object' && String(o.itemRef.sourceType||'').trim() && String(o.itemRef.sourceId||'').trim())) problems.push(gname+': '+(o.name||id)+' has an incomplete item reference');
       var prev=id && cloudOpt[g.id+'|'+id];
       if(prev && String(prev.name||'').trim().toLowerCase()!==String(o.name||'').trim().toLowerCase() && (o.verified===true || o.allergenVerified===true))
@@ -4693,7 +4706,7 @@ function ensureScaliniDiningMenus(){
   var pfIdx=-1;
   STATE.prixFixeMenus.forEach(function(p,i){ if(p.id===pfSeed.id) pfIdx=i; });
   if(typeof applyMenuPhotos==='function') applyMenuPhotos();
-  if(pfIdx<0){ STATE.prixFixeMenus.unshift(pfSeed); changed=true; }
+  if(pfIdx<0){ if(!STATE._cloudPfPublished){ STATE.prixFixeMenus.unshift(pfSeed); changed=true; } } // the owner removed it from the published list
   else {
     var prevPf=STATE.prixFixeMenus[pfIdx];
     var nextPf=mergeFn(prevPf, pfSeed);
@@ -4705,7 +4718,7 @@ function ensureScaliniDiningMenus(){
   }
   var tmIdx=-1;
   STATE.tastingMenus.forEach(function(t,i){ if(t.id===tmSeed.id) tmIdx=i; });
-  if(tmIdx<0){ STATE.tastingMenus.unshift(tmSeed); changed=true; }
+  if(tmIdx<0){ if(!STATE._cloudTmPublished){ STATE.tastingMenus.unshift(tmSeed); changed=true; } }
   else {
     var prevTm=STATE.tastingMenus[tmIdx];
     var nextTm=mergeFn(prevTm, tmSeed);
@@ -4759,10 +4772,11 @@ syncFromCloud = function(){
     if(!fbReady) return ok;
     if(ok===false) return false;
     return Promise.all([
-      fbGetDocStrict('boh_shared','payroll_settings'), // base only: this device must not overwrite settings it never loaded
-      fbGetDocStrict('boh_shared','wine_flights'),
-      fbGetDocStrict('boh_shared','tasting_menus').then(function(d){ if(d&&d.list){ STATE.tastingMenus=normalizeTastingList(d.list); lsSet('eh_tasting_menus',STATE.tastingMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); } }),
-      fbGetDocStrict('boh_shared','prix_fixe_menus').then(function(d){ if(d&&d.list){ STATE.prixFixeMenus=normalizePrixFixeList(d.list); lsSet('eh_prix_fixe_menus',STATE.prixFixeMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); if(typeof mmRebuildPf==='function') (STATE.prixFixeMenus||[]).forEach(mmRebuildPf); } })
+      // Phase 0 (B01): cloud flights and payroll settings are loaded before anything can be edited.
+      fbGetDocStrict('boh_shared','payroll_settings').then(function(d){ if(d&&d.settings&&typeof d.settings==='object'){ lsSet('eh_payroll', Object.assign(JSON.parse(JSON.stringify(PAYROLL_DEFAULTS)), d.settings)); } }),
+      fbGetDocStrict('boh_shared','wine_flights').then(function(d){ if(d&&Array.isArray(d.list)){ STATE.wineFlights=d.list; lsSet('eh_wine_flights', STATE.wineFlights); } }),
+      fbGetDocStrict('boh_shared','tasting_menus').then(function(d){ STATE._cloudTmPublished=!!(d&&Array.isArray(d.list)); if(d&&d.list){ STATE.tastingMenus=normalizeTastingList(d.list); lsSet('eh_tasting_menus',STATE.tastingMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); } }),
+      fbGetDocStrict('boh_shared','prix_fixe_menus').then(function(d){ STATE._cloudPfPublished=!!(d&&Array.isArray(d.list)); if(d&&d.list){ STATE.prixFixeMenus=normalizePrixFixeList(d.list); lsSet('eh_prix_fixe_menus',STATE.prixFixeMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); if(typeof mmRebuildPf==='function') (STATE.prixFixeMenus||[]).forEach(mmRebuildPf); } })
     ]).then(function(){
       CLOUD_SYNC_STATE='ok';
       updateCloudBanner();

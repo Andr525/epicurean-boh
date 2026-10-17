@@ -1219,11 +1219,21 @@ function mmSaveModFromForm(id, toastOk) {
   (g.options || []).forEach(function (o) { if (o && o.id != null) prior[String(o.id)] = o; });
   var unresolved = [];
   var next = [];
+  // Phase 0 (B03): an invalid edit is rejected as a whole; it never deletes an option or zeroes its price.
+  var invalid = [];
+  document.querySelectorAll('#mm-editor .mm-mod-opt').forEach(function (row) {
+    var nameEl = row.querySelector('.mopt-name'); if (!nameEl) return;
+    var was0 = prior[row.getAttribute('data-oid') || ''];
+    var nm0 = nameEl.value.trim(), upEl0 = row.querySelector('.mopt-up'), up0 = upEl0 ? upEl0.value.trim() : '';
+    if (!nm0) { if (was0) invalid.push('"' + was0.name + '" needs a name (use ✕ to delete an option)'); return; }
+    if (up0 === '' ? !!was0 : !/^[+-]?\d+(\.\d{1,2})?$/.test(up0)) invalid.push('"' + nm0 + '" price change must be a dollar amount like 1.50, -1.50 or 0');
+  });
+  if (invalid.length) { toast('Modifiers NOT saved: ' + invalid.join('; '), 'error'); return false; }
   // Each row carries its option's id, so identity, allergens and references never shift to another option.
   document.querySelectorAll('#mm-editor .mm-mod-opt').forEach(function (row) {
     var nameEl = row.querySelector('.mopt-name'); if (!nameEl) return;
     var nm = nameEl.value.trim();
-    if (!nm) return;
+    if (!nm) return; // an untouched new row
     var oid = row.getAttribute('data-oid') || '';
     var was = prior[oid];
     var opt = was ? JSON.parse(JSON.stringify(was)) : {};
@@ -1231,7 +1241,8 @@ function mmSaveModFromForm(id, toastOk) {
     if (was && was.name !== nm && (opt.verified || opt.allergenVerified)) { opt.verified = false; if ('allergenVerified' in opt) opt.allergenVerified = false; }
     opt.name = nm;
     var upEl = row.querySelector('.mopt-up');
-    opt.up = parseFloat(upEl ? upEl.value : opt.up) || 0;
+    var upRaw = upEl ? upEl.value.trim() : '';
+    opt.up = upRaw === '' ? (Number(opt.up) || 0) : Math.round(parseFloat(upRaw) * 100) / 100;
     var aliasEl = row.querySelector('.mopt-alias');
     if (aliasEl && api) { if (aliasEl.value.trim()) opt.voiceAliases = api.aliasList(aliasEl.value); else delete opt.voiceAliases; }
     var refEl = row.querySelector('.mopt-ref');
