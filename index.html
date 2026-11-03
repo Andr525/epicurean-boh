@@ -1119,6 +1119,7 @@ function savePayrollSettings(p){ lsSet('eh_payroll',p); fbSetDoc('boh_shared','p
    ============================================================ */
 /* Kitchen stations — orders route here; kitchen station screens read station. */
 var KITCHEN_STATIONS = ['Grill','Sauté','Fry','Cold / Garde Manger','Pastry','Expo'];
+var DRINK_STATIONS = ['Bar','Coffee']; /* drinks never go to the food screens: Bar screen and Coffee screen only */
 
 /* Allergen keywords the AI/rule engine looks for (recognizable, front-and-center). */
 var ALLERGENS = ['Gluten','Dairy','Egg','Peanut','Tree Nut','Shellfish','Fish','Soy','Sesame','Sulfites'];
@@ -4427,6 +4428,17 @@ function decrementStock(type,rid,qty){
 /* ---- STATE extensions ---- */
 STATE.tastingMenus = lsGet('eh_tasting_menus', seedTastingMenus());
 STATE.prixFixeMenus = lsGet('eh_prix_fixe_menus', seedPrixFixeMenus());
+/* Service settings — BOH is the source of truth; POS and iPad read boh_shared/service_settings live. */
+STATE.serviceSettings = lsGet('eh_service_settings', { extraAppetizer:32, extraMain:46, extraDessert:27 });
+function saveServiceSettings(){
+  function num(id,fb){ var e=document.getElementById(id); var v=e?Number(e.value):NaN; return isFinite(v)&&v>0?v:fb; }
+  var cur=STATE.serviceSettings||{};
+  STATE.serviceSettings={ extraAppetizer:num('ss-app',cur.extraAppetizer||32), extraMain:num('ss-main',cur.extraMain||46), extraDessert:num('ss-des',cur.extraDessert||27) };
+  lsSet('eh_service_settings', STATE.serviceSettings);
+  var done=fbSetDoc('boh_shared','service_settings',Object.assign({updatedAt:Date.now()},STATE.serviceSettings));
+  if(done&&done.then) done.then(function(ok){ toast(ok===false?'Saved here only \u2014 could not reach the database':'Saved \u2014 POS prices update live', ok===false?'error':'success'); });
+  else toast('Saved','success');
+}
 ensureScaliniDiningMenus();
 applyMenuPhotos();
 
@@ -4534,6 +4546,7 @@ syncFromCloud = function(){
   return _origSync().then(function(){
     if(!fbReady) return;
     return Promise.all([
+      fbGetDoc('boh_shared','service_settings').then(function(d){ if(d&&d.extraMain){ STATE.serviceSettings={extraAppetizer:d.extraAppetizer,extraMain:d.extraMain,extraDessert:d.extraDessert}; lsSet('eh_service_settings',STATE.serviceSettings); } }),
       fbGetDoc('boh_shared','tasting_menus').then(function(d){ if(d&&d.list){ STATE.tastingMenus=normalizeTastingList(d.list); lsSet('eh_tasting_menus',STATE.tastingMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); } }),
       fbGetDoc('boh_shared','prix_fixe_menus').then(function(d){ if(d&&d.list){ STATE.prixFixeMenus=normalizePrixFixeList(d.list); lsSet('eh_prix_fixe_menus',STATE.prixFixeMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); if(typeof mmRebuildPf==='function') (STATE.prixFixeMenus||[]).forEach(mmRebuildPf); } })
     ]).then(function(){
@@ -4647,7 +4660,16 @@ function tastingBody(){
     });
   }
 
+  var ss=STATE.serviceSettings||{};
+  var priceBox='<div class="tasting-card" style="cursor:default;margin-bottom:18px"><div class="tc-title serif">Extra dishes on top of the prix fixe</div>'+
+    '<div class="tc-sub">What a guest pays when ordering an additional appetizer, main or dessert (plus any dish upcharge). The POS reads these live.</div>'+
+    '<div class="ff-row cols-3" style="margin-top:10px">'+
+    fld('Appetizer $','<input class="input" id="ss-app" type="number" step="0.01" value="'+(ss.extraAppetizer||32)+'">')+
+    fld('Main $','<input class="input" id="ss-main" type="number" step="0.01" value="'+(ss.extraMain||46)+'">')+
+    fld('Dessert $','<input class="input" id="ss-des" type="number" step="0.01" value="'+(ss.extraDessert||27)+'">')+
+    '</div><button class="btn btn-gold btn-sm" type="button" onclick="saveServiceSettings()">Save prices</button></div>';
   return sectionHead('Tasting & Prix Fixe','Create multi-course experiences. Tasting menus have fixed courses; Prix Fixe lets guests choose from options per course.',btns)+
+    priceBox+
     '<h3 class="section-label serif">Tasting Menus</h3>'+
     '<div class="tasting-grid">'+tastingCards+'</div>'+
     '<h3 class="section-label serif" style="margin-top:32px">Prix Fixe Menus</h3>'+
