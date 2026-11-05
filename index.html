@@ -4892,6 +4892,7 @@ function openPrixFixeEditor(id){
       '<label style="font-size:11px;color:var(--text-dim);text-transform:uppercase;letter-spacing:.4px;margin-top:6px;">Allergens (comma separated)</label>'+
       '<input class="input pf-o-allergens" placeholder="Fish, Gluten, Dairy, Tree Nut, Shellfish, Egg" value="'+esc((d.allergens||[]).join(', '))+'">'+
       '<input class="input pf-o-note" placeholder="Kitchen note (e.g. Allow 12 minutes)" value="'+esc(d.cookNote||'')+'" style="margin-top:6px;">'+
+      '<label style="display:flex;gap:8px;align-items:center;margin-top:6px;font-size:12px;color:var(--text-dim)" title="Leave off for filled pasta (ravioli, agnolotti, tortellini). They are made with gluten and cannot be gluten-free."><input type="checkbox" class="pf-o-gfok"'+(d.gfOk?' checked':'')+'> Kitchen can make this gluten-free (leave off for filled pasta)</label>'+
       '<div style="margin-top:8px;">'+
         '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:4px;">'+
           '<label style="font-size:11px;color:var(--gold);text-transform:uppercase;letter-spacing:.4px;">Wine Pairing (Glass)</label>'+
@@ -4978,6 +4979,7 @@ function openPrixFixeEditor(id){
         photoUrl:el.querySelector('.pf-o-photo')?el.querySelector('.pf-o-photo').value.trim():'',
         allergens:allergenRaw.split(',').map(function(s){return s.trim();}).filter(Boolean),
         cookNote:el.querySelector('.pf-o-note')?el.querySelector('.pf-o-note').value.trim():'',
+        gfOk:!!(el.querySelector('.pf-o-gfok')&&el.querySelector('.pf-o-gfok').checked),
         chooseCount:prev.chooseCount||0,
         scoops:prev.scoops||null,
         dietary:prev.dietary||[],
@@ -4992,7 +4994,7 @@ function openPrixFixeEditor(id){
       c.options=pf.dishes.filter(function(d){return d.course===c.label;}).sort(function(a,b){return a.order-b.order;}).map(function(d){
         return {
           id:d.id, name:d.name, desc:d.desc, station:d.station, upcharge:d.upcharge, pairing:d.pairing, photoUrl:d.photoUrl,
-          allergens:d.allergens||[], cookNote:d.cookNote||'', chooseCount:d.chooseCount||0, scoops:d.scoops||null,
+          allergens:d.allergens||[], cookNote:d.cookNote||'', gfOk:!!d.gfOk, chooseCount:d.chooseCount||0, scoops:d.scoops||null,
           dietary:d.dietary||[], cookTime:d.cookTime||0, i18n:d.i18n||{}
         };
       });
