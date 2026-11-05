@@ -4429,11 +4429,12 @@ function decrementStock(type,rid,qty){
 STATE.tastingMenus = lsGet('eh_tasting_menus', seedTastingMenus());
 STATE.prixFixeMenus = lsGet('eh_prix_fixe_menus', seedPrixFixeMenus());
 /* Service settings — BOH is the source of truth; POS and iPad read boh_shared/service_settings live. */
-STATE.serviceSettings = lsGet('eh_service_settings', { extraAppetizer:32, extraMain:46, extraDessert:27 });
+STATE.serviceSettings = lsGet('eh_service_settings', { extraAppetizer:32, extraMain:46, extraDessert:27, allowAppAsMain:true, appAsMainExtra:0 });
 function saveServiceSettings(){
   function num(id,fb){ var e=document.getElementById(id); var v=e?Number(e.value):NaN; return isFinite(v)&&v>0?v:fb; }
   var cur=STATE.serviceSettings||{};
-  STATE.serviceSettings={ extraAppetizer:num('ss-app',cur.extraAppetizer||32), extraMain:num('ss-main',cur.extraMain||46), extraDessert:num('ss-des',cur.extraDessert||27) };
+  var aamEl=document.getElementById('ss-aam'), aamX=document.getElementById('ss-aamx'), aamV=aamX?Number(aamX.value):NaN;
+  STATE.serviceSettings={ extraAppetizer:num('ss-app',cur.extraAppetizer||32), extraMain:num('ss-main',cur.extraMain||46), extraDessert:num('ss-des',cur.extraDessert||27), allowAppAsMain:aamEl?!!aamEl.checked:(cur.allowAppAsMain!==false), appAsMainExtra:(isFinite(aamV)&&aamV>=0)?aamV:(Number(cur.appAsMainExtra)||0) };
   lsSet('eh_service_settings', STATE.serviceSettings);
   var done=fbSetDoc('boh_shared','service_settings',Object.assign({updatedAt:Date.now()},STATE.serviceSettings));
   if(done&&done.then) done.then(function(ok){ toast(ok===false?'Saved here only \u2014 could not reach the database':'Saved \u2014 POS prices update live', ok===false?'error':'success'); });
@@ -4546,7 +4547,7 @@ syncFromCloud = function(){
   return _origSync().then(function(){
     if(!fbReady) return;
     return Promise.all([
-      fbGetDoc('boh_shared','service_settings').then(function(d){ if(d&&d.extraMain){ STATE.serviceSettings={extraAppetizer:d.extraAppetizer,extraMain:d.extraMain,extraDessert:d.extraDessert}; lsSet('eh_service_settings',STATE.serviceSettings); } }),
+      fbGetDoc('boh_shared','service_settings').then(function(d){ if(d&&d.extraMain){ STATE.serviceSettings={extraAppetizer:d.extraAppetizer,extraMain:d.extraMain,extraDessert:d.extraDessert,allowAppAsMain:d.allowAppAsMain!==false,appAsMainExtra:Number(d.appAsMainExtra)||0}; lsSet('eh_service_settings',STATE.serviceSettings); } }),
       fbGetDoc('boh_shared','tasting_menus').then(function(d){ if(d&&d.list){ STATE.tastingMenus=normalizeTastingList(d.list); lsSet('eh_tasting_menus',STATE.tastingMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); } }),
       fbGetDoc('boh_shared','prix_fixe_menus').then(function(d){ if(d&&d.list){ STATE.prixFixeMenus=normalizePrixFixeList(d.list); lsSet('eh_prix_fixe_menus',STATE.prixFixeMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); if(typeof mmRebuildPf==='function') (STATE.prixFixeMenus||[]).forEach(mmRebuildPf); } })
     ]).then(function(){
@@ -4667,7 +4668,12 @@ function tastingBody(){
     fld('Appetizer $','<input class="input" id="ss-app" type="number" step="0.01" value="'+(ss.extraAppetizer||32)+'">')+
     fld('Main $','<input class="input" id="ss-main" type="number" step="0.01" value="'+(ss.extraMain||46)+'">')+
     fld('Dessert $','<input class="input" id="ss-des" type="number" step="0.01" value="'+(ss.extraDessert||27)+'">')+
-    '</div><button class="btn btn-gold btn-sm" type="button" onclick="saveServiceSettings()">Save prices</button></div>';
+    '</div>'+
+    '<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.12)"><div class="tc-title serif" style="font-size:1rem">Second appetizer as the main course</div>'+
+    '<div class="tc-sub">When on, a guest who already has an appetizer in the prix fixe may take a second appetizer dish (for example the raviolo) as their prix fixe main. The waiter is asked whether it is served with the main course or with the appetizers, and in a main size or an appetizer size.</div>'+
+    '<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="ss-aam"'+(ss.allowAppAsMain===false?'':' checked')+'> Allow it</label>'+
+    '<div class="ff-row cols-3">'+fld('Extra charge $ (0 = included)','<input class="input" id="ss-aamx" type="number" min="0" step="0.01" value="'+(Number(ss.appAsMainExtra)||0)+'">')+'</div></div>'+
+    '<button class="btn btn-gold btn-sm" type="button" style="margin-top:12px" onclick="saveServiceSettings()">Save</button></div>';
   return sectionHead('Tasting & Prix Fixe','Create multi-course experiences. Tasting menus have fixed courses; Prix Fixe lets guests choose from options per course.',btns)+
     priceBox+
     '<h3 class="section-label serif">Tasting Menus</h3>'+
