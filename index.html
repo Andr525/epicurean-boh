@@ -4670,7 +4670,7 @@ function tastingBody(){
     fld('Dessert $','<input class="input" id="ss-des" type="number" step="0.01" value="'+(ss.extraDessert||27)+'">')+
     '</div>'+
     '<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.12)"><div class="tc-title serif" style="font-size:1rem">Second appetizer as the main course</div>'+
-    '<div class="tc-sub">When on, a guest who already has an appetizer in the prix fixe may take a second appetizer dish (for example the raviolo) as their prix fixe main. The waiter is asked whether it is served with the main course or with the appetizers, and in a main size or an appetizer size.</div>'+
+    '<div class="tc-sub">When on, and a seat has an appetizer in the prix fixe but its main is set to NONE, tapping a second appetizer in Add items asks the waiter: make it the main course? (yes), then which size (main or appetizer). It fills the prix fixe main (no extra plate) for the charge below.</div>'+
     '<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="ss-aam"'+(ss.allowAppAsMain===false?'':' checked')+'> Allow it</label>'+
     '<div class="ff-row cols-3">'+fld('Extra charge $ (0 = included)','<input class="input" id="ss-aamx" type="number" min="0" step="0.01" value="'+(Number(ss.appAsMainExtra)||0)+'">')+'</div></div>'+
     '<button class="btn btn-gold btn-sm" type="button" style="margin-top:12px" onclick="saveServiceSettings()">Save</button></div>';
