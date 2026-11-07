@@ -4469,6 +4469,16 @@ STATE.tastingMenus = lsGet('eh_tasting_menus', seedTastingMenus());
 STATE.prixFixeMenus = lsGet('eh_prix_fixe_menus', seedPrixFixeMenus());
 /* Service settings — BOH is the source of truth; POS and iPad read boh_shared/service_settings live. */
 STATE.serviceSettings = lsGet('eh_service_settings', { extraAppetizer:32, extraMain:46, extraDessert:27, allowAppAsMain:true, appAsMainExtra:0 });
+STATE.printSettings = lsGet('eh_print_settings', {copies:1, ladiesFirst:true});
+function savePrintSettings(){
+  var c=document.getElementById('ps-copies'), l=document.getElementById('ps-ladies');
+  var copies=Math.max(1,Math.min(6,Math.round(Number(c&&c.value)||1)));
+  STATE.printSettings={copies:copies, ladiesFirst:!!(l&&l.checked)};
+  lsSet('eh_print_settings', STATE.printSettings);
+  var done=fbSetDoc('boh_shared','print_settings',Object.assign({updatedAt:Date.now()},STATE.printSettings));
+  if(done&&done.then) done.then(function(ok){ toast(ok===false?'Saved here only \u2014 could not reach the database':'Saved \u2014 kitchen screens update live', ok===false?'error':'success'); });
+  else toast('Saved','success');
+}
 function saveServiceSettings(){
   function num(id,fb){ var e=document.getElementById(id); var v=e?Number(e.value):NaN; return isFinite(v)&&v>0?v:fb; }
   var cur=STATE.serviceSettings||{};
@@ -4587,6 +4597,7 @@ syncFromCloud = function(){
     if(!fbReady) return;
     return Promise.all([
       fbGetDoc('boh_shared','service_settings').then(function(d){ if(d&&d.extraMain){ STATE.serviceSettings={extraAppetizer:d.extraAppetizer,extraMain:d.extraMain,extraDessert:d.extraDessert,allowAppAsMain:d.allowAppAsMain!==false,appAsMainExtra:Number(d.appAsMainExtra)||0}; lsSet('eh_service_settings',STATE.serviceSettings); } }),
+      fbGetDoc('boh_shared','print_settings').then(function(d){ if(d&&d.copies){ STATE.printSettings={copies:Number(d.copies)||1, ladiesFirst:d.ladiesFirst!==false}; lsSet('eh_print_settings',STATE.printSettings); } }),
       fbGetDoc('boh_shared','btg_pours').then(function(d){ if(d&&d.prices){ STATE.btgPours=d.prices; lsSet('eh_btg_pours',d.prices); } }),
       fbGetDoc('boh_shared','tasting_menus').then(function(d){ if(d&&d.list){ STATE.tastingMenus=normalizeTastingList(d.list); lsSet('eh_tasting_menus',STATE.tastingMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); } }),
       fbGetDoc('boh_shared','prix_fixe_menus').then(function(d){ if(d&&d.list){ STATE.prixFixeMenus=normalizePrixFixeList(d.list); lsSet('eh_prix_fixe_menus',STATE.prixFixeMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); if(typeof mmRebuildPf==='function') (STATE.prixFixeMenus||[]).forEach(mmRebuildPf); } })
@@ -4714,8 +4725,14 @@ function tastingBody(){
     '<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="ss-aam"'+(ss.allowAppAsMain===false?'':' checked')+'> Allow it</label>'+
     '<div class="ff-row cols-3">'+fld('Extra charge $ (0 = included)','<input class="input" id="ss-aamx" type="number" min="0" step="0.01" value="'+(Number(ss.appAsMainExtra)||0)+'">')+'</div></div>'+
     '<button class="btn btn-gold btn-sm" type="button" style="margin-top:12px" onclick="saveServiceSettings()">Save</button></div>';
+  var ps=STATE.printSettings||{copies:1,ladiesFirst:true};
+  var printBox='<div class="tasting-card" style="cursor:default;margin-bottom:18px"><div class="tc-title serif">Kitchen runner slips (printer)</div>'+
+    '<div class="tc-sub">When a course is fired, the kitchen screen prints a slip for the runners. Nothing prints until the course is fired. Every restaurant sets this here; the printer itself is chosen on the device that has the Kitchen page open.</div>'+
+    '<div class="ff-row cols-3" style="margin-top:10px">'+fld('Copies per fired course (1\u20136)','<input class="input" id="ps-copies" type="number" min="1" max="6" step="1" value="'+(Number(ps.copies)||1)+'">')+'</div>'+
+    '<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="ps-ladies"'+(ps.ladiesFirst===false?'':' checked')+'> Tables of 4 or more: ladies (seats ending in A) print first, then a cut line, then the gentlemen</label>'+
+    '<button class="btn btn-gold btn-sm" type="button" onclick="savePrintSettings()">Save</button></div>';
   return sectionHead('Tasting & Prix Fixe','Create multi-course experiences. Tasting menus have fixed courses; Prix Fixe lets guests choose from options per course.',btns)+
-    priceBox+
+    priceBox+printBox+
     '<h3 class="section-label serif">Tasting Menus</h3>'+
     '<div class="tasting-grid">'+tastingCards+'</div>'+
     '<h3 class="section-label serif" style="margin-top:32px">Prix Fixe Menus</h3>'+
