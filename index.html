@@ -4470,6 +4470,30 @@ STATE.prixFixeMenus = lsGet('eh_prix_fixe_menus', seedPrixFixeMenus());
 /* Service settings — BOH is the source of truth; POS and iPad read boh_shared/service_settings live. */
 STATE.serviceSettings = lsGet('eh_service_settings', { extraAppetizer:32, extraMain:46, extraDessert:27, allowAppAsMain:true, appAsMainExtra:0 });
 STATE.printSettings = lsGet('eh_print_settings', {copies:1, ladiesFirst:true});
+/* ---- Prep times: minutes per dish. The Kitchen screen uses them for line counts and the expo board. ---- */
+STATE.prepTimes = lsGet('eh_prep_times', {});
+function prepKey(n){ return String(n||'').toLowerCase().replace(/\s*\((main|appetizer|app)\s*size\)\s*$/,'').replace(/\s+[-\u00B7]\s+(rare|medium rare|medium|medium well|well done|well)\s*$/,'').replace(/[^a-z0-9]+/g,' ').trim(); }
+function ptDishes(){
+  var out=[], seen={};
+  function add(name,station){ var k=prepKey(name); if(!k||seen[k]) return; seen[k]=1; out.push({key:k,name:String(name),station:typeof station==='string'?station:''}); }
+  (STATE.prixFixeMenus||[]).forEach(function(m){ (m.courses||[]).forEach(function(c){ (c.options||[]).forEach(function(o){ if(o&&o.name&&!o.noneChoice) add(o.name,o.station); }); }); });
+  (STATE.menuItems||[]).forEach(function(it){ if(it&&it.name) add(it.name,it.station); });
+  return out.sort(function(a,b){ return (a.station||'~').localeCompare(b.station||'~')||a.name.localeCompare(b.name); });
+}
+function ptRows(){
+  var last=null;
+  return ptDishes().map(function(d){
+    var head=''; if(d.station!==last){ last=d.station; head='<tr><td colspan="2" class="td-name" style="background:rgba(0,0,0,.04);font-weight:800">'+esc(d.station||'No station')+'</td></tr>'; }
+    return head+'<tr><td class="td-name">'+esc(d.name)+'</td><td><input class="input pt-in" style="width:80px" type="number" min="0" step="1" data-k="'+esc(d.key)+'" value="'+(Number(STATE.prepTimes[d.key])||'')+'" placeholder="min"></td></tr>';
+  }).join('');
+}
+function savePrepTimes(){
+  var out={}; [].forEach.call(document.querySelectorAll('.pt-in'),function(i){ var v=Number(i.value); if(v>0) out[i.getAttribute('data-k')]=Math.round(v); });
+  STATE.prepTimes=out; lsSet('eh_prep_times',out);
+  var done=fbSetDoc('boh_shared','prep_times',{times:out,updatedAt:Date.now()});
+  if(done&&done.then) done.then(function(ok){ toast(ok===false?'Saved here only \u2014 could not reach the database':'Saved \u2014 kitchen line counts update live', ok===false?'error':'success'); });
+  else toast('Saved','success');
+}
 function savePrintSettings(){
   var c=document.getElementById('ps-copies'), l=document.getElementById('ps-ladies');
   var copies=Math.max(1,Math.min(6,Math.round(Number(c&&c.value)||1)));
@@ -4597,6 +4621,7 @@ syncFromCloud = function(){
     if(!fbReady) return;
     return Promise.all([
       fbGetDoc('boh_shared','service_settings').then(function(d){ if(d&&d.extraMain){ STATE.serviceSettings={extraAppetizer:d.extraAppetizer,extraMain:d.extraMain,extraDessert:d.extraDessert,allowAppAsMain:d.allowAppAsMain!==false,appAsMainExtra:Number(d.appAsMainExtra)||0}; lsSet('eh_service_settings',STATE.serviceSettings); } }),
+      fbGetDoc('boh_shared','prep_times').then(function(d){ if(d&&d.times){ STATE.prepTimes=d.times; lsSet('eh_prep_times',d.times); } }),
       fbGetDoc('boh_shared','print_settings').then(function(d){ if(d&&d.copies){ STATE.printSettings={copies:Number(d.copies)||1, ladiesFirst:d.ladiesFirst!==false}; lsSet('eh_print_settings',STATE.printSettings); } }),
       fbGetDoc('boh_shared','btg_pours').then(function(d){ if(d&&d.prices){ STATE.btgPours=d.prices; lsSet('eh_btg_pours',d.prices); } }),
       fbGetDoc('boh_shared','tasting_menus').then(function(d){ if(d&&d.list){ STATE.tastingMenus=normalizeTastingList(d.list); lsSet('eh_tasting_menus',STATE.tastingMenus); if(typeof applyMenuPhotos==='function') applyMenuPhotos(); } }),
@@ -4731,8 +4756,12 @@ function tastingBody(){
     '<div class="ff-row cols-3" style="margin-top:10px">'+fld('Copies per fired course (1\u20136)','<input class="input" id="ps-copies" type="number" min="1" max="6" step="1" value="'+(Number(ps.copies)||1)+'">')+'</div>'+
     '<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="ps-ladies"'+(ps.ladiesFirst===false?'':' checked')+'> Tables of 4 or more: ladies (seats ending in A) print first, then a cut line, then the gentlemen</label>'+
     '<button class="btn btn-gold btn-sm" type="button" onclick="savePrintSettings()">Save</button></div>';
+  var prepBox='<div class="tasting-card" style="cursor:default;margin-bottom:18px"><div class="tc-title serif">Prep times (kitchen line counts)</div>'+
+    '<div class="tc-sub">How many minutes each dish takes to cook. The Kitchen screen adds up the plates per station and shows the expo when every station should start so a course lands together. Leave blank if unknown.</div>'+
+    '<div style="max-height:380px;overflow:auto;margin-top:10px"><table class="dt"><thead><tr><th>Dish</th><th>Minutes</th></tr></thead><tbody>'+ptRows()+'</tbody></table></div>'+
+    '<button class="btn btn-gold btn-sm" type="button" style="margin-top:10px" onclick="savePrepTimes()">Save prep times</button></div>';
   return sectionHead('Tasting & Prix Fixe','Create multi-course experiences. Tasting menus have fixed courses; Prix Fixe lets guests choose from options per course.',btns)+
-    priceBox+printBox+
+    priceBox+printBox+prepBox+
     '<h3 class="section-label serif">Tasting Menus</h3>'+
     '<div class="tasting-grid">'+tastingCards+'</div>'+
     '<h3 class="section-label serif" style="margin-top:32px">Prix Fixe Menus</h3>'+
