@@ -33,6 +33,8 @@
     };
   }
 
+  var KITCHEN_KEYS = {"sf_w_salmon": "Salmon", "sf_w_zucchini": "Zucchini", "sf_w_shrimp": "Shrimp", "sf_w_crostini": "Crostini", "sf_p_arugula": "Arugula", "sf_p_lobster": "Lobster", "sf_p_raviolo": "Raviolo", "sf_p_porcini": "Porcini", "sf_p_agnolotti": "Agnolotti", "sf_p_pappardelle": "Pappardelle", "sf_p_linguini": "Pescatore", "sf_p_fusilli": "Fusilli", "sf_e_sorbet": "Sorbet", "sf_d_napoleon": "Napoleon", "sf_d_cake": "Choc cake", "sf_d_tart": "Choc tart", "sf_d_basque": "Basque", "sf_d_pistachio_tart": "Pistachio tart", "sf_d_pineapple": "Pineapple tart", "sf_d_banana": "Banana", "sf_d_gelato": "Gelato", "sf_d_formaggio": "Formaggio"};
+
   function d(id, name, desc, course, station, extra) {
     extra = extra || {};
     return {
@@ -60,6 +62,7 @@
       askTemp: extra.askTemp || '',
       sourceUrl: extra.sourceUrl || '',
       moreUrl: extra.moreUrl || extra.storyUrl || extra.sourceUrl || '',
+      kitchenKey: extra.kitchenKey || KITCHEN_KEYS[id] || '',
       voiceKeyword: extra.voiceKeyword || '',
       voiceAliases: extra.voiceAliases || [],
       i18n: extra.i18n || {}
@@ -226,8 +229,8 @@
       i18n: ix('Tiras de pechuga de pollo “Scarpariello”', 'Salteado con salchicha y gratinado de patata', 'Lanières de poulet « Scarpariello »', 'Sautées avec saucisse et gratin de pommes de terre', '鸡胸「鞋匠」', '香肠与土豆焗')
     }),
     d('sf_m_veal_val', 'Veal scallopini “Valdostana”', 'Prosciutto di Parma and fontina in a wild mushroom–Madeira wine sauce', MAIN, SA, {
-      order: 37, allergens: ['Dairy'],
-      ingredients: 'veal, prosciutto, fontina, wild mushroom, Madeira',
+      order: 37, allergens: ['Gluten', 'Dairy'],
+      ingredients: 'veal, flour, prosciutto, fontina, wild mushroom, Madeira',
       pairRed: PR_BARBERA,
       i18n: ix('Escalope de ternera “Valdostana”', 'Prosciutto di Parma y fontina en salsa de setas y Madeira', 'Escalope de veau « Valdostana »', 'Prosciutto di Parma et fontina, sauce champignons sauvages au madère', '小牛肉片「瓦尔多斯塔纳」', '帕尔玛火腿与冯蒂纳奶酪、蘑菇马德拉酱')
     }),
