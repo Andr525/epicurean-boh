@@ -265,8 +265,8 @@
     }),
 
     d('sf_e_sorbet', 'Coconut–lime sorbet with rum glazed pineapple', 'Served automatically as an entremet (palate cleanser) before dessert. Lime and coconut sorbet with rum-glazed pineapple. Nuts may finish the plate. You do not choose this course.', 'Entremet', PA, {
-      order: 50, allergens: ['Tree Nut'], cookNote: 'Allergy check: nuts and rum. Do not fire if the guest has a nut allergy unless confirmed.',
-      ingredients: 'coconut, lime, rum, pineapple, nut',
+      order: 50, allergens: ['Tree Nut', 'Gluten'], cookNote: 'Allergy check: nuts, granola (gluten) and rum. Do not fire if the guest has a nut allergy unless confirmed.',
+      ingredients: 'coconut, lime, rum, pineapple, granola, nut',
       pairDessert: PD_MOSCATO,
       i18n: ix('Sorbete de coco y lima con piña al ron', 'Entremet (limpia paladar). Sorbete de coco y lima y piña al ron. Puede llevar frutos secos. La cocina lo envía sola; no se elige.', 'Sorbet coco-citron vert, ananas au rhum', 'Entremet (pause-palais). Sorbet coco-citron vert et ananas au rhum. Fruits à coque possibles. La cuisine l’envoie ; on ne le choisit pas.', '椰奶青柠雪芭配朗姆酒菠萝', '开胃小食（清口）。椰奶青柠雪芭与朗姆酒菠萝。可能含坚果。厨房自动出品，无需点选。')
     }),
@@ -441,8 +441,8 @@
       i18n: ix('Filet mignon “Giambotta” — Toscana', 'Salsa de vino picante con champiñones, cebolla y pimientos. El filet es el solomillo. Bastrop Cattle Company, Texas.', 'Filet mignon « Giambotta » — Toscane', 'Sauce au vin pimentée, champignons, oignons et poivrons. Le filet est le filet, le long de l’échine. Bastrop Cattle Company, Texas.', '菲力牛排「江博塔」— 托斯卡纳', '辣味葡萄酒酱。菲力取自牛脊旁里脊。德州 Bastrop Cattle Company。')
     }),
     tc(7, 'Lime & coconut sorbet with rum pineapple', 'Served automatically as an entremet (palate cleanser) before dessert. Lime and coconut sorbet with rum-glazed pineapple. Nuts may finish the plate. You do not choose this course.', PA, {
-      allergens: ['Tree Nut'], mode: 'entremets', pending: true, fireAfter: 'meat', dishId: 'sf_e_sorbet', group: 'Entremet',
-      cookNote: 'Allergy check: nuts and rum. Auto-fire after the meat course; guest does not choose.', pairDessert: PD_MOSCATO,
+      allergens: ['Tree Nut', 'Gluten'], mode: 'entremets', pending: true, fireAfter: 'meat', dishId: 'sf_e_sorbet', group: 'Entremet',
+      cookNote: 'Allergy check: nuts, granola (gluten) and rum. Auto-fire after the meat course; guest does not choose.', pairDessert: PD_MOSCATO,
       i18n: ix('Sorbete de lima y coco con piña al ron', 'Se sirve automáticamente como entremet (limpia paladar) antes del postre. El huésped no lo elige.', 'Sorbet citron vert-coco, ananas au rhum', 'Servi automatiquement en entremet (pause palais) avant le dessert. Le client ne le choisit pas.', '青柠椰奶雪芭配朗姆菠萝', '作为餐间清口自动上桌，宾客无需点选。')
     }),
     tc(8, 'Dolce', '', PA, {

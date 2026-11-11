@@ -1946,7 +1946,8 @@ var NAV = [
   {group:'Operations', items:[
     {r:'overview', ico:'◆', label:'Overview', perm:null},
     {r:'floor',    ico:'▦', label:'Floor & Tables', perm:'floor'},
-    {r:'clocked',  ico:'◷', label:'On the Clock', perm:null}
+    {r:'clocked',  ico:'◷', label:'On the Clock', perm:null},
+    {r:'orders',   ico:'🧾', label:'Orders & Voids', perm:'floor'}
   ]},
   {group:'People', items:[
     {r:'staff',    ico:'☰', label:'Employees', perm:'staff'},
@@ -2013,6 +2014,7 @@ function render(){
 function pageFor(r){
   switch(r){
     case 'floor':     return PAGE_floor();
+    case 'orders':    return PAGE_orders();
     case 'clocked':   return PAGE_clocked();
     case 'staff':     return PAGE_staff();
     case 'payroll_settings': return PAGE_payroll_settings();
@@ -2028,6 +2030,60 @@ function pageFor(r){
     case 'reports':   return PAGE_reports();
     default:          return PAGE_overview();
   }
+}
+
+/* ============================================================
+   PAGE: ORDERS & VOIDS  (every closed table the POS saved: paid, comped, erased)
+   ============================================================ */
+var ARCH={list:null,filter:'all',range:'7',open:null,loading:false};
+function refreshArchive(){
+  if(!fbReady||!fbDb){ ARCH.list=[]; return; }
+  ARCH.loading=true;
+  var unsub=null, got=false;
+  unsub=fbDb.collection('checks').onSnapshot(function(snap){
+    if(got) return; got=true;
+    var out=[]; snap.forEach(function(d){ var c=d.data()||{}; c.id=c.id||d.id; if(c.status&&c.status!=='open') out.push(c); });
+    out.sort(function(a,b){return (b.closedAt||b.voidedAt||0)-(a.closedAt||a.voidedAt||0);});
+    ARCH.list=out; ARCH.loading=false;
+    if(typeof unsub==='function') unsub();
+    if(ROUTE==='orders') render();
+  },function(){ ARCH.list=[]; ARCH.loading=false; if(ROUTE==='orders') render(); });
+}
+function archTotal(c){
+  if(c.voidAmount!=null) return Number(c.voidAmount)||0;
+  var t=c.guest&&c.guest.totals&&c.guest.totals.subtotal; return Number(t)||0;
+}
+function PAGE_orders(){
+  if(!can('floor')) return lockedPage('Orders & Voids');
+  if(ARCH.list===null && !ARCH.loading) refreshArchive();
+  var list=(ARCH.list||[]).filter(function(c){
+    if(ARCH.filter!=='all' && c.status!==ARCH.filter) return false;
+    if(ARCH.range!=='all'){ var t=c.closedAt||c.voidedAt||0; if(Date.now()-t>Number(ARCH.range)*86400000) return false; }
+    return true;
+  });
+  var chips=[['all','All'],['paid','Paid'],['comp','Comped'],['void','Erased']].map(function(f){return '<button class="btn btn-sm '+(ARCH.filter===f[0]?'btn-gold':'btn-ghost')+'" onclick="ARCH.filter=\''+f[0]+'\';render()">'+f[1]+'</button>';}).join(' ');
+  var rng=[['1','Today'],['7','7 days'],['30','30 days'],['all','All']].map(function(f){return '<button class="btn btn-sm '+(ARCH.range===f[0]?'btn-gold':'btn-ghost')+'" onclick="ARCH.range=\''+f[0]+'\';render()">'+f[1]+'</button>';}).join(' ');
+  var sum={paid:0,comp:0,void:0}; list.forEach(function(c){ if(sum[c.status]!=null) sum[c.status]+=archTotal(c); });
+  var rows=list.map(function(c){
+    var pill=c.status==='paid'?'<span class="pill in">Paid</span>':c.status==='comp'?'<span class="pill gold">Comped</span>':'<span class="pill out">Erased</span>';
+    var when=c.closedAt||c.voidedAt||0;
+    var why=c.voidReason?esc(c.voidReason)+(c.voidApprovedBy?' <span style="color:var(--text-faint)">· approved by '+esc(c.voidApprovedBy)+'</span>':''):'';
+    var open=ARCH.open===c.id;
+    var items=open?'<tr><td colspan="7" style="background:rgba(255,255,255,.03)">'+archItems(c)+'</td></tr>':'';
+    return '<tr style="cursor:pointer" onclick="ARCH.open=ARCH.open===\''+esc(c.id)+'\'?null:\''+esc(c.id)+'\';render()"><td>'+fmtDate(when)+' '+fmtTime(when)+'</td><td><b>Table '+esc(c.table)+'</b></td><td>'+esc(c.voidedByServer||c.server||'')+'</td><td>'+(c.guestCount||'')+'</td><td>'+pill+'</td><td style="text-align:right">$'+archTotal(c).toFixed(2)+'</td><td>'+why+'</td></tr>'+items;
+  }).join('');
+  var body='<div class="panel"><div class="panel-title">Orders & Voids <div class="row-actions"><button class="btn btn-ghost btn-sm" onclick="ARCH.list=null;render()">Refresh ↻</button></div></div>'+
+    '<div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px">'+chips+'<span style="width:12px"></span>'+rng+'</div>'+
+    '<div class="mini-note" style="margin-bottom:10px">Paid $'+sum.paid.toFixed(2)+' · Comped $'+sum.comp.toFixed(2)+' · Erased $'+sum.void.toFixed(2)+' (food and drink before tax and tip). Tap a row to see what was on the table.</div>'+
+    (ARCH.loading?'<div class="empty">Loading…</div>':list.length?'<table><thead><tr><th>Closed</th><th>Table</th><th>Server</th><th>Guests</th><th>Status</th><th style="text-align:right">Total</th><th>Reason</th></tr></thead><tbody>'+rows+'</tbody></table>':'<div class="empty">Nothing here for this filter yet.</div>')+'</div>';
+  return {title:'Orders & Voids',sub:'Every closed table, saved by the POS',body:body};
+}
+function archItems(c){
+  var items=(c.guest&&c.guest.items)||[];
+  if(!items.length) return '<div class="mini-note">No line items were saved for this check.</div>';
+  return '<table style="width:100%"><tbody>'+items.map(function(i){
+    return '<tr><td style="width:70px">'+esc(String(i.seat==null?'':i.seat))+(i.seatPriority&&!/A$/.test(String(i.seat))?'A':'')+'</td><td>'+(parseInt(i.qty,10)||1)+' × '+esc(i.name||'')+(i.selectedMod?' <span style="color:var(--text-dim)">'+esc(i.selectedMod)+'</span>':'')+'</td><td style="text-align:right">$'+((Number(i.price)||0)*(parseInt(i.qty,10)||1)).toFixed(2)+'</td></tr>';
+  }).join('')+'</tbody></table>';
 }
 
 /* ============================================================
@@ -4525,7 +4581,7 @@ function saveServiceSettings(){
   function num(id,fb){ var e=document.getElementById(id); var v=e?Number(e.value):NaN; return isFinite(v)&&v>0?v:fb; }
   var cur=STATE.serviceSettings||{};
   var aamEl=document.getElementById('ss-aam'), aamX=document.getElementById('ss-aamx'), aamV=aamX?Number(aamX.value):NaN;
-  STATE.serviceSettings={ extraAppetizer:num('ss-app',cur.extraAppetizer||32), extraMain:num('ss-main',cur.extraMain||46), extraDessert:num('ss-des',cur.extraDessert||27), allowAppAsMain:aamEl?!!aamEl.checked:(cur.allowAppAsMain!==false), appAsMainExtra:(isFinite(aamV)&&aamV>=0)?aamV:(Number(cur.appAsMainExtra)||0), groupFreeCourses:(function(e){return e?!!e.checked:(cur.groupFreeCourses!==false);})(document.getElementById('ss-gfc')), compactBill:(function(e){return e?!!e.checked:(cur.compactBill!==false);})(document.getElementById('ss-cb')) };
+  STATE.serviceSettings={ extraAppetizer:num('ss-app',cur.extraAppetizer||32), extraMain:num('ss-main',cur.extraMain||46), extraDessert:num('ss-des',cur.extraDessert||27), allowAppAsMain:aamEl?!!aamEl.checked:(cur.allowAppAsMain!==false), appAsMainExtra:(isFinite(aamV)&&aamV>=0)?aamV:(Number(cur.appAsMainExtra)||0), managerVoid:(function(e){return e?!!e.checked:(cur.managerVoid!==false);})(document.getElementById('ss-mv')), voidNeedsCode:(function(e){return e?!!e.checked:(cur.voidNeedsCode!==false);})(document.getElementById('ss-vc')), groupFreeCourses:(function(e){return e?!!e.checked:(cur.groupFreeCourses!==false);})(document.getElementById('ss-gfc')), compactBill:(function(e){return e?!!e.checked:(cur.compactBill!==false);})(document.getElementById('ss-cb')) };
   lsSet('eh_service_settings', STATE.serviceSettings);
   var done=fbSetDoc('boh_shared','service_settings',Object.assign({updatedAt:Date.now()},STATE.serviceSettings));
   if(done&&done.then) done.then(function(ok){ toast(ok===false?'Saved here only \u2014 could not reach the database':'Saved \u2014 POS prices update live', ok===false?'error':'success'); });
@@ -4638,7 +4694,7 @@ syncFromCloud = function(){
   return _origSync().then(function(){
     if(!fbReady) return;
     return Promise.all([
-      fbGetDoc('boh_shared','service_settings').then(function(d){ if(d&&d.extraMain){ STATE.serviceSettings={extraAppetizer:d.extraAppetizer,extraMain:d.extraMain,extraDessert:d.extraDessert,allowAppAsMain:d.allowAppAsMain!==false,appAsMainExtra:Number(d.appAsMainExtra)||0,groupFreeCourses:d.groupFreeCourses!==false,compactBill:d.compactBill!==false}; lsSet('eh_service_settings',STATE.serviceSettings); } }),
+      fbGetDoc('boh_shared','service_settings').then(function(d){ if(d&&d.extraMain){ STATE.serviceSettings={extraAppetizer:d.extraAppetizer,extraMain:d.extraMain,extraDessert:d.extraDessert,allowAppAsMain:d.allowAppAsMain!==false,appAsMainExtra:Number(d.appAsMainExtra)||0,groupFreeCourses:d.groupFreeCourses!==false,managerVoid:d.managerVoid!==false,voidNeedsCode:d.voidNeedsCode!==false,compactBill:d.compactBill!==false}; lsSet('eh_service_settings',STATE.serviceSettings); } }),
       fbGetDoc('boh_shared','prep_times').then(function(d){ if(d&&d.times){ STATE.prepTimes=d.times; lsSet('eh_prep_times',d.times); } if(d&&d.keys){ STATE.kitchenKeys=d.keys; lsSet('eh_kitchen_keys',d.keys); } }),
       fbGetDoc('boh_shared','print_settings').then(function(d){ if(d&&d.copies){ STATE.printSettings={copies:Number(d.copies)||1, ladiesFirst:d.ladiesFirst!==false}; lsSet('eh_print_settings',STATE.printSettings); } }),
       fbGetDoc('boh_shared','btg_pours').then(function(d){ if(d&&d.prices){ STATE.btgPours=d.prices; lsSet('eh_btg_pours',d.prices); } }),
@@ -4767,6 +4823,10 @@ function tastingBody(){
     '<div class="tc-sub">When on, and a seat has an appetizer in the prix fixe but its main is set to NONE, tapping a second appetizer in Add items asks the waiter: make it the main course? (yes), then which size (main or appetizer). It fills the prix fixe main (no extra plate) for the charge below.</div>'+
     '<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="ss-aam"'+(ss.allowAppAsMain===false?'':' checked')+'> Allow it</label>'+
     '<div class="ff-row cols-3">'+fld('Extra charge $ (0 = included)','<input class="input" id="ss-aamx" type="number" min="0" step="0.01" value="'+(Number(ss.appAsMainExtra)||0)+'">')+'</div></div>'+
+    '<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.12)"><div class="tc-title serif" style="font-size:1rem">Erasing or comping a table in the POS</div>'+
+    '<div class="tc-sub">Managers can erase a table that ordered (mistakes, test orders) or comp it. Everything is saved under Orders &amp; Voids with the reason and who approved it.</div>'+
+    '<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="ss-mv"'+(ss.managerVoid===false?'':' checked')+'> Allow erase / comp from the POS (turn off to remove the buttons completely)</label>'+
+    '<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="ss-vc"'+(ss.voidNeedsCode===false?'':' checked')+'> Ask for a manager code (a code that starts with 5) before it goes through</label></div>'+
     '<div style="margin-top:14px;padding-top:12px;border-top:1px solid rgba(255,255,255,.12)"><div class="tc-title serif" style="font-size:1rem">How the waiter\u2019s order screen looks</div>'+
     '<div class="tc-sub">Less clutter on the small POS screen. Changes reach every POS live.</div>'+
     '<label style="display:flex;gap:8px;align-items:center;margin:10px 0"><input type="checkbox" id="ss-gfc"'+(ss.groupFreeCourses===false?'':' checked')+'> Complimentary courses (Primi Piccolo, amuse): ONE line per dish for the whole table, with a note only for seats that have an allergy</label>'+
