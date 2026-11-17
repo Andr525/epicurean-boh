@@ -33,7 +33,7 @@
     };
   }
 
-  var KITCHEN_KEYS = {"sf_w_salmon": "Salmon", "sf_w_zucchini": "Zucchini", "sf_w_shrimp": "Shrimp", "sf_w_crostini": "Crostini", "sf_p_arugula": "Arugula", "sf_p_lobster": "Lobster", "sf_p_raviolo": "Raviolo", "sf_p_porcini": "Porcini", "sf_p_agnolotti": "Agnolotti", "sf_p_pappardelle": "Pappardelle", "sf_p_linguini": "Pescatore", "sf_p_fusilli": "Fusilli", "sf_e_sorbet": "Sorbet", "sf_d_napoleon": "Napoleon", "sf_d_cake": "Choc cake", "sf_d_tart": "Choc tart", "sf_d_basque": "Basque", "sf_d_pistachio_tart": "Pistachio tart", "sf_d_pineapple": "Pineapple tart", "sf_d_banana": "Banana", "sf_d_gelato": "Gelato", "sf_d_formaggio": "Formaggio"};
+  var KITCHEN_KEYS = {"sf_w_salmon": "Salmon", "sf_w_zucchini": "Zucchini", "sf_w_shrimp": "Shrimp", "sf_w_crostini": "Crostini", "sf_p_arugula": "Arugula", "sf_p_lobster": "Lobster", "sf_p_raviolo": "Raviolo", "sf_p_porcini": "Porcini", "sf_p_agnolotti": "Agnolotti", "sf_p_pappardelle": "Pappardelle", "sf_p_linguini": "Pescatore", "sf_p_fusilli": "Fusilli", "sf_m_scallops": "Scallops", "sf_e_sorbet": "Sorbet", "sf_d_napoleon": "Napoleon", "sf_d_cake": "Choc cake", "sf_d_tart": "Choc tart", "sf_d_basque": "Basque", "sf_d_pistachio_tart": "Pistachio tart", "sf_d_pineapple": "Pineapple tart", "sf_d_banana": "Banana", "sf_d_gelato": "Gelato", "sf_d_formaggio": "Formaggio"};
 
   function d(id, name, desc, course, station, extra) {
     extra = extra || {};
@@ -192,11 +192,11 @@
       pairWhite: PW_BIANCO,
       i18n: ix('Filete de lenguado “Francese”', 'Filete salteado con ligera costra de huevo y harina, salsa de vino blanco, limón y alcaparras', 'Filet de sole « Francese »', 'Filet sauté, légère croûte œuf-farine, sauce vin blanc citron-câpres', '龙利鱼柳「法兰西」', '薄蛋粉衣煎龙利鱼，白葡萄酒柠檬刺山柑酱')
     }),
-    d('sf_m_scallops', 'Dayboat sea scallops “Bianco - Nero”', 'Celery root puree, roasted sunchokes, prosecco and black truffle jus', MAIN, SA, {
+    d('sf_m_scallops', 'Dayboat sea scallops', 'Celery root puree, roasted sunchokes, prosecco and black truffle jus', MAIN, SA, {
       order: 31, allergens: ['Shellfish'],
       ingredients: 'scallop, celery root, sunchoke, prosecco, black truffle',
       pairWhite: PW_CHARD,
-      i18n: ix('Vieiras “Bianco - Nero”', 'Puré de apionabo, topinambur asados, jugo de prosecco y trufa negra', 'Saint-Jacques « Bianco - Nero »', 'Purée de céleri-rave, topinambours rôtis, jus de prosecco et truffe noire', '扇贝「白与黑」', '芹菜根泥、烤菊芋、普罗塞克与黑松露汁')
+      i18n: ix('Vieiras', 'Puré de apionabo, topinambur asados, jugo de prosecco y trufa negra', 'Saint-Jacques', 'Purée de céleri-rave, topinambours rôtis, jus de prosecco et truffe noire', '扇贝', '芹菜根泥、烤菊芋、普罗塞克与黑松露汁')
     }),
     d('sf_m_forestiere', 'Filet of Faroe Island salmon “Forrestiere”', 'Wild mushroom and black truffle crust over spinach and roasted beets', MAIN, SA, {
       order: 32, allergens: ['Fish', 'Dairy'], askTemp: 'salmon',

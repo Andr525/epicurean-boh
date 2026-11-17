@@ -4538,6 +4538,59 @@ function ptDishes(){
   (STATE.menuItems||[]).forEach(function(it){ if(it&&it.name) add(it.name,it.station,it.kitchenKey); });
   return out.sort(function(a,b){ return (a.station||'~').localeCompare(b.station||'~')||a.name.localeCompare(b.name); });
 }
+
+// Suggests one short, collision-free word per dish for the kitchen screen and ticket (rule-based, runs on the device, costs nothing).
+var KW_PROTEINS=['scallops','scallop','salmon','shrimp','lobster','sole','veal','pork','chicken','duck','lamb','beef','filet mignon','steak','branzino','halibut','tuna','octopus','calamari','crab','mussels','clams','swordfish','cod','eggplant','zucchini','arugula','burrata','mozzarella','gnocchi','risotto','agnolotti','raviolo','ravioli','tortellini','pappardelle','tagliatelle','spaghettini','spaghetti','linguini','linguine','fusilli','rigatoni','penne','sorbet','sorbetti','gelato','tiramisu','cheesecake','tart','cake','napoleon','basque','panna cotta','crostini','porcini','mushroom'];
+var KW_NOISE={'the':1,'a':1,'an':1,'of':1,'and':1,'with':1,'in':1,'on':1,'oz':1,'oz.':1,'split':1,'dayboat':1,'roasted':1,'braised':1,'toasted':1,'crusted':1,'boneless':1,'breast':1,'slowly':1,'butter':1,'thyme':1,'fresh':1,'house':1,'made':1,'homemade':1,'wild':1,'grilled':1,'pan':1,'seared':1,'sauteed':1,'baked':1,'filet':1,'fillet':1,'faroe':1,'island':1,'ecuadorian':1,'legs':1,'pignoli':1,'size':1,'main':1,'appetizer':1};
+function kwSimplify(name){
+  var q=String(name||'').match(/[“"]([^”"]+)[”"]/);
+  var base=String(name||'').replace(/[“"][^”"]*[”"]/g,' ').replace(/\((main|appetizer|app)\s*size\)/ig,' ').replace(/\$\s*\d+(\.\d+)?/g,' ').replace(/\b\d+(\.\d+)?\s*(oz\.?|lb\.?|g)\b/ig,' ').replace(/[^A-Za-zÀ-ÿ\s'-]/g,' ').replace(/\s+/g,' ').trim();
+  return { base:base, nick:q?q[1].replace(/\s+/g,' ').trim():'', tokens:base.split(' ').filter(Boolean) };
+}
+function kwCap(w){ return w?w.charAt(0).toUpperCase()+w.slice(1).toLowerCase():''; }
+function kwCore(sim){
+  var low=sim.base.toLowerCase(), best='';
+  KW_PROTEINS.forEach(function(p){ if(new RegExp('\\b'+p+'\\b').test(low) && p.length>best.length) best=p; });
+  if(best) return best==='scallop'?'scallops':best;
+  var t=sim.tokens.filter(function(w){ return !KW_NOISE[w.toLowerCase()]; });
+  if(t.length) return t[t.length>1&&sim.tokens.length>2?0:t.length-1].toLowerCase();
+  return sim.nick?sim.nick.toLowerCase():(sim.tokens[0]||'').toLowerCase();
+}
+function kwTitle(s){ return String(s).split(' ').map(kwCap).join(' '); }
+function suggestKitchenWordsMap(dishes){
+  var rows=dishes.map(function(d,i){
+    var sim=kwSimplify(d.name), core=kwCore(sim);
+    // nickname-only dishes ("Rosso - Bianco", "Panino") keep their nickname
+    if(!sim.base && sim.nick) return {d:d,i:i,sim:sim,core:sim.nick.toLowerCase(),word:kwTitle(sim.nick),nickOnly:true};
+    var extra=sim.tokens.filter(function(w){ var l=w.toLowerCase(); return !KW_NOISE[l] && core.indexOf(l)<0 && l!==core; });
+    return {d:d,i:i,sim:sim,core:core,extra:extra,word:kwTitle(core)};
+  });
+  var groups={}; rows.forEach(function(r){ (groups[r.word.toLowerCase()]=groups[r.word.toLowerCase()]||[]).push(r); });
+  Object.keys(groups).forEach(function(k){
+    var g=groups[k]; if(g.length<2) return;
+    // the plainest dish keeps the short word; the others get a second word that tells them apart
+    g.sort(function(a,b){ return (a.extra||[]).length-(b.extra||[]).length||a.i-b.i; });
+    for(var n=1;n<g.length;n++){
+      var r=g[n], add=(r.extra&&r.extra[0])||r.sim.nick||'';
+      r.word=kwTitle(r.core)+(add?' '+kwCap(add.split(' ')[0]):' '+(n+1));
+    }
+  });
+  var used={}, out={};
+  rows.sort(function(a,b){ return a.i-b.i; }).forEach(function(r){
+    var w=r.word.slice(0,20).trim(), base=w, n=2;
+    while(used[w.toLowerCase()]){ var more=(r.sim.nick||'').split(' ')[0]; w=(base+' '+(more&&n===2?kwCap(more):n)).slice(0,20); n++; }
+    used[w.toLowerCase()]=1; out[r.d.key]=w;
+  });
+  return out;
+}
+function suggestKitchenWords(overwrite){
+  var map=suggestKitchenWordsMap(ptDishes()), n=0;
+  [].forEach.call(document.querySelectorAll('.kk-in'),function(i){
+    var k=i.getAttribute('data-k'); if(!map[k]) return;
+    if(overwrite || !i.value.trim()){ i.value=map[k]; i.style.background='rgba(201,168,76,.18)'; n++; }
+  });
+  toast(n?('Suggested '+n+' word'+(n===1?'':'s')+' — edit any you like, then Save'):'Every dish already has a word','success');
+}
 function bundledKitchenKey(name){ var k=prepKey(name), hit=''; try{ (function w(o,d){ if(hit||!o||typeof o!=='object'||d>6) return; if(o.name&&o.kitchenKey&&prepKey(o.name)===k){ hit=o.kitchenKey; return; } Object.keys(o).forEach(function(x){ if(x!=='i18n') w(o[x],d+1); }); })(window.EPICUREAN_SCALINI,0); }catch(e){} return hit; }
 function autoKitchenKey(n){ var q=String(n||'').match(/[\u201C"]([^\u201D"]+)[\u201D"]/); return q?q[1]:''; }
 var PF_ALLERGENS=['Gluten','Dairy','Egg','Peanut','Tree Nut','Shellfish','Fish','Soy','Sesame','Sulfites'];
@@ -4840,6 +4893,8 @@ function tastingBody(){
     '<button class="btn btn-gold btn-sm" type="button" onclick="savePrintSettings()">Save</button></div>';
   var prepBox='<div class="tasting-card" style="cursor:default;margin-bottom:18px"><div class="tc-title serif">Kitchen ticket word &amp; prep time</div>'+
     '<div class="tc-sub">Ticket word: the one short word the kitchen sees for the dish (Pescatore, Valdostana). Leave it blank to use the word in quotes in the dish name. Minutes: how long each dish takes to cook. The Kitchen screen adds up the plates per station and shows the expo when every station should start so a course lands together. Leave blank if unknown.</div>'+
+    '<div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="btn btn-sm" type="button" onclick="suggestKitchenWords(false)">Suggest words for blanks</button><button class="btn btn-sm" type="button" onclick="if(confirm(\'Replace every ticket word with a fresh suggestion?\'))suggestKitchenWords(true)">Re-suggest all</button></div>'+
+    '<div class="tc-sub" style="margin-top:6px">Suggestions make each word short and unique: if two dishes would both be \u201CPork\u201D, the plainest keeps \u201CPork\u201D and the other becomes \u201CPork Medallions\u201D.</div>'+
     '<div style="max-height:380px;overflow:auto;margin-top:10px"><table class="dt"><thead><tr><th>Dish</th><th>Word on kitchen ticket</th><th>Minutes</th></tr></thead><tbody>'+ptRows()+'</tbody></table></div>'+
     '<button class="btn btn-gold btn-sm" type="button" style="margin-top:10px" onclick="savePrepTimes()">Save prep times</button></div>';
   return sectionHead('Tasting & Prix Fixe','Create multi-course experiences. Tasting menus have fixed courses; Prix Fixe lets guests choose from options per course.',btns)+
